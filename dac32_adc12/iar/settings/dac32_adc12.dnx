@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<settings>
+    <PE_STARTUP>
+        <SHOWDIALOG>_ "0"</SHOWDIALOG>
+    </PE_STARTUP>
+    <PE_STORED_DEVICES>
+        <device0>_ "NXP_KEx_KE18F512M16"</device0>
+    </PE_STORED_DEVICES>
+    <PE_PEDEBUG>
+        <CURRENTDEVICE>_ "NXP_KEx_KE18F512M16"</CURRENTDEVICE>
+    </PE_PEDEBUG>
+    <PE_DEVICE>
+        <CHIPMODE>_ "NXP_KEx_KE18F512M16"</CHIPMODE>
+    </PE_DEVICE>
+    <Stack>
+        <FillEnabled>0</FillEnabled>
+        <OverflowWarningsEnabled>1</OverflowWarningsEnabled>
+        <WarningThreshold>90</WarningThreshold>
+        <SpWarningsEnabled>1</SpWarningsEnabled>
+        <WarnLogOnly>1</WarnLogOnly>
+        <UseTrigger>1</UseTrigger>
+        <TriggerName>main</TriggerName>
+        <LimitSize>0</LimitSize>
+        <ByteLimit>50</ByteLimit>
+    </Stack>
+    <PlDriver>
+        <MemConfigValue>C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.0\arm\CONFIG\debugger\NXP\MKE18F512xxx16.ddf</MemConfigValue>
+    </PlDriver>
+    <Jet>
+        <DisableInterrupts>0</DisableInterrupts>
+        <LeaveRunning>0</LeaveRunning>
+        <MultiCoreRunAll>0</MultiCoreRunAll>
+    </Jet>
+    <ArmDriver>
+        <EnableCache>1</EnableCache>
+    </ArmDriver>
+    <LogFile>
+        <LoggingEnabled>_ 0</LoggingEnabled>
+        <LogFile>_ ""</LogFile>
+        <Category>_ 0</Category>
+    </LogFile>
+    <DisassembleMode>
+        <mode>0</mode>
+    </DisassembleMode>
+    <Breakpoints2>
+        <Count>0</Count>
+    </Breakpoints2>
+    <Aliases>
+        <Count>0</Count>
+        <SuppressDialog>0</SuppressDialog>
+    </Aliases>
+</settings>

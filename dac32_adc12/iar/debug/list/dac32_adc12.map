@@ -1,0 +1,637 @@
+###############################################################################
+#
+# IAR ELF Linker V8.20.1.14183/W32 for ARM                08/May/2018  14:08:19
+# Copyright 2007-2017 IAR Systems AB.
+#
+#    Output file  =  
+#        C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\dac32_adc12.out
+#    Map file     =  
+#        C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\list\dac32_adc12.map
+#    Command line =  
+#        -f C:\Users\JSamson\AppData\Local\Temp\EW4B8.tmp
+#        ("C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\board.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\clock_config.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\dac32_adc12.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_adc12.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_assert.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_clock.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_common.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_dac32.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_debug_console.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_flash.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_gpio.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_io.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_log.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_lpuart.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_smc.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\fsl_str.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\pin_mux.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\startup_MKE18F16.o"
+#        "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj\system_MKE18F16.o"
+#        --redirect _Printf=_PrintfSmallNoMb --redirect _Scanf=_ScanfSmallNoMb
+#        -o "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\dac32_adc12.out"
+#        --map "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\list\dac32_adc12.map"
+#        --config "C:\Users\JSamson\Desktop\DFM
+#        Project\boards\twrke18f\demo_apps\dac32_adc12\iar/MKE18F512xxx16_flash.icf"
+#        --semihosting --entry __iar_program_start --vfe --text_out locale)
+#
+###############################################################################
+
+*******************************************************************************
+*** RUNTIME MODEL ATTRIBUTES
+***
+
+CppFlavor       = *
+__SystemLibrary = DLib
+__dlib_version  = 6
+
+
+*******************************************************************************
+*** HEAP SELECTION
+***
+
+The basic heap was selected because some modules are built with
+size limitations (and not runtime checking), and --advanced_heap
+was not specified.
+
+
+*******************************************************************************
+*** PLACEMENT SUMMARY
+***
+
+"A0":  place at 0x00000000 { ro section .intvec };
+"P1":  place in [from 0x00000400 to 0x0000040f] { section FlashConfig };
+"P2":  place in [from 0x00000000 to 0x000003ff] |
+                [from 0x00000410 to 0x0007ffff] { ro };
+define block RW { rw };
+"P3":  place in [from 0x1fff8000 to 0x1fffffff] |
+                [from 0x20000000 to 0x20007bff] { block RW };
+define block ZI { zi };
+"P4":  place in [from 0x1fff8000 to 0x1fffffff] |
+                [from 0x20000000 to 0x20007bff] { block ZI };
+define block NCACHE_VAR { section NonCacheable, section NonCacheable.init };
+"P7":  place in [from 0x1fff8000 to 0x1fffffff] |
+                [from 0x20000000 to 0x20007bff] { block NCACHE_VAR };
+define block CSTACK with size = 1K, alignment = 8 { };
+"P6":  place in [from 0x20007c00 to 0x20007fff] { block CSTACK };
+initialize by copy { rw, section .textrw };
+
+No sections matched the following patterns:
+
+  section NonCacheable       in block NCACHE_VAR
+  section NonCacheable.init  in block NCACHE_VAR
+
+
+  Section            Kind        Address    Size  Object
+  -------            ----        -------    ----  ------
+"A0":                                      0x400
+  .intvec            ro code  0x00000000   0x400  startup_MKE18F16.o [1]
+                            - 0x00000400   0x400
+
+"P1":                                       0x10
+  FlashConfig        ro code  0x00000400    0x10  startup_MKE18F16.o [1]
+                            - 0x00000410    0x10
+
+"P2":                                     0x4238
+  .text              ro code  0x00000410   0xb28  pow64.o [4]
+  .text              ro code  0x00000f38    0x20  DblCmpEq.o [4]
+  .text              ro code  0x00000f58    0x70  frexp.o [4]
+  .text              ro code  0x00000fc8    0x2e  DblCmpLe.o [4]
+  .text              ro code  0x00000ff6     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x00000ff8   0x1a2  DblMul.o [4]
+  .text              ro code  0x0000119a     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x0000119c   0x178  DblAdd.o [4]
+  .text              ro code  0x00001314    0x3a  DblToS32.o [4]
+  .text              ro code  0x0000134e     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x00001350    0x22  S32ToDbl.o [4]
+  .text              ro code  0x00001372     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x00001374    0xe2  DblSub.o [4]
+  .text              ro code  0x00001456     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x00001458   0x246  DblDiv.o [4]
+  .text              ro code  0x0000169e     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x000016a0    0x2e  DblCmpGe.o [4]
+  .text              ro code  0x000016ce     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x000016d0   0x418  iar_Exp64.o [4]
+  .text              ro code  0x00001ae8   0x13a  ldexp.o [4]
+  .text              ro code  0x00001c22     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x00001c24   0x5d8  fsl_clock.o [1]
+  .text              ro code  0x000021fc    0x1c  fsl_assert.o [1]
+  .text              ro code  0x00002218    0xce  fsl_debug_console.o [1]
+  .text              ro code  0x000022e6     0x2  startup_MKE18F16.o [1]
+  .text              ro code  0x000022e8    0xc6  fsl_log.o [1]
+  .text              ro code  0x000023b0     0x6  ABImemclr4.o [5]
+  .text              ro code  0x000023b8   0x53a  fsl_str.o [1]
+  .text              ro code  0x000028f4    0xdc  fsl_io.o [1]
+  .text              ro code  0x000029d0    0x32  ABImemset48.o [5]
+  .text              ro code  0x00002a04    0xc0  modf.o [4]
+  .text              ro code  0x00002ac4    0x1a  U32ToDbl.o [4]
+  .text              ro code  0x00002ade    0x16  math_wrappers64.o [4]
+  .text              ro code  0x00002af4    0x5c  DblToS64.o [4]
+  .text              ro code  0x00002b50    0x52  S64ToDbl.o [4]
+  .text              ro code  0x00002ba4    0x36  strlen.o [5]
+  .text              ro code  0x00002bdc   0x524  fsl_lpuart.o [1]
+  .text              ro code  0x00003100   0x3a0  fsl_adc12.o [1]
+  .text              ro code  0x000034a0   0x2a4  dac32_adc12.o [1]
+  .text              ro code  0x00003744    0x70  pin_mux.o [1]
+  .text              ro code  0x000037b4   0x12c  clock_config.o [1]
+  .text              ro code  0x000038e0    0x70  board.o [1]
+  .text              ro code  0x00003950   0x17c  fsl_dac32.o [1]
+  .text              ro code  0x00003acc    0x68  DblToFlt.o [4]
+  .text              ro code  0x00003b34    0x48  FltToDbl.o [4]
+  .rodata            const    0x00003b7c    0x84  dac32_adc12.o [1]
+  .text              ro code  0x00003c00    0x74  system_MKE18F16.o [1]
+  .rodata            const    0x00003c74    0x5c  dac32_adc12.o [1]
+  .rodata            const    0x00003cd0    0x54  fsl_debug_console.o [1]
+  .rodata            const    0x00003d24    0x50  fsl_log.o [1]
+  .rodata            const    0x00003d74    0x4c  board.o [1]
+  .rodata            const    0x00003dc0    0x4c  clock_config.o [1]
+  .rodata            const    0x00003e0c    0x4c  dac32_adc12.o [1]
+  .rodata            const    0x00003e58    0x4c  dac32_adc12.o [1]
+  .rodata            const    0x00003ea4    0x4c  fsl_adc12.o [1]
+  .rodata            const    0x00003ef0    0x4c  fsl_adc12.o [1]
+  .rodata            const    0x00003f3c    0x4c  fsl_adc12.o [1]
+  .rodata            const    0x00003f88    0x4c  fsl_clock.o [1]
+  .rodata            const    0x00003fd4    0x4c  fsl_dac32.o [1]
+  .rodata            const    0x00004020    0x4c  fsl_dac32.o [1]
+  .rodata            const    0x0000406c    0x4c  fsl_io.o [1]
+  .rodata            const    0x000040b8    0x4c  fsl_lpuart.o [1]
+  .rodata            const    0x00004104    0x4c  fsl_lpuart.o [1]
+  .rodata            const    0x00004150    0x4c  pin_mux.o [1]
+  .text              ro code  0x0000419c    0x40  zero_init3.o [5]
+  .rodata            const    0x000041dc    0x34  dac32_adc12.o [1]
+  .rodata            const    0x00004210    0x2c  fsl_assert.o [1]
+  .text              ro code  0x0000423c    0x2c  copy_init3.o [5]
+  .text              ro code  0x00004268    0x28  startup_MKE18F16.o [1]
+  .text              ro code  0x00004290    0x28  data_init.o [5]
+  .rodata            const    0x000042b8    0x24  dac32_adc12.o [1]
+  .rodata            const    0x000042dc    0x24  dac32_adc12.o [1]
+  .text              ro code  0x00004300    0x22  fpinit_M.o [4]
+  .iar.init_table    const    0x00004324    0x24  - Linker created -
+  .text              ro code  0x00004348    0x1e  cmain.o [5]
+  .text              ro code  0x00004366     0x4  low_level_init.o [3]
+  .text              ro code  0x0000436a     0x4  exit.o [3]
+  .text              ro code  0x00004370     0xa  cexit.o [5]
+  .text              ro code  0x0000437c    0x14  exit.o [6]
+  .rodata            const    0x00004390    0x1c  dac32_adc12.o [1]
+  .rodata            const    0x000043ac    0x18  dac32_adc12.o [1]
+  .rodata            const    0x000043c4    0x14  dac32_adc12.o [1]
+  .rodata            const    0x000043d8    0x14  dac32_adc12.o [1]
+  .rodata            const    0x000043ec    0x10  clock_config.o [1]
+  .rodata            const    0x000043fc    0x10  dac32_adc12.o [1]
+  .rodata            const    0x0000440c    0x10  fsl_clock.o [1]
+  .rodata            const    0x0000441c     0xc  clock_config.o [1]
+  .rodata            const    0x00004428     0xc  clock_config.o [1]
+  .rodata            const    0x00004434     0xc  fsl_adc12.o [1]
+  .rodata            const    0x00004440     0xc  fsl_adc12.o [1]
+  .rodata            const    0x0000444c     0xc  fsl_lpuart.o [1]
+  .rodata            const    0x00004458     0xc  fsl_lpuart.o [1]
+  .text              ro code  0x00004464     0xc  cstartup_M.o [5]
+  .rodata            const    0x00004470     0x8  board.o [1]
+  .rodata            const    0x00004478     0x8  clock_config.o [1]
+  .rodata            const    0x00004480     0x8  clock_config.o [1]
+  .rodata            const    0x00004488     0x8  clock_config.o [1]
+  .rodata            const    0x00004490     0x8  dac32_adc12.o [1]
+  .rodata            const    0x00004498     0x8  fsl_adc12.o [1]
+  .rodata            const    0x000044a0     0x8  fsl_clock.o [1]
+  .rodata            const    0x000044a8     0x8  fsl_clock.o [1]
+  .rodata            const    0x000044b0     0x8  fsl_dac32.o [1]
+  .rodata            const    0x000044b8     0x8  fsl_debug_console.o [1]
+  .rodata            const    0x000044c0     0x8  fsl_io.o [1]
+  .rodata            const    0x000044c8     0x8  fsl_log.o [1]
+  .rodata            const    0x000044d0     0x8  fsl_lpuart.o [1]
+  .rodata            const    0x000044d8     0x8  pin_mux.o [1]
+  .text              ro code  0x000044e0     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000044e8     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000044f0     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000044f8     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004500     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004508     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004510     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004518     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004520     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004528     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004530     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004538     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004540     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004548     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004550     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004558     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004560     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004568     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004570     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004578     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004580     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004588     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004590     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004598     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045a0     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045a8     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045b0     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045b8     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045c0     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045c8     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045d0     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045d8     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045e0     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045e8     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045f0     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x000045f8     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004600     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004608     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004610     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004618     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004620     0x8  startup_MKE18F16.o [1]
+  .text              ro code  0x00004628     0x8  startup_MKE18F16.o [1]
+  .rodata            const    0x00004630     0x4  clock_config.o [1]
+  .rodata            const    0x00004634     0x4  clock_config.o [1]
+  .rodata            const    0x00004638     0x4  fsl_dac32.o [1]
+  .rodata            const    0x0000463c     0x4  fsl_dac32.o [1]
+  .text              ro code  0x00004640     0x4  startup_MKE18F16.o [1]
+  Initializer bytes  const    0x00004644     0x4  <for RW-1>
+  .rodata            const    0x00004648     0x0  zero_init3.o [5]
+  .rodata            const    0x00004648     0x0  copy_init3.o [5]
+                            - 0x00004648  0x4238
+
+"P3-P4|P7", part 1 of 2:                     0x4
+  RW                          0x1fff8000     0x4  <Block>
+    RW-1                      0x1fff8000     0x4  <Init block>
+      .data          inited   0x1fff8000     0x4  system_MKE18F16.o [1]
+                            - 0x1fff8004     0x4
+
+"P3-P4|P7", part 2 of 2:                    0x1c
+  ZI                          0x1fff8004    0x1c  <Block>
+    .bss             zero     0x1fff8004     0x4  fsl_clock.o [1]
+    .bss             zero     0x1fff8008     0x8  fsl_io.o [1]
+    .bss             zero     0x1fff8010     0xc  fsl_lpuart.o [1]
+    .bss             zero     0x1fff801c     0x4  fsl_lpuart.o [1]
+                            - 0x1fff8020    0x1c
+
+"P6":                                      0x400
+  CSTACK                      0x20007c00   0x400  <Block>
+    CSTACK           uninit   0x20007c00   0x400  <Block tail>
+                            - 0x20008000   0x400
+
+
+*******************************************************************************
+*** INIT TABLE
+***
+
+          Address     Size
+          -------     ----
+Zero (__iar_zero_init3)
+    1 destination range, total size 0x1c:
+          0x1fff8004  0x1c
+
+Copy (__iar_copy_init3)
+    1 source range, total size 0x4:
+          0x00004644   0x4
+    1 destination range, total size 0x4:
+          0x1fff8000   0x4
+
+
+
+*******************************************************************************
+*** MODULE SUMMARY
+***
+
+    Module               ro code  ro data  rw data
+    ------               -------  -------  -------
+C:\Users\JSamson\Desktop\DFM Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj: [1]
+    board.o                  112       84
+    clock_config.o           300      148
+    dac32_adc12.o            676      616
+    fsl_adc12.o              928      260
+    fsl_assert.o              28       44
+    fsl_clock.o            1 496      108        4
+    fsl_dac32.o              380      168
+    fsl_debug_console.o      206       92
+    fsl_io.o                 220       84        8
+    fsl_log.o                198       88
+    fsl_lpuart.o           1 316      184       16
+    fsl_str.o              1 338
+    pin_mux.o                112       84
+    startup_MKE18F16.o     1 438
+    system_MKE18F16.o        116        4        4
+    ----------------------------------------------
+    Total:                 8 864    1 964       32
+
+command line: [2]
+    ----------------------------------------------
+    Total:
+
+dl7M_tln.a: [3]
+    exit.o                     4
+    low_level_init.o           4
+    ----------------------------------------------
+    Total:                     8
+
+m7M_tls.a: [4]
+    DblAdd.o                 376
+    DblCmpEq.o                32
+    DblCmpGe.o                46
+    DblCmpLe.o                46
+    DblDiv.o                 582
+    DblMul.o                 418
+    DblSub.o                 226
+    DblToFlt.o               104
+    DblToS32.o                58
+    DblToS64.o                92
+    FltToDbl.o                72
+    S32ToDbl.o                34
+    S64ToDbl.o                82
+    U32ToDbl.o                26
+    fpinit_M.o                34
+    frexp.o                  112
+    iar_Exp64.o            1 048
+    ldexp.o                  314
+    math_wrappers64.o         22
+    modf.o                   192
+    pow64.o                2 856
+    ----------------------------------------------
+    Total:                 6 772
+
+rt7M_tl.a: [5]
+    ABImemclr4.o               6
+    ABImemset48.o             50
+    cexit.o                   10
+    cmain.o                   30
+    copy_init3.o              44
+    cstartup_M.o              12
+    data_init.o               40
+    strlen.o                  54
+    zero_init3.o              64
+    ----------------------------------------------
+    Total:                   310
+
+shb_l.a: [6]
+    exit.o                    20
+    ----------------------------------------------
+    Total:                    20
+
+    Gaps                      16        2
+    Linker created                     36    1 024
+--------------------------------------------------
+    Grand Total:          15 990    2 002    1 056
+
+
+*******************************************************************************
+*** ENTRY LIST
+***
+
+Entry                      Address   Size  Type      Object
+-----                      -------   ----  ----      ------
+.iar.init_table$$Base   0x00004324          --   Gb  - Linker created -
+.iar.init_table$$Limit  0x00004348          --   Gb  - Linker created -
+?main                   0x00004349         Code  Gb  cmain.o [5]
+ADC12_Deinit            0x00003313   0x16  Code  Gb  fsl_adc12.o [1]
+ADC12_DoAutoCalibration
+                        0x000033e5   0x98  Code  Gb  fsl_adc12.o [1]
+ADC12_EnableHardwareTrigger
+                        0x00003501   0x22  Code  Lc  dac32_adc12.o [1]
+ADC12_GetCalibrationStatus
+                        0x00003199   0xf0  Code  Lc  fsl_adc12.o [1]
+ADC12_GetChannelConversionValue
+                        0x000034df   0x22  Code  Lc  dac32_adc12.o [1]
+ADC12_GetChannelConversionValue
+                        0x00003149   0x22  Code  Lc  fsl_adc12.o [1]
+ADC12_GetChannelStatusFlags
+                        0x000033a5   0x28  Code  Gb  fsl_adc12.o [1]
+ADC12_GetDefaultConfig  0x00003329   0x30  Code  Gb  fsl_adc12.o [1]
+ADC12_GetInstance       0x0000316b   0x2e  Code  Lc  fsl_adc12.o [1]
+ADC12_GetStatusFlags    0x0000347d   0x24  Code  Gb  fsl_adc12.o [1]
+ADC12_Init              0x00003289   0x8a  Code  Gb  fsl_adc12.o [1]
+ADC12_SetChannelConfig  0x00003359   0x4c  Code  Gb  fsl_adc12.o [1]
+BOARD_BootClockRUN      0x0000385f   0x48  Code  Gb  clock_config.o [1]
+BOARD_InitDebugConsole  0x0000391f   0x22  Code  Gb  board.o [1]
+BOARD_InitPins          0x00003785   0x1e  Code  Gb  pin_mux.o [1]
+CLOCK_CONFIG_FircSafeConfig
+                        0x000037fb   0x64  Code  Lc  clock_config.o [1]
+CLOCK_DeinitFirc        0x00001fe5   0x22  Code  Gb  fsl_clock.o [1]
+CLOCK_DeinitSirc        0x00001e8b   0x24  Code  Gb  fsl_clock.o [1]
+CLOCK_DeinitSysOsc      0x00001d83   0x26  Code  Gb  fsl_clock.o [1]
+CLOCK_DeinitSysPll      0x000020df   0x22  Code  Gb  fsl_clock.o [1]
+CLOCK_DisableClock      0x00003125   0x24  Code  Lc  fsl_adc12.o [1]
+CLOCK_DisableClock      0x00003975   0x24  Code  Lc  fsl_dac32.o [1]
+CLOCK_EnableClock       0x00003101   0x24  Code  Lc  fsl_adc12.o [1]
+CLOCK_EnableClock       0x00003951   0x24  Code  Lc  fsl_dac32.o [1]
+CLOCK_EnableClock       0x00002bdd   0x28  Code  Lc  fsl_lpuart.o [1]
+CLOCK_EnableClock       0x00003745   0x24  Code  Lc  pin_mux.o [1]
+CLOCK_GetCurSysClkConfig
+                        0x000037d5   0x20  Code  Lc  clock_config.o [1]
+CLOCK_GetFircAsyncFreq  0x00002023   0x42  Code  Gb  fsl_clock.o [1]
+CLOCK_GetFircFreq       0x00002007   0x1c  Code  Gb  fsl_clock.o [1]
+CLOCK_GetFircFreq::fircFreq
+                        0x0000440c   0x10  Data  Lc  fsl_clock.o [1]
+CLOCK_GetIpFreq         0x00001c25   0x88  Code  Gb  fsl_clock.o [1]
+CLOCK_GetSircAsyncFreq  0x00001ed1   0x46  Code  Gb  fsl_clock.o [1]
+CLOCK_GetSircFreq       0x00001eaf   0x22  Code  Gb  fsl_clock.o [1]
+CLOCK_GetSircFreq::sircFreq
+                        0x000044a8    0x8  Data  Lc  fsl_clock.o [1]
+CLOCK_GetSysOscAsyncFreq
+                        0x00001ddf   0x46  Code  Gb  fsl_clock.o [1]
+CLOCK_GetSysOscFreq     0x00001da9   0x36  Code  Gb  fsl_clock.o [1]
+CLOCK_GetSysPllAsyncFreq
+                        0x0000214d   0x42  Code  Gb  fsl_clock.o [1]
+CLOCK_GetSysPllCommonFreq
+                        0x00002101   0x36  Code  Lc  fsl_clock.o [1]
+CLOCK_GetSysPllFreq     0x00002137   0x16  Code  Gb  fsl_clock.o [1]
+CLOCK_InitFirc          0x00001f17   0xce  Code  Gb  fsl_clock.o [1]
+CLOCK_InitSirc          0x00001e25   0x66  Code  Gb  fsl_clock.o [1]
+CLOCK_InitSysOsc        0x00001cad   0xd6  Code  Gb  fsl_clock.o [1]
+CLOCK_InitSysPll        0x00002065   0x7a  Code  Gb  fsl_clock.o [1]
+CLOCK_SetIpSrc          0x000038e1   0x3e  Code  Lc  board.o [1]
+CLOCK_SetIpSrc          0x000034a1   0x3e  Code  Lc  dac32_adc12.o [1]
+CLOCK_SetRunModeSysClkConfig
+                        0x000037b5   0x20  Code  Lc  clock_config.o [1]
+CLOCK_SetXtal0Freq      0x000037f5    0x6  Code  Lc  clock_config.o [1]
+CSTACK$$Base            0x20007c00          --   Gb  - Linker created -
+CSTACK$$Limit           0x20008000          --   Gb  - Linker created -
+ConvertFloatRadixNumToString
+                        0x00002479  0x1d4  Code  Lc  fsl_str.o [1]
+ConvertRadixNumToString
+                        0x000023b9   0xbe  Code  Lc  fsl_str.o [1]
+DAC32_Deinit            0x00003a27   0x1e  Code  Gb  fsl_dac32.o [1]
+DAC32_Enable            0x00003523   0x1a  Code  Lc  dac32_adc12.o [1]
+DAC32_Enable            0x00003999   0x1a  Code  Lc  fsl_dac32.o [1]
+DAC32_EnableBufferOutput
+                        0x0000353d   0x1a  Code  Lc  dac32_adc12.o [1]
+DAC32_GetDefaultConfig  0x00003a45   0x20  Code  Gb  fsl_dac32.o [1]
+DAC32_GetInstance       0x000039b3   0x2e  Code  Lc  fsl_dac32.o [1]
+DAC32_Init              0x000039e1   0x46  Code  Gb  fsl_dac32.o [1]
+DAC32_SetBufferValue    0x00003a65   0x4c  Code  Gb  fsl_dac32.o [1]
+DbgConsole_Getchar      0x00002299    0xe  Code  Gb  fsl_debug_console.o [1]
+DbgConsole_Init         0x00002219   0x2e  Code  Gb  fsl_debug_console.o [1]
+DbgConsole_Printf       0x00002251   0x3c  Code  Gb  fsl_debug_console.o [1]
+DbgConsole_Putchar      0x0000228d    0xc  Code  Gb  fsl_debug_console.o [1]
+DbgConsole_RelocateLog  0x000022a9   0x3e  Code  Lc  fsl_debug_console.o [1]
+IO_Init                 0x00002929   0x5e  Code  Gb  fsl_io.o [1]
+IO_Transfer             0x00002987   0x3e  Code  Gb  fsl_io.o [1]
+LOG_Init                0x000022e9   0x20  Code  Gb  fsl_log.o [1]
+LOG_Pop                 0x0000232d   0x30  Code  Gb  fsl_log.o [1]
+LOG_Push                0x00002309   0x24  Code  Gb  fsl_log.o [1]
+LOG_ReadCharacter       0x0000235d   0x2e  Code  Gb  fsl_log.o [1]
+LOG_ReadOneCharacter    0x00002395   0x1a  Code  Lc  fsl_log.o [1]
+LPUART0_RX_DriverIRQHandler
+                        0x00003075   0x14  Code  Gb  fsl_lpuart.o [1]
+LPUART0_TX_DriverIRQHandler
+                        0x00003061   0x14  Code  Gb  fsl_lpuart.o [1]
+LPUART1_RX_DriverIRQHandler
+                        0x0000309d   0x14  Code  Gb  fsl_lpuart.o [1]
+LPUART1_TX_DriverIRQHandler
+                        0x00003089   0x14  Code  Gb  fsl_lpuart.o [1]
+LPUART2_RX_DriverIRQHandler
+                        0x000030c9   0x14  Code  Gb  fsl_lpuart.o [1]
+LPUART2_TX_DriverIRQHandler
+                        0x000030b5   0x14  Code  Gb  fsl_lpuart.o [1]
+LPUART_ClearStatusFlags
+                        0x00002efb   0x50  Code  Gb  fsl_lpuart.o [1]
+LPUART_EnableRx         0x0000290f   0x1a  Code  Lc  fsl_io.o [1]
+LPUART_EnableTx         0x000028f5   0x1a  Code  Lc  fsl_io.o [1]
+LPUART_GetDefaultConfig
+                        0x00002e8f   0x5c  Code  Gb  fsl_lpuart.o [1]
+LPUART_GetInstance      0x00002c17   0x34  Code  Gb  fsl_lpuart.o [1]
+LPUART_GetStatusFlags   0x00002eeb   0x10  Code  Gb  fsl_lpuart.o [1]
+LPUART_Init             0x00002c4b  0x244  Code  Gb  fsl_lpuart.o [1]
+LPUART_ReadBlocking     0x00002f83   0xce  Code  Gb  fsl_lpuart.o [1]
+LPUART_SoftwareReset    0x00002c05   0x12  Code  Lc  fsl_lpuart.o [1]
+LPUART_WriteBlocking    0x00002f4b   0x38  Code  Gb  fsl_lpuart.o [1]
+PORT_SetPinMux          0x00003769   0x1c  Code  Lc  pin_mux.o [1]
+RW$$Base                0x1fff8000          --   Gb  - Linker created -
+RW$$Limit               0x1fff8004          --   Gb  - Linker created -
+Region$$Table$$Base     0x00004324          --   Gb  - Linker created -
+Region$$Table$$Limit    0x00004348          --   Gb  - Linker created -
+StrFormatPrintf         0x00002665  0x28e  Code  Gb  fsl_str.o [1]
+SystemCoreClock         0x1fff8000    0x4  Data  Gb  system_MKE18F16.o [1]
+SystemInit              0x00003c01   0x5c  Code  Gb  system_MKE18F16.o [1]
+ZI$$Base                0x1fff8004          --   Gb  - Linker created -
+ZI$$Limit               0x1fff8020          --   Gb  - Linker created -
+__Vectors               0x00000000          --   Gb  startup_MKE18F16.o [1]
+__Vectors_End           0x00000400         Data  Gb  startup_MKE18F16.o [1]
+__Vectors_Size {Abs}    0x00000400          --   Gb  startup_MKE18F16.o [1]
+__aeabi_assert          0x000021fd   0x1c  Code  Gb  fsl_assert.o [1]
+__aeabi_cdcmpeq         0x00000f39         Code  Gb  DblCmpEq.o [4]
+__aeabi_cdcmple         0x00000fc9         Code  Gb  DblCmpLe.o [4]
+__aeabi_cdrcmple        0x000016a1         Code  Gb  DblCmpGe.o [4]
+__aeabi_d2f             0x00003acd         Code  Gb  DblToFlt.o [4]
+__aeabi_d2iz            0x00001315         Code  Gb  DblToS32.o [4]
+__aeabi_d2lz            0x00002af5         Code  Gb  DblToS64.o [4]
+__aeabi_dadd            0x0000119d         Code  Gb  DblAdd.o [4]
+__aeabi_ddiv            0x00001459         Code  Gb  DblDiv.o [4]
+__aeabi_dmul            0x00000ff9         Code  Gb  DblMul.o [4]
+__aeabi_dsub            0x00001375         Code  Gb  DblSub.o [4]
+__aeabi_f2d             0x00003b35         Code  Gb  FltToDbl.o [4]
+__aeabi_i2d             0x00001351         Code  Gb  S32ToDbl.o [4]
+__aeabi_l2d             0x00002b51         Code  Gb  S64ToDbl.o [4]
+__aeabi_memclr4         0x000023b1         Code  Gb  ABImemclr4.o [5]
+__aeabi_ui2d            0x00002ac5         Code  Gb  U32ToDbl.o [4]
+__cmain                 0x00004349         Code  Gb  cmain.o [5]
+__exit                  0x0000437d   0x14  Code  Gb  exit.o [6]
+__iar_Exp64             0x000016d1  0x3b8  Code  Gb  iar_Exp64.o [4]
+__iar_Memset4_word      0x000029d1         Code  Gb  ABImemset48.o [5]
+__iar_Memset8_word      0x000029d1         Code  Gb  ABImemset48.o [5]
+__iar_Pow64             0x00000411  0x654  Code  Lc  pow64.o [4]
+__iar_copy_init3        0x0000423d   0x2c  Code  Gb  copy_init3.o [5]
+__iar_dadd              0x00001385         Code  Gb  DblSub.o [4]
+__iar_data_init3        0x00004291   0x28  Code  Gb  data_init.o [5]
+__iar_dsub              0x000011ad         Code  Gb  DblAdd.o [4]
+__iar_dsubStart         0x000011bf         Code  Gb  DblAdd.o [4]
+__iar_frexp             0x00000f65         Code  Gb  frexp.o [4]
+__iar_frexpl            0x00000f65         Code  Gb  frexp.o [4]
+__iar_init_vfp          0x00004301         Code  Gb  fpinit_M.o [4]
+__iar_ldexp64           0x00001ae9         Code  Gb  ldexp.o [4]
+__iar_modf              0x00002a1d         Code  Gb  modf.o [4]
+__iar_modfl             0x00002a1d         Code  Gb  modf.o [4]
+__iar_pow64             0x00000b05   0x14  Code  Gb  pow64.o [4]
+__iar_pow_medium        0x00000b05   0x14  Code  Gb  pow64.o [4]
+__iar_pow_medium64      0x00000b05   0x14  Code  Gb  pow64.o [4]
+__iar_pow_mediuml       0x00000b05   0x14  Code  Gb  pow64.o [4]
+__iar_program_start     0x00004465         Code  Gb  cstartup_M.o [5]
+__iar_scalbln64         0x00001ae9         Code  Gb  ldexp.o [4]
+__iar_scalbn64          0x00001ae9         Code  Gb  ldexp.o [4]
+__iar_softfp___iar_frexp64
+                        0x00000f59         Code  Gb  frexp.o [4]
+__iar_softfp_frexp      0x00000f59         Code  Gb  frexp.o [4]
+__iar_softfp_frexpl     0x00000f59         Code  Gb  frexp.o [4]
+__iar_systems$$module {Abs}
+                        0x00000001         Data  Gb  command line/config [2]
+__iar_vfp___iar_modf64  0x00002a05         Code  Gb  modf.o [4]
+__iar_vfp_modf          0x00002a05         Code  Gb  modf.o [4]
+__iar_vfp_modfl         0x00002a05         Code  Gb  modf.o [4]
+__iar_vfp_pow           0x00002ae5   0x10  Code  Gb  math_wrappers64.o [4]
+__iar_zero_init3        0x0000419d   0x40  Code  Gb  zero_init3.o [5]
+__low_level_init        0x00004367    0x4  Code  Gb  low_level_init.o [3]
+__vector_table          0x00000000         Data  Gb  startup_MKE18F16.o [1]
+__vector_table_0x1c     0x0000001c         Data  Gb  startup_MKE18F16.o [1]
+_call_main              0x00004355         Code  Gb  cmain.o [5]
+_exit                   0x00004371         Code  Gb  cexit.o [5]
+_main                   0x00004363         Code  Gb  cmain.o [5]
+exit                    0x0000436b    0x4  Code  Gb  exit.o [3]
+g_scgFircConfig_BOARD_BootClockRUN
+                        0x00004428    0xc  Data  Gb  clock_config.o [1]
+g_scgSircConfig_BOARD_BootClockRUN
+                        0x00004488    0x8  Data  Gb  clock_config.o [1]
+g_scgSysOscConfig_BOARD_BootClockRUN
+                        0x0000441c    0xc  Data  Gb  clock_config.o [1]
+g_scgSysPllConfig_BOARD_BootClockRUN
+                        0x000043ec   0x10  Data  Gb  clock_config.o [1]
+g_sysClkConfig_BOARD_BootClockRUN
+                        0x00004634    0x4  Data  Gb  clock_config.o [1]
+g_xtal0Freq             0x1fff8004    0x4  Data  Gb  fsl_clock.o [1]
+ldexp                   0x00001ae9         Code  Gb  ldexp.o [4]
+ldexpl                  0x00001ae9         Code  Gb  ldexp.o [4]
+lnbias                  0x00000b18  0x420  Data  Lc  pow64.o [4]
+main                    0x00003557  0x1a4  Code  Gb  dac32_adc12.o [1]
+pow                     0x00000b05   0x14  Code  Gb  pow64.o [4]
+powl                    0x00000b05   0x14  Code  Gb  pow64.o [4]
+s_adc12Bases            0x00004434    0xc  Data  Lc  fsl_adc12.o [1]
+s_adc12Clocks           0x00004440    0xc  Data  Lc  fsl_adc12.o [1]
+s_dac32Bases            0x00004638    0x4  Data  Lc  fsl_dac32.o [1]
+s_dac32Clocks           0x0000463c    0x4  Data  Lc  fsl_dac32.o [1]
+s_debugConsoleIO        0x1fff8008    0x8  Data  Lc  fsl_io.o [1]
+s_lpuartBases           0x0000444c    0xc  Data  Lc  fsl_lpuart.o [1]
+s_lpuartClock           0x00004458    0xc  Data  Lc  fsl_lpuart.o [1]
+s_lpuartHandle          0x1fff8010    0xc  Data  Lc  fsl_lpuart.o [1]
+s_lpuartIsr             0x1fff801c    0x4  Data  Lc  fsl_lpuart.o [1]
+scalbln                 0x00001ae9         Code  Gb  ldexp.o [4]
+scalblnl                0x00001ae9         Code  Gb  ldexp.o [4]
+scalbn                  0x00001ae9         Code  Gb  ldexp.o [4]
+scalbnl                 0x00001ae9         Code  Gb  ldexp.o [4]
+strlen                  0x00002ba5         Code  Gb  strlen.o [5]
+
+
+[1] = C:\Users\JSamson\Desktop\DFM Project\boards\twrke18f\demo_apps\dac32_adc12\iar\debug\obj
+[2] = command line
+[3] = dl7M_tln.a
+[4] = m7M_tls.a
+[5] = rt7M_tl.a
+[6] = shb_l.a
+
+  15 990 bytes of readonly  code memory
+   2 002 bytes of readonly  data memory
+   1 056 bytes of readwrite data memory
+
+Errors: none
+Warnings: none
