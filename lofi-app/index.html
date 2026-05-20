@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Lofi Filter">
+  <meta name="theme-color" content="#1a0a2e">
+  <title>Lofi Filter</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.svg">
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">Processing…</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="app-container">
+
+    <header class="app-header">
+      <div>
+        <div class="app-title">LOFI FILTER</div>
+        <div class="app-subtitle">Audio Effects Studio</div>
+      </div>
+      <svg class="vinyl-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="22" fill="#0d0618" stroke="#3d2660" stroke-width="2"/>
+        <circle cx="24" cy="24" r="16" fill="none" stroke="#2d1b4e" stroke-width="1.5"/>
+        <circle cx="24" cy="24" r="10" fill="none" stroke="#2d1b4e" stroke-width="1.5"/>
+        <circle cx="24" cy="24" r="7" fill="#3d2660"/>
+        <circle cx="24" cy="24" r="2.5" fill="#ff8c42"/>
+      </svg>
+    </header>
+
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">🎵</div>
+      <div class="upload-text">Load Audio File</div>
+      <div class="upload-hint">Tap to browse · Supports MP3, WAV, AAC, M4A</div>
+      <input type="file" id="fileInput" accept="audio/*" style="display:none">
+    </div>
+
+    <div class="visualizer-container">
+      <canvas id="visualizer"></canvas>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-track" id="progressTrack">
+        <div class="progress-fill" id="progressFill"></div>
+        <div class="progress-thumb" id="progressThumb"></div>
+      </div>
+      <div class="time-display" id="timeDisplay">0:00 / 0:00</div>
+    </div>
+
+    <div class="transport">
+      <button class="btn-transport btn-secondary btn-loop" id="btnLoop" title="Loop">🔁</button>
+      <button class="btn-transport btn-play" id="btnPlay">▶</button>
+      <button class="btn-transport btn-secondary" id="btnStop" title="Stop">⏹</button>
+    </div>
+
+    <div class="presets-container">
+      <div class="section-title">Presets</div>
+      <div class="presets-scroll">
+        <button class="preset-btn" data-preset="Classic Lofi">Classic Lofi</button>
+        <button class="preset-btn" data-preset="Study Beats">Study Beats</button>
+        <button class="preset-btn" data-preset="Rainy Day">Rainy Day</button>
+        <button class="preset-btn" data-preset="Old Radio">Old Radio</button>
+        <button class="preset-btn" data-preset="Vinyl">Vinyl</button>
+        <button class="preset-btn" data-preset="Clean">Clean</button>
+      </div>
+    </div>
+
+    <div class="effects-section">
+      <div class="section-title">Effects Chain</div>
+      <div class="effects-grid">
+
+        <div class="effect-card">
+          <div class="effect-header">
+            <span class="effect-name">Low-pass</span>
+            <span class="effect-value" id="valLowpass">3000 Hz</span>
+          </div>
+          <input type="range" id="sliderLowpass" min="300" max="15000" value="3000" step="100">
+          <div class="effect-footer">
+            <span class="effect-label">Cutoff frequency</span>
+            <button class="effect-toggle on" id="toggleLowpass" aria-label="Toggle low-pass"></button>
+          </div>
+        </div>
+
+        <div class="effect-card">
+          <div class="effect-header">
+            <span class="effect-name">Warmth</span>
+            <span class="effect-value coral" id="valSaturation">40%</span>
+          </div>
+          <input type="range" class="coral" id="sliderSaturation" min="0" max="100" value="40">
+          <div class="effect-footer">
+            <span class="effect-label">Tape saturation</span>
+            <button class="effect-toggle on" id="toggleSaturation" aria-label="Toggle warmth"></button>
+          </div>
+        </div>
+
+        <div class="effect-card">
+          <div class="effect-header">
+            <span class="effect-name">Room</span>
+            <span class="effect-value teal" id="valReverb">25%</span>
+          </div>
+          <input type="range" class="teal" id="sliderReverb" min="0" max="80" value="25">
+          <div class="effect-footer">
+            <span class="effect-label">Reverb mix</span>
+            <button class="effect-toggle on" id="toggleReverb" aria-label="Toggle reverb"></button>
+          </div>
+        </div>
+
+        <div class="effect-card">
+          <div class="effect-header">
+            <span class="effect-name">Wow/Flutter</span>
+            <span class="effect-value gold" id="valTremolo">8%</span>
+          </div>
+          <input type="range" class="gold" id="sliderTremolo" min="0" max="40" value="8">
+          <div class="effect-footer">
+            <span class="effect-label">Tape wobble</span>
+            <button class="effect-toggle on" id="toggleTremolo" aria-label="Toggle tremolo"></button>
+          </div>
+        </div>
+
+        <div class="effect-card">
+          <div class="effect-header">
+            <span class="effect-name">Vinyl Noise</span>
+            <span class="effect-value" id="valNoise">6%</span>
+          </div>
+          <input type="range" id="sliderNoise" min="0" max="30" value="6">
+          <div class="effect-footer">
+            <span class="effect-label">Crackle &amp; hiss</span>
+            <button class="effect-toggle on" id="toggleNoise" aria-label="Toggle vinyl noise"></button>
+          </div>
+        </div>
+
+        <div class="effect-card">
+          <div class="effect-header">
+            <span class="effect-name">Tape Speed</span>
+            <span class="effect-value gold" id="valSpeed">0.98×</span>
+          </div>
+          <input type="range" class="gold" id="sliderSpeed" min="70" max="110" value="98">
+          <div class="effect-footer">
+            <span class="effect-label">Pitch / tempo</span>
+            <span class="effect-label">0.7× – 1.1×</span>
+          </div>
+        </div>
+
+        <div class="effect-card effect-card-wide">
+          <div class="effect-header">
+            <span class="effect-name">Output Volume</span>
+            <span class="effect-value teal" id="valVolume">80%</span>
+          </div>
+          <input type="range" class="teal" id="sliderVolume" min="0" max="100" value="80">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="export-container">
+      <button class="btn-export" id="btnExport">
+        <span>⬇</span> Export Lofi WAV
+      </button>
+      <p class="export-hint">Renders the processed audio offline and saves a WAV file to your device</p>
+    </div>
+
+    <div class="install-hint" id="installHint">
+      <span>📱</span> Add to Home Screen for the best experience
+      <button id="btnDismissHint">✕</button>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

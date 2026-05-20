@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="shine" cx="35%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2d1b4e"/>
+      <stop offset="100%" stop-color="#1a0a2e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="192" fill="#0d0618"/>
+  <circle cx="256" cy="256" r="192" fill="none" stroke="#2d1b4e" stroke-width="10"/>
+  <circle cx="256" cy="256" r="154" fill="none" stroke="#231440" stroke-width="4"/>
+  <circle cx="256" cy="256" r="116" fill="none" stroke="#231440" stroke-width="4"/>
+  <circle cx="256" cy="256" r="78" fill="none" stroke="#231440" stroke-width="4"/>
+  <circle cx="256" cy="256" r="68" fill="#3d2660"/>
+  <circle cx="256" cy="256" r="18" fill="#ff8c42"/>
+  <circle cx="256" cy="256" r="9" fill="#0d0618"/>
+  <circle cx="256" cy="256" r="192" fill="url(#shine)"/>
+</svg>

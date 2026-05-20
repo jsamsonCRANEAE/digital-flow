@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <radialGradient id="shine" cx="35%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2d1b4e"/>
+      <stop offset="100%" stop-color="#1a0a2e"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded rect -->
+  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+  <!-- Vinyl record -->
+  <circle cx="96" cy="96" r="72" fill="#0d0618"/>
+  <circle cx="96" cy="96" r="72" fill="none" stroke="#2d1b4e" stroke-width="4"/>
+  <circle cx="96" cy="96" r="58" fill="none" stroke="#231440" stroke-width="1.5"/>
+  <circle cx="96" cy="96" r="44" fill="none" stroke="#231440" stroke-width="1.5"/>
+  <circle cx="96" cy="96" r="30" fill="none" stroke="#231440" stroke-width="1.5"/>
+  <!-- Center label -->
+  <circle cx="96" cy="96" r="26" fill="#3d2660"/>
+  <!-- Center hole -->
+  <circle cx="96" cy="96" r="7" fill="#ff8c42"/>
+  <circle cx="96" cy="96" r="3.5" fill="#0d0618"/>
+  <!-- Light shine -->
+  <circle cx="96" cy="96" r="72" fill="url(#shine)"/>
+</svg>
