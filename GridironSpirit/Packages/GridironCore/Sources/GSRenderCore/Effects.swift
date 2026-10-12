@@ -29,11 +29,14 @@ public struct EffectsFrame: Sendable {
     public var reticlePulse: Double = 0
     /// Anime speed lines converging on a screen point (canvas px).
     public var speedLines: (x: Double, y: Double, intensity: Double, seed: Int)?
+    /// Draw goal posts at both end lines (they're 3D objects above the turf).
+    public var goalPosts = true
     public init() {}
 }
 
 public enum EffectsRasterizer {
     public static func render(_ fx: EffectsFrame, camera: Camera, into buf: inout PixelBuffer) {
+        if fx.goalPosts { goalPosts(camera: camera, into: &buf) }
         if let sl = fx.speedLines, sl.intensity > 0.02 { speedLines(sl, into: &buf) }
         if let r = fx.reticle { reticle(r, pulse: fx.reticlePulse, camera: camera, into: &buf) }
         if let b = fx.ballForShadow { ballShadow(b, camera: camera, into: &buf) }
@@ -97,6 +100,32 @@ public enum EffectsRasterizer {
             last = q
         }
         if let c = camera.project(Vec3(p.x, p.y, 0)) { buf.set(snapToPixel(c.x), snapToPixel(c.y), col) }
+    }
+
+    /// Regulation uprights on the end line: 18 ft 6 in apart, crossbar at
+    /// 10 ft, uprights to 30 ft above the bar. Projected as true 3D lines.
+    static func goalPosts(camera: Camera, into buf: inout PixelBuffer) {
+        let half = 18.5 / 3 / 2, bar = 10.0 / 3, top = bar + 10
+        let yellow = RGBA(hex: 0xFFD23F), dark = RGBA(hex: 0xB8902A)
+        for y in [Field.length, 0.0] {
+            let cx = Field.centerX
+            let segs: [(Vec3, Vec3, RGBA)] = [
+                (Vec3(cx, y + 1.5, 0), Vec3(cx, y + 0.6, bar), dark),           // gooseneck base
+                (Vec3(cx, y + 0.6, bar), Vec3(cx, y, bar), dark),
+                (Vec3(cx - half, y, bar), Vec3(cx + half, y, bar), yellow),     // crossbar
+                (Vec3(cx - half, y, bar), Vec3(cx - half, y, top), yellow),     // uprights
+                (Vec3(cx + half, y, bar), Vec3(cx + half, y, top), yellow),
+            ]
+            for (a, b, col) in segs {
+                guard let pa = camera.project(a), let pb = camera.project(b) else { continue }
+                let thick = pa.pixelsPerYard > 12
+                line(snapToPixel(pa.x), snapToPixel(pa.y), snapToPixel(pb.x), snapToPixel(pb.y)) { x, y, _ in
+                    guard buf.contains(x, y) else { return }
+                    buf.set(x, y, col)
+                    if thick { buf.set(x + 1, y, col.hueShifted(-0.4)) }
+                }
+            }
+        }
     }
 
     static func particle(_ p: Particle, camera: Camera, into buf: inout PixelBuffer) {

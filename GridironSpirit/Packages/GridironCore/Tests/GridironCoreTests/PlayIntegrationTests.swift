@@ -100,6 +100,7 @@ final class PlayIntegrationTests: XCTestCase {
 
     func testRuntimeHitStopFreezesSimButNotFrames() throws {
         let rt = GameRuntime(league: league)
+        rt.debugCall(offense: "slants", defense: "cover3")
         rt.perform(.button(.snap))
         for _ in 0..<30 { _ = rt.advance(frameTime: 1.0 / 60) }
         rt.fx.hitStop = 6.0 / 60
@@ -127,6 +128,7 @@ final class PlayIntegrationTests: XCTestCase {
 
     func testFullPlayLoopThroughRuntimeResetsForNextSnap() throws {
         let rt = GameRuntime(league: league)
+        rt.debugCall(offense: "verticals", defense: "cover2")
         rt.perform(.button(.snap))
         var sawIcons = false
         for _ in 0..<50 { let f = rt.advance(frameTime: 1.0 / 60); if !f.icons.isEmpty { sawIcons = true } }
@@ -138,10 +140,10 @@ final class PlayIntegrationTests: XCTestCase {
             let f = rt.advance(frameTime: 1.0 / 60)
             if f.effects.reticle != nil { sawReticle = true }
             if f.effects.trail.count > 3 { sawTrail = true }
-            if rt.playCount > 1 { break }
+            if rt.phase == .playCall { break }
         }
         XCTAssertTrue(sawReticle); XCTAssertTrue(sawTrail)
-        XCTAssertEqual(rt.playCount, 2, "play ended and the next snap is set up")
-        XCTAssertEqual(rt.world.phase, .preSnap)
+        XCTAssertNotNil(rt.lastRuling, "the play was ruled on")
+        XCTAssertEqual(rt.phase, .playCall, "back to the huddle for the next call")
     }
 }

@@ -14,17 +14,24 @@ public enum ControlContext: Sendable, Equatable {
     case preSnap        // SNAP / AUDIBLE / SPIRIT
     case passing        // receiver icons are live; buttons idle
     case ballCarrier    // JUKE / SPIN / STIFF ARM, swipe up = DIVE
+    case defense        // SWITCH / DIVE TACKLE / JUMP
+    case playCall       // play cards: tap to call, swipe to page
+    case kick           // tap anywhere to stop the meter
     case none
 }
 
 public enum ButtonAction: Sendable, Equatable {
     case snap, audible, spirit, juke, spin, stiffArm, dive
+    case switchPlayer, diveTackle, jump
 }
 
 /// Discrete commands produced by touches, drained by the game each tick.
 public enum InputCommand: Sendable, Equatable {
     case button(ButtonAction)
     case throwTo(receiver: Int, lob: Bool)
+    case selectCard(Int)
+    case page(Int)
+    case kickTap
 }
 
 public struct ButtonSlot: Sendable, Equatable {
@@ -57,6 +64,9 @@ public struct TouchRouter: Sendable {
     public var context: ControlContext = .none { didSet { if context != oldValue { layoutButtons() } } }
     public private(set) var buttons: [ButtonSlot] = []
     public var icons: [ReceiverIcon] = []
+    /// Play-call card hit rects (canvas px), set by the game.
+    public var cardRects: [Rect] = []
+    var swipeStart: (id: Int, at: Vec2)?
     /// Held receiver icon (for lob charge feedback).
     public private(set) var charging: (receiverID: Int, since: Double)?
     public var now: Double = 0
@@ -93,7 +103,8 @@ public struct TouchRouter: Sendable {
         switch context {
         case .preSnap: spec = [(.snap, "SNAP", true), (.audible, "AUDBL", false), (.spirit, "SPRT", false)]
         case .ballCarrier: spec = [(.juke, "JUKE", true), (.spin, "SPIN", true), (.stiffArm, "STIFF", true)]
-        case .passing, .none: spec = [(nil, "", false), (nil, "", false), (nil, "", false)]
+        case .defense: spec = [(.diveTackle, "DIVE", true), (.switchPlayer, "SWTCH", true), (.jump, "JUMP", true)]
+        case .passing, .none, .playCall, .kick: spec = [(nil, "", false), (nil, "", false), (nil, "", false)]
         }
         let pressed = Set(buttonTouches.values.map(\.index))
         buttons = zip([inside(a), inside(b), inside(c)], spec).enumerated().map { i, pair in
@@ -108,6 +119,11 @@ public struct TouchRouter: Sendable {
     }
 
     public mutating func handle(_ e: TouchEvent) {
+        if context == .playCall { return handleCards(e) }
+        if context == .kick {
+            if e.phase == .began { commands.append(.kickTap) }
+            return
+        }
         switch e.phase {
         case .began:
             if context == .passing, iconTouch == nil, let icon = hitIcon(e.location) {
@@ -140,6 +156,23 @@ public struct TouchRouter: Sendable {
                 commands.append(.throwTo(receiver: it.receiver, lob: lob))
                 iconTouch = nil
                 charging = nil
+            }
+        }
+    }
+
+    /// Cards: tap = call the play, horizontal swipe = next/previous page.
+    mutating func handleCards(_ e: TouchEvent) {
+        switch e.phase {
+        case .began: swipeStart = (e.id, e.location)
+        case .moved:
+            if let s = swipeStart, s.id == e.id, abs(e.location.x - s.at.x) > 40 {
+                commands.append(.page(e.location.x < s.at.x ? 1 : -1))
+                swipeStart = nil
+            }
+        case .ended:
+            if let s = swipeStart, s.id == e.id {
+                if let i = cardRects.firstIndex(where: { $0.contains(s.at) }) { commands.append(.selectCard(i)) }
+                swipeStart = nil
             }
         }
     }

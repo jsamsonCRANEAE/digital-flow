@@ -194,3 +194,81 @@ the session. It never goes back up, so the rate doesn't oscillate.
   pose shows instantly, and the ball leaves the hand after a 0.1 s wind-up.
 - Callouts are plain pixel text for now. The chrome-gradient,
   overshoot-scaled versions are M4 art.
+
+## M3: Game rules and match flow
+- **Canonical frame.** The simulation always runs with the offense driving
+  toward +y. The rules state stores `ballOn` as yards from the possessing
+  team's own goal. On a change of possession the spot mirrors (`100 − spot`)
+  and the lateral position flips. The camera is therefore always behind the
+  offense, including when you're on defense. (This was M1 question 3: decided
+  as "behind whoever has the ball".) End zones are recolored per possession.
+- **The clock** is my reading of a slightly ambiguous spec:
+  - Incompletions always stop it, as in the NFL.
+  - Out-of-bounds plays and scores stop it only in the last minute of each half.
+  - Turnovers don't stop it, because the spec doesn't say they do.
+  - It runs during live play.
+  - When it's running, each play charges a 6 s "huddle" runoff instead of the
+    real time you spend on menus, so a 3-minute quarter has about 13 plays.
+  - The 20 s play clock auto-calls a play and auto-snaps instead of throwing
+    delay of game, which isn't in the penalty list.
+  - Tries are untimed. A pending try is played even at 0:00.
+- **Simplifications, to revisit later:**
+  - **Kickoffs:** an automatic touchback at the 25. The team that scored on a
+    safety receives.
+  - **No returns:** interceptions, fumble recoveries and punts are dead where
+    possession changes. Ball-in-end-zone cases become touchbacks.
+  - **No overtime:** ties stand.
+  - **Missed field goals:** the defense takes over at the spot of the kick,
+    or at the 20 if that's farther out.
+- **Penalties**: the slice has only false start and pass interference.
+  - *False start:* the human moves their player before the snap; −5 yd, or
+    half the distance near the goal.
+  - *Defensive PI:* a defender bumps the intended receiver hard (closing
+    speed over 2.5 yd/s) while a catchable ball is still more than 0.4 s
+    away, and isn't playing the ball himself. Each defender is judged once
+    per pass, and 10% of qualifying contacts draw a flag. The result is a
+    spot foul and an automatic first down. Offense keeps the play instead if
+    it's better.
+- **Kicks**:
+  - The meter is power then aim (triangle sweeps), with a tap to lock each.
+  - FG/PAT elevation is 36° and punts 50°. The ball is the same tumbling
+    projectile with drag and wind.
+  - A field goal is decided at the plane of the end line: inside 18 ft 6 in
+    and above the 10 ft crossbar.
+  - Wind is 0–14 mph, set per game, shown on the HUD and mirrored with
+    possession.
+- **CPU quarterback**:
+  - Drops back about 7.5 yd, then works through the play's progression.
+  - Each read lasts a difficulty-based time, and that clock runs faster under
+    pressure.
+  - Throws when the projected separation at the catch point beats a
+    difficulty threshold. Lobs go deep when he's tightly covered.
+  - Late in the down he takes the best option, or throws it away depending on
+    "pocket awareness".
+- **Run game:**
+  - Blockers take unique targets each tick.
+  - A blocked defender can only arm-tackle (−0.4 power).
+  - The carrier slips through his own teammates.
+  - Second-level defenders take a difficulty-based beat to read run after the
+    exchange (rookie 0.65 s, pro 0.45 s, legend 0.3 s).
+- **Play calling**: 3 cards per page (run / short / deep, or zone / man /
+  pressure), with swipe to page and tap to call. On 4th down the human gets
+  a PUNT / FIELD GOAL page first. The CPU coordinator calls situationally
+  and uses a standard two-point chart late in games.
+
+### Balancing: found and fixed with the headless full-game simulation
+The CPU-vs-CPU game test exposed real problems; each was root-caused, not just tuned around:
+1. **PI on almost every pass.** Coverage contact was treated as blocking, and
+   the flag chance was re-rolled every tick of contact. Fixed by one judgement
+   per defender and a "playing the ball" exemption.
+2. **Fumbles on about 30% of dives.** The impact scale made full-speed hits
+   enormous and the fumble chance had no cap. Fixed by normalising (a 16 yd/s
+   head-on hit ≈ 11) and capping fumbles at 7%.
+3. **Runs at about 0 yd/play.** The back was shoved backwards by his own
+   linemen, all three blockers took the same defender, and every linebacker
+   read the run instantly. Fixed as described under Run game.
+
+Two seeded CPU-vs-CPU games now average 3.6–4.8 yd per run, 4.9–6.4 per short
+pass and 6.8–7.3 per deep pass, with 2–3 turnovers, 2–4 PI flags and scores
+like 24-24 and 20-24. Sacks are rare when the CPU is at QB, because it reads
+fast; humans holding the ball do get sacked. Pass-rush tuning is an M6 item.

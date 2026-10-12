@@ -1,0 +1,903 @@
+{
+ "offense": [
+  {
+   "id": "hb_dive",
+   "name": "HB DIVE",
+   "category": "run",
+   "formation": {
+    "QB": [
+     0,
+     -3.0
+    ],
+    "RB": [
+     0,
+     -6.0
+    ],
+    "WR1": [
+     -12,
+     -0.8
+    ],
+    "WR2": [
+     11,
+     -0.8
+    ],
+    "C": [
+     0,
+     -0.6
+    ],
+    "LG": [
+     -1.4,
+     -0.7
+    ],
+    "RG": [
+     1.4,
+     -0.7
+    ]
+   },
+   "routes": {},
+   "runPath": {
+    "points": [
+     [
+      0.7,
+      3.0
+     ],
+     [
+      1.2,
+      6.6
+     ],
+     [
+      1.4,
+      12
+     ],
+     [
+      1.5,
+      40
+     ]
+    ]
+   },
+   "exchange": "handoff",
+   "progression": [],
+   "blockers": [
+    "WR1",
+    "WR2"
+   ]
+  },
+  {
+   "id": "toss_sweep",
+   "name": "TOSS SWEEP",
+   "category": "run",
+   "formation": {
+    "QB": [
+     0,
+     -3.0
+    ],
+    "RB": [
+     0,
+     -6.0
+    ],
+    "WR1": [
+     -12,
+     -0.8
+    ],
+    "WR2": [
+     11,
+     -0.8
+    ],
+    "C": [
+     0,
+     -0.6
+    ],
+    "LG": [
+     -1.4,
+     -0.7
+    ],
+    "RG": [
+     1.4,
+     -0.7
+    ]
+   },
+   "routes": {},
+   "runPath": {
+    "points": [
+     [
+      3.5,
+      1.5
+     ],
+     [
+      9,
+      4.5
+     ],
+     [
+      12.5,
+      7.5
+     ],
+     [
+      13,
+      40
+     ]
+    ]
+   },
+   "exchange": "pitch",
+   "progression": [],
+   "blockers": [
+    "WR1",
+    "WR2"
+   ]
+  },
+  {
+   "id": "slants",
+   "name": "SLANTS",
+   "category": "shortPass",
+   "formation": {
+    "QB": [
+     0,
+     -4.5
+    ],
+    "RB": [
+     1.3,
+     -4.6
+    ],
+    "WR1": [
+     -14,
+     -0.8
+    ],
+    "WR2": [
+     13,
+     -0.8
+    ],
+    "C": [
+     0,
+     -0.6
+    ],
+    "LG": [
+     -1.4,
+     -0.7
+    ],
+    "RG": [
+     1.4,
+     -0.7
+    ]
+   },
+   "routes": {
+    "WR1": {
+     "points": [
+      [
+       0,
+       3
+      ],
+      [
+       9,
+       12
+      ],
+      [
+       28,
+       30
+      ]
+     ]
+    },
+    "WR2": {
+     "points": [
+      [
+       0,
+       3
+      ],
+      [
+       -9,
+       12
+      ],
+      [
+       -28,
+       30
+      ]
+     ]
+    },
+    "RB": {
+     "points": [
+      [
+       4,
+       1
+      ],
+      [
+       9,
+       2.5
+      ],
+      [
+       10,
+       12
+      ]
+     ]
+    }
+   },
+   "exchange": "none",
+   "progression": [
+    "WR2",
+    "WR1",
+    "RB"
+   ]
+  },
+  {
+   "id": "curl_flat",
+   "name": "CURL FLAT",
+   "category": "shortPass",
+   "formation": {
+    "QB": [
+     0,
+     -4.5
+    ],
+    "RB": [
+     1.3,
+     -4.6
+    ],
+    "WR1": [
+     -14,
+     -0.8
+    ],
+    "WR2": [
+     13,
+     -0.8
+    ],
+    "C": [
+     0,
+     -0.6
+    ],
+    "LG": [
+     -1.4,
+     -0.7
+    ],
+    "RG": [
+     1.4,
+     -0.7
+    ]
+   },
+   "routes": {
+    "WR1": {
+     "points": [
+      [
+       0,
+       7
+      ],
+      [
+       0.8,
+       6
+      ]
+     ],
+     "settle": true
+    },
+    "WR2": {
+     "points": [
+      [
+       0,
+       5
+      ],
+      [
+       8,
+       5.5
+      ],
+      [
+       20,
+       6
+      ]
+     ]
+    },
+    "RB": {
+     "points": [
+      [
+       -4,
+       1
+      ],
+      [
+       -9,
+       2
+      ],
+      [
+       -10,
+       8
+      ]
+     ],
+     "settle": true
+    }
+   },
+   "exchange": "none",
+   "progression": [
+    "WR2",
+    "RB",
+    "WR1"
+   ]
+  },
+  {
+   "id": "verticals",
+   "name": "VERTICALS",
+   "category": "deepPass",
+   "formation": {
+    "QB": [
+     0,
+     -4.5
+    ],
+    "RB": [
+     1.3,
+     -4.6
+    ],
+    "WR1": [
+     -14,
+     -0.8
+    ],
+    "WR2": [
+     13,
+     -0.8
+    ],
+    "C": [
+     0,
+     -0.6
+    ],
+    "LG": [
+     -1.4,
+     -0.7
+    ],
+    "RG": [
+     1.4,
+     -0.7
+    ]
+   },
+   "routes": {
+    "WR1": {
+     "points": [
+      [
+       0,
+       20
+      ],
+      [
+       1,
+       60
+      ]
+     ]
+    },
+    "WR2": {
+     "points": [
+      [
+       0,
+       20
+      ],
+      [
+       -1,
+       60
+      ]
+     ]
+    },
+    "RB": {
+     "points": [
+      [
+       5,
+       1
+      ],
+      [
+       9,
+       4
+      ],
+      [
+       10,
+       40
+      ]
+     ]
+    }
+   },
+   "exchange": "none",
+   "progression": [
+    "WR1",
+    "WR2",
+    "RB"
+   ]
+  },
+  {
+   "id": "post_corner",
+   "name": "POST CORNER",
+   "category": "deepPass",
+   "formation": {
+    "QB": [
+     0,
+     -4.5
+    ],
+    "RB": [
+     1.3,
+     -4.6
+    ],
+    "WR1": [
+     -14,
+     -0.8
+    ],
+    "WR2": [
+     13,
+     -0.8
+    ],
+    "C": [
+     0,
+     -0.6
+    ],
+    "LG": [
+     -1.4,
+     -0.7
+    ],
+    "RG": [
+     1.4,
+     -0.7
+    ]
+   },
+   "routes": {
+    "WR1": {
+     "points": [
+      [
+       0,
+       10
+      ],
+      [
+       10,
+       22
+      ],
+      [
+       20,
+       40
+      ]
+     ]
+    },
+    "WR2": {
+     "points": [
+      [
+       0,
+       10
+      ],
+      [
+       7,
+       18
+      ],
+      [
+       12,
+       40
+      ]
+     ]
+    },
+    "RB": {
+     "points": [
+      [
+       -2,
+       2
+      ],
+      [
+       -1,
+       5
+      ]
+     ],
+     "settle": true
+    }
+   },
+   "exchange": "none",
+   "progression": [
+    "WR1",
+    "WR2",
+    "RB"
+   ]
+  }
+ ],
+ "defense": [
+  {
+   "id": "cover2",
+   "name": "COVER 2",
+   "category": "zone",
+   "formation": {
+    "DL1": [
+     -1.0,
+     1.0
+    ],
+    "DL2": [
+     1.6,
+     1.0
+    ],
+    "LB1": [
+     -4,
+     5
+    ],
+    "LB2": [
+     4,
+     5
+    ],
+    "CB1": [
+     -14,
+     6
+    ],
+    "CB2": [
+     13,
+     6
+    ],
+    "S": [
+     0,
+     13
+    ]
+   },
+   "assignments": {
+    "DL1": {
+     "role": "rush"
+    },
+    "DL2": {
+     "role": "rush"
+    },
+    "LB1": {
+     "role": "zone",
+     "zone": [
+      -5,
+      7
+     ]
+    },
+    "LB2": {
+     "role": "zone",
+     "zone": [
+      10,
+      15
+     ]
+    },
+    "S": {
+     "role": "zone",
+     "zone": [
+      -10,
+      15
+     ]
+    },
+    "CB1": {
+     "role": "zone",
+     "zone": [
+      -15,
+      4
+     ]
+    },
+    "CB2": {
+     "role": "zone",
+     "zone": [
+      15,
+      4
+     ]
+    }
+   }
+  },
+  {
+   "id": "cover3",
+   "name": "COVER 3",
+   "category": "zone",
+   "formation": {
+    "DL1": [
+     -1.0,
+     1.0
+    ],
+    "DL2": [
+     1.6,
+     1.0
+    ],
+    "LB1": [
+     -4,
+     5
+    ],
+    "LB2": [
+     4,
+     5
+    ],
+    "CB1": [
+     -14,
+     6
+    ],
+    "CB2": [
+     13,
+     6
+    ],
+    "S": [
+     0,
+     13
+    ]
+   },
+   "assignments": {
+    "DL1": {
+     "role": "rush"
+    },
+    "DL2": {
+     "role": "rush"
+    },
+    "LB1": {
+     "role": "zone",
+     "zone": [
+      -8,
+      5
+     ]
+    },
+    "LB2": {
+     "role": "zone",
+     "zone": [
+      8,
+      5
+     ]
+    },
+    "S": {
+     "role": "zone",
+     "zone": [
+      0,
+      17
+     ]
+    },
+    "CB1": {
+     "role": "zone",
+     "zone": [
+      -16,
+      15
+     ]
+    },
+    "CB2": {
+     "role": "zone",
+     "zone": [
+      16,
+      15
+     ]
+    }
+   }
+  },
+  {
+   "id": "man_press",
+   "name": "MAN PRESS",
+   "category": "man",
+   "formation": {
+    "DL1": [
+     -1.0,
+     1.0
+    ],
+    "DL2": [
+     1.6,
+     1.0
+    ],
+    "LB1": [
+     -4,
+     5
+    ],
+    "LB2": [
+     4,
+     5
+    ],
+    "CB1": [
+     -14,
+     1.8
+    ],
+    "CB2": [
+     13,
+     1.8
+    ],
+    "S": [
+     0,
+     13
+    ]
+   },
+   "assignments": {
+    "DL1": {
+     "role": "rush"
+    },
+    "DL2": {
+     "role": "rush"
+    },
+    "LB1": {
+     "role": "man",
+     "target": "RB"
+    },
+    "LB2": {
+     "role": "spy",
+     "zone": [
+      0,
+      5
+     ]
+    },
+    "S": {
+     "role": "zone",
+     "zone": [
+      0,
+      15
+     ]
+    },
+    "CB1": {
+     "role": "man",
+     "target": "WR1"
+    },
+    "CB2": {
+     "role": "man",
+     "target": "WR2"
+    }
+   }
+  },
+  {
+   "id": "prevent",
+   "name": "PREVENT",
+   "category": "man",
+   "formation": {
+    "DL1": [
+     -1.0,
+     1.0
+    ],
+    "DL2": [
+     1.6,
+     1.0
+    ],
+    "LB1": [
+     -4,
+     5
+    ],
+    "LB2": [
+     4,
+     5
+    ],
+    "CB1": [
+     -14,
+     9
+    ],
+    "CB2": [
+     13,
+     9
+    ],
+    "S": [
+     0,
+     18
+    ]
+   },
+   "assignments": {
+    "DL1": {
+     "role": "rush"
+    },
+    "DL2": {
+     "role": "spy",
+     "zone": [
+      0,
+      3
+     ]
+    },
+    "LB1": {
+     "role": "zone",
+     "zone": [
+      -9,
+      10
+     ]
+    },
+    "LB2": {
+     "role": "zone",
+     "zone": [
+      9,
+      10
+     ]
+    },
+    "S": {
+     "role": "zone",
+     "zone": [
+      0,
+      24
+     ]
+    },
+    "CB1": {
+     "role": "man",
+     "target": "WR1"
+    },
+    "CB2": {
+     "role": "man",
+     "target": "WR2"
+    }
+   }
+  },
+  {
+   "id": "lb_blitz",
+   "name": "LB BLITZ",
+   "category": "pressure",
+   "formation": {
+    "DL1": [
+     -1.0,
+     1.0
+    ],
+    "DL2": [
+     1.6,
+     1.0
+    ],
+    "LB1": [
+     -4,
+     5
+    ],
+    "LB2": [
+     4,
+     5
+    ],
+    "CB1": [
+     -14,
+     6
+    ],
+    "CB2": [
+     13,
+     6
+    ],
+    "S": [
+     0,
+     13
+    ]
+   },
+   "assignments": {
+    "DL1": {
+     "role": "rush"
+    },
+    "DL2": {
+     "role": "rush"
+    },
+    "LB1": {
+     "role": "rush"
+    },
+    "LB2": {
+     "role": "rush"
+    },
+    "S": {
+     "role": "man",
+     "target": "RB"
+    },
+    "CB1": {
+     "role": "man",
+     "target": "WR1"
+    },
+    "CB2": {
+     "role": "man",
+     "target": "WR2"
+    }
+   }
+  },
+  {
+   "id": "zero_blitz",
+   "name": "ZERO BLITZ",
+   "category": "pressure",
+   "formation": {
+    "DL1": [
+     -1.0,
+     1.0
+    ],
+    "DL2": [
+     1.6,
+     1.0
+    ],
+    "LB1": [
+     -4,
+     5
+    ],
+    "LB2": [
+     4,
+     5
+    ],
+    "CB1": [
+     -14,
+     1.8
+    ],
+    "CB2": [
+     13,
+     1.8
+    ],
+    "S": [
+     2,
+     6
+    ]
+   },
+   "assignments": {
+    "DL1": {
+     "role": "rush"
+    },
+    "DL2": {
+     "role": "rush"
+    },
+    "LB1": {
+     "role": "rush"
+    },
+    "LB2": {
+     "role": "rush"
+    },
+    "S": {
+     "role": "rush"
+    },
+    "CB1": {
+     "role": "man",
+     "target": "WR1"
+    },
+    "CB2": {
+     "role": "man",
+     "target": "WR2"
+    }
+   }
+  }
+ ]
+}

@@ -22,7 +22,7 @@ public final class FieldRasterizer {
     public let backdrop: StadiumBackdrop
 
     // Pre-shaded colors (computed once, not per pixel).
-    let homeA: UInt32, homeB: UInt32, awayA: UInt32, awayB: UInt32
+    var homeA: UInt32, homeB: UInt32, awayA: UInt32, awayB: UInt32
 
     public init(style: FieldStyle, backdrop: StadiumBackdrop) {
         self.style = style
@@ -31,6 +31,14 @@ public final class FieldRasterizer {
         homeB = style.homeEndZone.hueShifted(-0.45).argb
         awayA = style.awayEndZone.argb
         awayB = style.awayEndZone.hueShifted(-0.45).argb
+    }
+
+    /// End zones follow possession: the near (home) end zone is always the
+    /// offense's, because the camera always sits behind the offense.
+    public func setEndZones(near: RGBA, far: RGBA) {
+        style = FieldStyle(homeEndZone: near, awayEndZone: far)
+        homeA = near.argb; homeB = near.hueShifted(-0.45).argb
+        awayA = far.argb; awayB = far.hueShifted(-0.45).argb
     }
 
     static let lineHalfWidth = 0.11            // ~4 in wide lines

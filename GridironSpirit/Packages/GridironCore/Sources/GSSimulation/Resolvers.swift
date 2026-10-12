@@ -57,7 +57,7 @@ public enum CatchResolver {
 
 // MARK: - Tackling
 
-public enum MoveKind: Int, Sendable, Hashable { case juke, spin, stiffArm, dive }
+public enum MoveKind: Int, Sendable, Hashable { case juke, spin, stiffArm, dive, jump }
 
 public enum TackleOutcome: Sendable, Equatable {
     /// Carrier goes down at the spot.
@@ -88,10 +88,15 @@ public struct TackleContext: Sendable {
     public var move: MoveKind?
     /// Seconds since the move started.
     public var moveAge: Double
+    /// Dive tackle: longer reach, more stopping power, but no recovery if missed.
+    public var tacklerDiving: Bool
+    /// Tackler is locked up with a blocker: only an arm tackle is possible.
+    public var tacklerEngaged: Bool = false
 
     public init(tacklerMass: Double, tacklerStrength: Int, tacklerSpeed: Double, carrierMass: Double,
                 carrierStrength: Int, carrierBalance: Int, closingSpeed: Double, frontalness: Double,
-                carrierSpeed: Double, move: MoveKind?, moveAge: Double) {
+                carrierSpeed: Double, move: MoveKind?, moveAge: Double, tacklerDiving: Bool = false) {
+        self.tacklerDiving = tacklerDiving
         self.tacklerMass = tacklerMass; self.tacklerStrength = tacklerStrength; self.tacklerSpeed = tacklerSpeed
         self.carrierMass = carrierMass; self.carrierStrength = carrierStrength; self.carrierBalance = carrierBalance
         self.closingSpeed = closingSpeed; self.frontalness = frontalness; self.carrierSpeed = carrierSpeed
@@ -113,7 +118,9 @@ public enum TackleResolver {
     /// rates higher than two receivers bumping at the same speed.
     public static func impact(_ c: TackleContext) -> Double {
         let reduced = c.tacklerMass * c.carrierMass / (c.tacklerMass + c.carrierMass)   // lbs
-        return max(0, c.closingSpeed) * reduced / 100
+        // Normalised so a full-speed head-on hit (~16 yd/s closing) by a
+        // linebacker on a back rates ~11, and a routine wrap-up ~3.
+        return max(0, c.closingSpeed) * reduced / 160
     }
 
     public static func resolve(_ c: TackleContext, rolls r: (Double, Double, Double)) -> TackleResult {
@@ -126,6 +133,8 @@ public enum TackleResolver {
         let side = 1 - abs(c.frontalness)
         var power = 0.25 + 0.4 * str + 0.06 * min(imp, 10)
         power += c.frontalness < -0.4 ? 0.2 : 0          // wrapped up from behind
+        power += c.tacklerDiving ? 0.22 : 0
+        power -= c.tacklerEngaged ? 0.4 : 0
         var resist = 0.18 + 0.35 * Double(c.carrierBalance) / 99 + 0.25 * Double(c.carrierStrength) / 99
         resist += 0.0015 * max(0, c.carrierMass - c.tacklerMass)  // big backs bounce off small DBs
         switch c.move {
@@ -146,8 +155,9 @@ public enum TackleResolver {
             outcome = .broken
         }
         let down = outcome == .clean || outcome == .pushedForward
+        // NFL fumble rate is ~1 per 60-70 touches; big hits raise it, capped.
         let fumbleChance = down && imp > bigHitImpact
-            ? 0.05 + 0.025 * (imp - bigHitImpact) - 0.03 * Double(c.carrierStrength) / 99 : 0
+            ? clamp(0.03 + 0.008 * (imp - bigHitImpact) - 0.015 * Double(c.carrierStrength) / 99, 0, 0.07) : 0
         return TackleResult(outcome: outcome, impact: imp, fumble: r.2 < fumbleChance)
     }
 }

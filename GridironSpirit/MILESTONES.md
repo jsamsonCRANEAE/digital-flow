@@ -139,7 +139,80 @@ round touched `WorldRenderer`, `GameController`, `Upscale.metal`,
 2. Should the landing reticle show for both throws, or only lobs, so bullets stay a "read"?
 3. Should the anime impact frame be inverted (current), or a 2-tone black/white "manga panel"?
 
-## ⏭ M3: Full 7v7 play: 6+6 plays, AI, downs and scoring
-## M4: Art pass: 2 teams, portraits, callouts, Spirit Play cut-ins
+## ✅ M3: Full 7v7 play: 6+6 plays, AI, downs and scoring
+
+### Summary
+- **Playbook** (`plays.json`, validated on load). Offense: HB DIVE, TOSS SWEEP
+  (run); SLANTS, CURL FLAT (short); VERTICALS, POST CORNER (deep). Defense:
+  COVER 2, COVER 3 (zone); MAN PRESS, PREVENT (man); LB BLITZ, ZERO BLITZ
+  (pressure). Kicking formations are built in code.
+- **Play calling:** 3 cards per page with chalkboard diagrams generated from
+  the play data. Swipe to page, tap to call. Separate offense, defense,
+  4th-down and conversion menus. Play clock.
+- **Rules** (`GSRules`): downs and distance, first downs, turnover on downs,
+  TD, PAT, 2-pt, FG, safety, punts, touchbacks, interceptions and fumbles,
+  false start, defensive PI (accept/decline), clock stops, quarters,
+  halftime possession, and the final whistle.
+- **Kicks:** power/aim meter, field goals judged at the upright plane, punts
+  that bounce and roll prolately, and wind on the HUD. CPU kickers err by
+  difficulty.
+- **AI:** a CPU QB with progression reads, pressure-shortened timers and
+  throw-aways. Also handoffs and pitches, run blocking with unique
+  assignments, daylight running, zone, man and spy coverage, a difficulty
+  read delay on runs, dive tackles, and a situational play caller.
+- **Human on defense:** SWTCH (switch to the defender nearest the ball),
+  DIVE (dive tackle) and JUMP (deflect high balls).
+- **HUD (basic, polished in M5):** scorebug with possession arrow, quarter
+  and clock; down & distance, field position and play clock; field strip
+  with the line to gain; wind; and the active player's SPD/POW/CATCH.
+  Everything sits inside the safe area.
+- 3D goal posts at both end lines.
+
+### Verified here
+- `swift test`: **90/90 pass**. That includes 12 rules tests covering every
+  scoring path, penalties, the clock and quarter transitions, and 9 match
+  tests. Among them: **two complete CPU-vs-CPU games played to FINAL with no
+  hang or crash** (about 110 plays each), the human offense flow (cards,
+  paging, snap, 4th-down page), human defense switching, the run handoff
+  passing control to the RB, false start, CPU QB release timing, and FG
+  geometry with wind.
+- A full game simulates in about 9 s in a debug build on this machine.
+- [`docs/m3/`](docs/m3) has the play-call screens (offense, defense, 4th
+  down), the kick meter, HUD and game stills, 3 GIFs, and a full
+  play-by-play of a CPU-vs-CPU game.
+
+### Not verified here
+The iOS layer still hasn't been compiled (no Xcode or iOS SDK). This round
+touched `WorldRenderer` (UILayout pooling), `GameController` (end-zone
+colors, safe-area accent) and `DebugOverlay` (moved to bottom-left).
+
+### Device test checklist (M3)
+- [ ] The game opens on the offense play-call screen with 3 cards (HB DIVE /
+      SLANTS / VERTICALS). Swipe to see page 2, then tap a card to call it.
+- [ ] The play clock counts down from :20. Let it expire once: a play is called and snapped automatically.
+- [ ] On a run play the QB hands off by himself and control jumps to the RB.
+      On a TOSS SWEEP he pitches it.
+- [ ] Before the snap, push the stick hard: "FALSE START", back 5 yards, same down.
+- [ ] Gain 10 yards: "FIRST DOWN!", and the yellow line on the field strip moves.
+- [ ] On 4th down the first page is PUNT / FIELD GOAL. Kick a field goal:
+      tap to lock power, then aim. Watch the ball through (or past) the
+      uprights, and check that wind visibly bends long kicks.
+- [ ] Score a TD and pick KICK PAT or GO FOR 2. Then the other team gets the ball at its 25.
+- [ ] On defense: the cards show COVER 2 / MAN PRESS / LB BLITZ. You control
+      a linebacker; SWTCH jumps to the defender nearest the ball, DIVE
+      lunges, JUMP leaps to tip a pass.
+- [ ] The camera is always behind the offense, so it flips when possession changes, and the end zone colors follow.
+- [ ] The clock stops after incompletions. In the last minute of a half it also stops after out-of-bounds plays and scores.
+- [ ] The game ends after Q4 with "FINAL". Halftime gives the ball to the other team.
+- [ ] The HUD never sits under the notch or Dynamic Island, and the FPS overlay (bottom-left) holds.
+
+### Questions for you before M4
+1. Do you want kickoff and punt **returns** (simulated now as touchbacks / fair catches), or keep them out for pace?
+2. Should ties go to **overtime** (and which format), or stay ties in arcade mode?
+3. Is a quarter of about 13 plays the right length? It's 3:00 game time with a 6 s runoff between plays.
+4. M4 brings the art pass. Who are the two featured teams' star players (QB +
+   defensive star) whose portraits and Spirit Plays should come first?
+
+## ⏭ M4: Art pass: 2 teams, portraits, callouts, Spirit Play cut-ins
 ## M5: HUD, menus, gear shop, audio
 ## M6: Polish, haptics, performance profiling

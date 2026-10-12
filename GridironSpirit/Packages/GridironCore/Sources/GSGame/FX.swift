@@ -106,6 +106,10 @@ struct FXState {
             case .landing(let id, let at):
                 squash[id] = (-1, 0.1)
                 dust(at: Vec3(at.x, at.y, 0.05), count: 6)
+            case .handoff, .kick, .jump:
+                haptics.append(HapticPulse(intensity: 0.25, sharpness: 0.6))
+            case .flag:
+                say("FLAG!", 1.0)
             case .whistle(let reason, let spot):
                 switch reason {
                 case .touchdown:
@@ -115,6 +119,7 @@ struct FXState {
                 case .outOfBounds: say("OUT OF BOUNDS")
                 case .interception, .turnover: break
                 case .safety: say("SAFETY!")
+                case .falseStart, .kickDead: break
                 case .tackled:
                     if callout == nil || callout!.remaining < 0.8 {
                         let g = Int((spot.y - los).rounded())

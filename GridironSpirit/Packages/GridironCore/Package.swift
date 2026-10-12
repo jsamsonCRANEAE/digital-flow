@@ -9,7 +9,7 @@ let package = Package(
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "GridironCore",
-                 targets: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRenderCore", "GSGame"]),
+                 targets: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRules", "GSRenderCore", "GSGame"]),
     ],
     targets: [
         .target(name: "GSFoundation"),
@@ -17,10 +17,11 @@ let package = Package(
         .target(name: "GSSimulation", dependencies: ["GSFoundation", "GSData"]),
         .target(name: "GSInput", dependencies: ["GSFoundation"]),
         .target(name: "GSAI", dependencies: ["GSFoundation", "GSData", "GSSimulation"]),
+        .target(name: "GSRules", dependencies: ["GSFoundation"]),
         .target(name: "GSRenderCore", dependencies: ["GSFoundation", "GSSimulation"]),
-        .target(name: "GSGame", dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRenderCore"]),
+        .target(name: "GSGame", dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRules", "GSRenderCore"]),
         .testTarget(name: "GridironCoreTests",
-                    dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRenderCore", "GSGame"]),
+                    dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRules", "GSRenderCore", "GSGame"]),
     ]
 )
 // Dev-only CPU preview renderer (writes PNGs). Not linked into the app.

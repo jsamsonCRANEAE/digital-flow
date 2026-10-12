@@ -118,7 +118,7 @@ public final class StadiumBackdrop {
         for x in stride(from: 0, to: Self.width, by: 6) { b.fillRect(x: x, y: railTop + m, width: 1, height: 4, RGBA(hex: 0x6A6890)) }
         b.fillRect(x: 0, y: railTop + m, width: Self.width, height: 1, RGBA(hex: 0xB8B8D8))
 
-        drawScoreboard(&b, top: m + 1)
+        drawScoreboard(&b, top: m + 21)   // below the HUD scorebug, between the side panels
         drawWall(&b, top: wallTop + m, home: home, away: away)
 
         // Below the wall (only seen during shake): wall base.
@@ -130,8 +130,10 @@ public final class StadiumBackdrop {
         let w = 132, h = 38
         let x0 = (Self.width - w) / 2
         // Support pillars.
-        b.fillRect(x: x0 + 20, y: top + h, width: 6, height: 14, RGBA(hex: 0x2A2D44))
-        b.fillRect(x: x0 + w - 26, y: top + h, width: 6, height: 14, RGBA(hex: 0x2A2D44))
+        b.fillRect(x: x0 + 20, y: top + h, width: 6, height: 8, RGBA(hex: 0x2A2D44))
+        b.fillRect(x: x0 + w - 26, y: top + h, width: 6, height: 8, RGBA(hex: 0x2A2D44))
+        b.fillRect(x: x0 + 20, y: 0, width: 6, height: top, RGBA(hex: 0x2A2D44))       // hung from the roof
+        b.fillRect(x: x0 + w - 26, y: 0, width: 6, height: top, RGBA(hex: 0x2A2D44))
         b.fillRect(x: x0 - 1, y: top - 1, width: w + 2, height: h + 2, Palette.outline)
         b.fillRect(x: x0, y: top, width: w, height: h, RGBA(hex: 0x3B3F5E))
         b.fillRect(x: x0 + 3, y: top + 3, width: w - 6, height: h - 6, RGBA(hex: 0x0C0C18))

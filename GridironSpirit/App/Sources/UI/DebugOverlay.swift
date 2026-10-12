@@ -29,7 +29,8 @@ final class DebugOverlay {
         let t = makeTexture(b)
         node.texture = t
         node.size = t.size()
-        let left = Int(safeArea.minX) + 4, top = Int(safeArea.minY) + 4
+        // Bottom-left: the top edge belongs to the HUD now.
+        let left = Int(safeArea.minX) + 4, top = Int(safeArea.maxY) - b.height - 3
         node.position = CGPoint(x: left, y: Canvas.height - top - b.height)
     }
 }

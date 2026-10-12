@@ -30,7 +30,7 @@ public struct ActiveMove: Sendable, Equatable {
     public var side: Double
 
     public static func duration(of k: MoveKind) -> Double {
-        switch k { case .juke: return 0.28; case .spin: return 0.42; case .stiffArm: return 0.5; case .dive: return 1.2 }
+        switch k { case .juke: return 0.28; case .spin: return 0.42; case .stiffArm: return 0.5; case .dive: return 1.2; case .jump: return 0.8 }
     }
 }
 
@@ -39,6 +39,8 @@ public struct SimPlayer: Sendable {
     public let data: PlayerData
     public let side: TeamSide
     public let teamIndex: Int
+    /// Playbook slot ("QB", "WR1", "CB2" ...).
+    public var slot: String = ""
     public var body: PlayerBody
     public var status: PlayerStatus = .normal
     public var move: ActiveMove?
@@ -90,6 +92,9 @@ public struct PlayerState: Sendable {
 public struct World: Sendable {
     public private(set) var players: [SimPlayer] = []
     public var controlledID: Int
+    /// Which side the human plays (nil = CPU vs CPU). Control only follows
+    /// the ball (catches, handoffs, recoveries) for the human's own side.
+    public var humanSide: TeamSide? = .offense
     public private(set) var tick: UInt64 = 0
     public private(set) var time: Double = 0
     public private(set) var ball: Ball
@@ -105,8 +110,23 @@ public struct World: Sendable {
     /// Seconds the current pass has left in the air (prediction).
     public private(set) var passTimeRemaining: Double = 0
     var rng: SplitMix64
-    var pendingThrow: (target: Int, kind: ThrowKind, timer: Double)?
+    var pendingThrow: (target: Int?, point: Vec2?, kind: ThrowKind, timer: Double)?
+    /// Short tosses (snap, pitch) that the target catches automatically.
     var snapTarget: Int?
+    /// True once a forward pass has left the QB's hand this play.
+    public private(set) var passThrown = false
+    /// True while a kicked ball is live (no catches, no recoveries).
+    public private(set) var isKickInFlight = false
+    public private(set) var kickRested = false
+    /// Defensive pass interference flagged this play (accept/decline in rules).
+    public private(set) var passInterference: (defender: Int, receiver: Int, spot: Vec2)?
+    public private(set) var falseStartFlag = false
+    /// Defenders already judged for interference on the current pass.
+    var piJudged = Set<Int>()
+    /// Time since the snap.
+    public private(set) var playTime: Double = 0
+    /// Who had the ball when the play went dead (for turnovers / safeties).
+    public private(set) var lastCarrierSide: TeamSide?
 
     public init(players: [SimPlayer], controlledID: Int, lineOfScrimmage: Double, seed: UInt64 = 0xF00D) {
         self.players = players
@@ -125,7 +145,7 @@ public struct World: Sendable {
     /// True while the QB still holds the ball behind the line: receivers are targetable.
     public var canThrow: Bool {
         guard phase.isLive, pendingThrow == nil, let h = ball.holder, let qb = quarterback, h == qb.id else { return false }
-        return players[h].body.position.y < lineOfScrimmage && snapTarget == nil
+        return !passThrown && players[h].body.position.y < lineOfScrimmage && snapTarget == nil
     }
 
     // MARK: Commands
@@ -133,6 +153,7 @@ public struct World: Sendable {
     public mutating func snap() {
         guard phase == .preSnap, let qb = quarterback, let c = ball.holder else { return }
         phase = .live
+        playTime = 0
         let from = players[c].body.position + Vec3(0, -0.3, 0.45)
         let s = ThrowSolver.solve(from: from, receiver: qb.body.position.ground, receiverVelocity: .zero,
                                   kind: .bullet, maxSpeed: 13)
@@ -150,8 +171,96 @@ public struct World: Sendable {
     public mutating func requestThrow(to target: Int, kind: ThrowKind) -> Bool {
         guard canThrow, players.indices.contains(target), players[target].isEligibleReceiver,
               let qb = ball.holder else { return false }
-        pendingThrow = (target, kind, 0.1)
+        pendingThrow = (target, nil, kind, 0.1)
         players[qb].throwTimer = 0.32
+        return true
+    }
+
+    /// Throw it away toward a spot (usually out of bounds) to avoid a sack.
+    @discardableResult
+    public mutating func requestThrowAway(to point: Vec2) -> Bool {
+        guard canThrow, let qb = ball.holder else { return false }
+        pendingThrow = (nil, point, .bullet, 0.08)
+        players[qb].throwTimer = 0.28
+        return true
+    }
+
+    /// QB hands the ball to a runner standing next to him.
+    @discardableResult
+    public mutating func handoff(to id: Int) -> Bool {
+        guard phase.isLive, let qb = ball.holder, qb != id, players[qb].side == players[id].side,
+              players[qb].body.position.y < lineOfScrimmage + 0.5 else { return false }
+        ball.phase = .held(by: id)
+        if humanSide == players[id].side { controlledID = id }
+        events.append(.handoff(from: qb, to: id))
+        return true
+    }
+
+    /// Underhand lateral toss (not a forward pass): auto-caught like a snap,
+    /// but a ball that hits the turf is a live fumble.
+    @discardableResult
+    public mutating func pitch(to id: Int) -> Bool {
+        guard phase.isLive, let qb = ball.holder, players[qb].side == players[id].side else { return false }
+        let from = players[qb].body.position + Vec3(0, 0, 1.1)
+        let r = players[id]
+        let s = ThrowSolver.solve(from: from, receiver: r.body.position.ground, receiverVelocity: r.body.velocity,
+                                  kind: .bullet, maxSpeed: 10)
+        ball.launch(from: from, velocity: s.velocity, wobble: 0, tumbling: false)
+        ball.isForwardPass = false
+        ball.thrower = qb
+        ball.target = id
+        snapTarget = id
+        if humanSide == players[id].side { controlledID = id }
+        events.append(.handoff(from: qb, to: id))
+        return true
+    }
+
+    /// Place-kick or punt: the ball leaves the kicker's foot tumbling.
+    public mutating func kickBall(from p: Vec3, velocity v: Vec3) {
+        guard phase.isLive else { return }
+        ball.launch(from: p, velocity: v, wobble: 0, tumbling: true)
+        ball.isForwardPass = false
+        ball.thrower = nil
+        ball.target = nil
+        isKickInFlight = true
+        kickRested = false
+        events.append(.kick(at: p))
+    }
+
+    /// Called by the rules layer once a kick is decided (FG through / punt downed).
+    public mutating func endKick(spot: Vec2) {
+        isKickInFlight = false
+        whistle(.kickDead, spot: spot)
+    }
+
+    /// Offense moved before the snap.
+    public mutating func flagFalseStart(by id: Int) {
+        guard phase == .preSnap else { return }
+        falseStartFlag = true
+        events.append(.flag(.falseStart(player: id)))
+        phase = .dead(.falseStart)
+        deadSpot = Vec2(ball.position.x, lineOfScrimmage)
+        timeSinceWhistle = 0
+        events.append(.whistle(.falseStart, spot: deadSpot!))
+    }
+
+    /// Defender actions: dive tackle (lunge) or jump to deflect.
+    @discardableResult
+    public mutating func requestDefenderAction(_ kind: MoveKind, for id: Int) -> Bool {
+        guard phase.isLive, ball.holder != id, players[id].status == .normal, !players[id].body.isAirborne,
+              players[id].move == nil else { return false }
+        var p = players[id]
+        if kind == .dive {
+            p.move = ActiveMove(kind: .dive, age: 0, duration: ActiveMove.duration(of: .dive), side: 1)
+            let fwd = Vec2.fromAngle(p.body.facing, length: max(p.body.speed, 4) + 2.2)
+            p.body.velocity = fwd
+            p.body.jump(verticalSpeed: 2.6)
+            events.append(.move(player: id, kind: .dive))
+        } else {
+            p.body.jump(verticalSpeed: 4.2)          // ~0.8 yd rise: tips high passes
+            events.append(.jump(player: id))
+        }
+        players[id] = p
         return true
     }
 
@@ -174,6 +283,8 @@ public struct World: Sendable {
             let fwd = Vec2.fromAngle(p.body.facing, length: max(p.body.speed, 4) + 1.6)
             p.body.velocity = fwd
             p.body.jump(verticalSpeed: 3.1)
+        case .jump:
+            p.body.jump(verticalSpeed: 3.8)
         }
         players[id] = p
         events.append(.move(player: id, kind: kind))
@@ -186,6 +297,7 @@ public struct World: Sendable {
     public mutating func step(intents: [Vec2], dt: Double) {
         events.removeAll(keepingCapacity: true)
         if phase.isDead { timeSinceWhistle += dt }
+        if phase.isLive { playTime += dt }
 
         updateThrow(dt: dt)
         movePlayers(intents: intents, dt: dt)
@@ -212,16 +324,18 @@ public struct World: Sendable {
         pendingThrow = nil
         guard phase.isLive, let qbID = ball.holder else { return }
         let qb = players[qbID]
-        let target = players[pt.target]
         let release = qb.body.position + Vec3(Vec2.fromAngle(qb.body.facing, length: 0.35), z: 1.95)
         let arm = 21.5 + 7 * Double(qb.data.ratings.throwPower) / 99    // 21.5 ... 28.5 yd/s
-        let sol = ThrowSolver.solve(from: release, receiver: target.body.position.ground,
-                                    receiverVelocity: target.body.velocity, kind: pt.kind, maxSpeed: arm, wind: wind)
+        let aimPos = pt.target.map { players[$0].body.position.ground } ?? pt.point ?? release.ground
+        let aimVel = pt.target.map { players[$0].body.velocity } ?? .zero
+        let sol = ThrowSolver.solve(from: release, receiver: aimPos,
+                                    receiverVelocity: aimVel, kind: pt.kind, maxSpeed: arm, wind: wind)
         let pressure = pressureOn(qbID)
         let (v, wobble) = ThrowSolver.applyError(sol.velocity, accuracy: qb.data.ratings.throwAccuracy,
                                                  pressure: pressure, kind: pt.kind, rng: &rng)
         ball.launch(from: release, velocity: v, wobble: wobble, tumbling: false)
         ball.isForwardPass = true
+        passThrown = true
         ball.thrower = qbID
         ball.target = pt.target
         ball.kind = pt.kind
@@ -230,6 +344,7 @@ public struct World: Sendable {
         passLanding = landing.point
         passTimeRemaining = landing.time
         for i in players.indices { players[i].catchAttempted = false }
+        piJudged.removeAll()
         events.append(.throwRelease(player: qbID, kind: pt.kind, wobble: wobble))
     }
 
@@ -267,7 +382,7 @@ public struct World: Sendable {
                 intent = .zero
                 speedScale = 0.2
             }
-            if p.engaged { speedScale *= 0.38 }
+            if p.engaged { speedScale *= p.side == .defense ? 0.3 : 0.45 }
             if p.throwTimer > 0 { speedScale *= 0.35 }
             // Moves lock the stick during their commitment window.
             if var m = p.move {
@@ -276,6 +391,7 @@ public struct World: Sendable {
                 case .spin: intent = Vec2.fromAngle(p.body.facing); speedScale *= 0.92
                 case .stiffArm: speedScale *= 0.94
                 case .dive: intent = Vec2.fromAngle(p.body.facing); speedScale *= 1.25
+                case .jump: break
                 }
                 m.age += dt
                 p.move = m.age >= m.duration && m.kind != .dive ? nil : m
@@ -290,9 +406,13 @@ public struct World: Sendable {
                 events.append(.landing(player: p.id, at: p.body.position))
                 if p.move?.kind == .dive {
                     p.move = nil
-                    p.status = .down
                     p.body.velocity = p.body.velocity * 0.3
-                    if ball.holder == p.id && phase.isLive { whistle(.tackled, spot: p.body.position.ground) }
+                    if ball.holder == p.id {
+                        p.status = .down
+                        if phase.isLive { whistle(.tackled, spot: p.body.position.ground) }
+                    } else {
+                        p.status = .stunned(0.9)            // missed dive tackle: on the turf
+                    }
                 }
             }
             p.tackleCooldown = max(0, p.tackleCooldown - dt)
@@ -317,8 +437,15 @@ public struct World: Sendable {
                 let dist2 = d.lengthSquared
                 guard dist2 < minDist * minDist else { continue }
                 if players[i].side != players[j].side && players[i].id != carrier && players[j].id != carrier && phase.isLive {
-                    players[i].engaged = true
-                    players[j].engaged = true
+                    // Blocks bog both players down; receivers vs. DBs in coverage
+                    // just bump (no engagement) unless the receiver is blocking on a run.
+                    let off = players[i].side == .offense ? players[i] : players[j]
+                    let runBlocking = carrier.map { players[$0].slot != "QB" } ?? false
+                    if !off.isEligibleReceiver || runBlocking {
+                        players[i].engaged = true
+                        players[j].engaged = true
+                    }
+                    checkPassInterference(i, j)
                 }
                 // The carrier vs a tackler is resolved by the tackle model, not pushed apart.
                 if (players[i].id == carrier || players[j].id == carrier) && players[i].side != players[j].side
@@ -326,7 +453,11 @@ public struct World: Sendable {
                 let dist = dist2.squareRoot()
                 let normal = dist > 1e-6 ? d / dist : Vec2(1, 0)
                 let overlap = minDist - dist
-                let wa = b.profile.mass / (a.profile.mass + b.profile.mass)
+                var wa = b.profile.mass / (a.profile.mass + b.profile.mass)
+                // The ball carrier slips through his own teammates (they give way).
+                if players[i].side == players[j].side {
+                    if players[i].id == carrier { wa = 0.12 } else if players[j].id == carrier { wa = 0.88 }
+                }
                 let push = normal * overlap
                 players[i].body.position.x -= push.x * wa
                 players[i].body.position.y -= push.y * wa
@@ -334,6 +465,30 @@ public struct World: Sendable {
                 players[j].body.position.y += push.y * (1 - wa)
             }
         }
+    }
+
+    /// Defensive pass interference: a defender runs through an eligible
+    /// receiver while a catchable forward pass is on its way to him.
+    mutating func checkPassInterference(_ i: Int, _ j: Int) {
+        guard passInterference == nil, ball.phase == .inFlight, ball.isForwardPass, passTimeRemaining > 0.4 else { return }
+        let (d, r) = players[i].side == .defense ? (i, j) : (j, i)
+        let rec = players[r], def = players[d]
+        guard rec.isEligibleReceiver, !rec.catchAttempted else { return }
+        guard rec.id == ball.target else { return }
+        // One judgement per defender per pass (contact lasts many ticks).
+        guard !piJudged.contains(def.id) else { return }
+        piJudged.insert(def.id)
+        let n = (rec.body.position.ground - def.body.position.ground).normalized
+        let closing = (def.body.velocity - rec.body.velocity).dot(n)
+        // A defender running to the ball is playing it, not the man.
+        if let land = passLanding {
+            let toBall = (land.ground - def.body.position.ground).normalized
+            if def.body.velocity.dot(toBall) > def.body.speed * 0.7 { return }
+        }
+        guard closing > 2.5, rng.unit() < 0.1 else { return }      // incidental contact isn't a foul
+        let spot = rec.body.position.ground
+        passInterference = (def.id, rec.id, spot)
+        events.append(.flag(.passInterference(defender: def.id, receiver: rec.id, spot: spot)))
     }
 
     mutating func updateBall(dt: Double) {
@@ -348,6 +503,12 @@ public struct World: Sendable {
         let ev = ball.step(dt: dt, wind: wind, rng: &rng)
         if ev.contains(.bounced) && ball.lastBounceStrength > 0.8 {
             events.append(.ballBounce(at: ball.position, strength: ball.lastBounceStrength))
+        }
+        if isKickInFlight {
+            if ev.contains(.cameToRest) || (ball.holder == nil && ball.velocity.length < 0.05 && ball.isOnGround) {
+                kickRested = true
+            }
+            return
         }
         if ev.contains(.groundContact) {
             if snapTarget != nil {
@@ -365,11 +526,11 @@ public struct World: Sendable {
     }
 
     mutating func resolveCatches() {
-        guard ball.phase == .inFlight, ball.airTime > 0.08 else { return }
+        guard ball.phase == .inFlight, ball.airTime > 0.08, !isKickInFlight else { return }
         // Snaps are automatic unless the QB is somehow out of reach.
         if let qb = snapTarget {
             let d = (ball.position.ground - players[qb].body.position.ground).length
-            if d < 0.9 && ball.position.z < 2.4 {
+            if d < 1.0 && ball.position.z < 2.4 {
                 ball.phase = .held(by: qb)
                 snapTarget = nil
             }
@@ -408,7 +569,7 @@ public struct World: Sendable {
                 events.append(.catchMade(player: p.id, at: at, contested: ctx.contest > 0.3, interception: pick))
                 if pick {
                     whistle(.interception, spot: p.body.position.ground)
-                } else {
+                } else if humanSide == .offense {
                     controlledID = p.id
                 }
                 return
@@ -438,7 +599,7 @@ public struct World: Sendable {
     }
 
     mutating func resolveRecoveries() {
-        guard ball.phase == .loose, ball.position.z < 0.6 else { return }
+        guard ball.phase == .loose, ball.position.z < 0.6, !isKickInFlight else { return }
         var best: (Int, Double)?
         for p in players where p.status.canMakePlays {
             let d = (p.body.position.ground - ball.position.ground).length
@@ -449,7 +610,9 @@ public struct World: Sendable {
         ball.phase = .held(by: id)
         let offense = players[id].side == .offense
         events.append(.recovery(player: id, offense: offense))
-        if offense { controlledID = id } else { whistle(.turnover, spot: players[id].body.position.ground) }
+        if offense {
+            if humanSide == .offense { controlledID = id }
+        } else { whistle(.turnover, spot: players[id].body.position.ground) }
     }
 
     mutating func resolveTackles() {
@@ -460,7 +623,8 @@ public struct World: Sendable {
             && players[i].tackleCooldown <= 0 {
             let t = players[i]
             let d = carrier.body.position.ground - t.body.position.ground
-            let reach = carrier.body.profile.radius + t.body.profile.radius + 0.1
+            let diving = t.move?.kind == .dive
+            let reach = carrier.body.profile.radius + t.body.profile.radius + 0.1 + (diving ? 0.55 : 0)
             guard d.length < reach else { continue }
             // Second hit on an already wrapped / stumbling carrier: gang tackle.
             if case .driven = carrier.status { return finishGangTackle(cid, i) }
@@ -474,8 +638,10 @@ public struct World: Sendable {
                                     carrierStrength: carrier.data.ratings.strength,
                                     carrierBalance: carrier.data.ratings.balance, closingSpeed: max(closing, 1.0),
                                     frontalness: heading.dot(-n), carrierSpeed: carrier.body.speed,
-                                    move: carrier.move?.kind, moveAge: carrier.move?.age ?? 0)
-            let r = TackleResolver.resolve(ctx, rolls: (rng.unit(), rng.unit(), rng.unit()))
+                                    move: carrier.move?.kind, moveAge: carrier.move?.age ?? 0, tacklerDiving: diving)
+            var c2 = ctx
+            c2.tacklerEngaged = t.engaged
+            let r = TackleResolver.resolve(c2, rolls: (rng.unit(), rng.unit(), rng.unit()))
             apply(r, carrier: cid, tackler: i, normal: n)
             return
         }
@@ -533,8 +699,8 @@ public struct World: Sendable {
                 whistle(.outOfBounds, spot: Vec2(clamp(p.x, 0, Field.width), p.y))
             } else if players[cid].side == .offense && p.y >= Field.awayGoalLine {
                 whistle(.touchdown, spot: p.ground)
-            } else if players[cid].side == .offense && p.y < Field.homeGoalLine && players[cid].status == .down {
-                whistle(.safety, spot: p.ground)
+            } else if players[cid].side == .defense && p.y <= Field.homeGoalLine {
+                whistle(.touchdown, spot: p.ground)          // defensive score (recovered fumble etc.)
             }
         } else if ball.phase == .loose {
             let p = ball.position
@@ -546,6 +712,7 @@ public struct World: Sendable {
 
     mutating func whistle(_ reason: DeadBallReason, spot: Vec2) {
         guard !phase.isDead else { return }
+        lastCarrierSide = ball.holder.map { players[$0].side }
         phase = .dead(reason)
         deadSpot = spot
         timeSinceWhistle = 0

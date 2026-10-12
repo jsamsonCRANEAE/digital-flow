@@ -24,6 +24,7 @@ final class GameController: NSObject, MTKViewDelegate {
     private let debug: DebugOverlay?
     private var safeArea = Canvas.bounds
     private let haptics = HapticsPlayer()
+    private var endZones: (near: RGBA, far: RGBA) = (RGBA.clear, RGBA.clear)
 
     init?(view: MTKView, displayMaxFPS: Int) {
         guard let league = try? DataLoader.bundledLeague() else { return nil }
@@ -32,7 +33,7 @@ final class GameController: NSObject, MTKViewDelegate {
         self.scene = scene
         guard let pipeline = PixelPipeline(view: view, scene: scene) else { return nil }
         self.pipeline = pipeline
-        let home = runtime.offenseTeam.colors.primaryRGBA, away = runtime.defenseTeam.colors.primaryRGBA
+        let home = runtime.teams[0].colors.primaryRGBA, away = runtime.teams[1].colors.primaryRGBA
         field = FieldRasterizer(style: FieldStyle(homeEndZone: home, awayEndZone: away),
                                 backdrop: StadiumBackdrop(horizonRow: Int(runtime.cameraConfig.horizonRow),
                                                           home: home, away: away))
@@ -74,10 +75,15 @@ final class GameController: NSObject, MTKViewDelegate {
         lastTime = now
 
         let frame = runtime.advance(frameTime: frameTime)
+        if frame.endZones.near != endZones.near || frame.endZones.far != endZones.far {
+            endZones = frame.endZones
+            field.setEndZones(near: endZones.near, far: endZones.far)       // possession changed
+        }
         field.render(into: &fieldBuffer, camera: frame.camera, crowdFrame: frame.crowdFrame)
         // Ground-layer effects: ball shadow, trail, reticle, particles, speed lines.
         EffectsRasterizer.render(frame.effects, camera: frame.camera, into: &fieldBuffer)
-        world.apply(frame, joystick: runtime.touches.joystick)
+        world.apply(frame, joystick: runtime.touches.joystick, safeArea: safeArea,
+                    accent: runtime.teams[0].colors.primaryRGBA)
         haptics.play(frame.haptics)
 
         let work = CACurrentMediaTime() - now

@@ -2,6 +2,10 @@ import GSFoundation
 
 public enum DeadBallReason: Sendable, Equatable {
     case tackled, outOfBounds, incomplete, touchdown, interception, turnover, safety
+    /// Pre-snap foul: play never starts.
+    case falseStart
+    /// Punt / missed kick at rest, or a field goal decided.
+    case kickDead
 }
 
 /// Everything noteworthy that happened during one simulation tick. The
@@ -21,4 +25,14 @@ public enum GameEvent: Sendable, Equatable {
     case move(player: Int, kind: MoveKind)
     case landing(player: Int, at: Vec3)
     case whistle(DeadBallReason, spot: Vec2)
+    case handoff(from: Int, to: Int)
+    case kick(at: Vec3)
+    case flag(Foul)
+    case jump(player: Int)
+}
+
+public enum Foul: Sendable, Equatable {
+    case falseStart(player: Int)
+    /// Defensive pass interference at a spot (offense frame).
+    case passInterference(defender: Int, receiver: Int, spot: Vec2)
 }

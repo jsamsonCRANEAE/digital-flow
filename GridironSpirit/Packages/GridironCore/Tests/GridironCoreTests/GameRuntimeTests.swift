@@ -7,7 +7,11 @@ import XCTest
 @testable import GSGame
 
 final class GameRuntimeTests: XCTestCase {
-    func makeRuntime() throws -> GameRuntime { GameRuntime(league: try DataLoader.bundledLeague()) }
+    func makeRuntime() throws -> GameRuntime {
+        let rt = GameRuntime(league: try DataLoader.bundledLeague())
+        rt.debugCall(offense: "slants", defense: "cover3")
+        return rt
+    }
 
     func testJoystickMovesControlledPlayerDownfield() throws {
         let rt = try makeRuntime()

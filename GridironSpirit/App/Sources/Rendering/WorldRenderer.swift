@@ -31,6 +31,7 @@ final class WorldRenderer {
     private var overlayPool: [SKSpriteNode] = []
     private var iconPool: [SKSpriteNode] = []
     private var buttonNodes: [SKSpriteNode] = []
+    private var uiPool: [SKSpriteNode] = []
 
     init(scene: GameScene, looks: [PlayerLook]) {
         self.scene = scene
@@ -92,7 +93,7 @@ final class WorldRenderer {
         if node.texture !== tex { node.texture = tex; node.size = tex.size() }
     }
 
-    func apply(_ frame: RenderFrame, joystick: VirtualJoystick) {
+    func apply(_ frame: RenderFrame, joystick: VirtualJoystick, safeArea: Rect, accent: RGBA) {
         marker.isHidden = true
         for s in frame.sprites {
             let node = playerNodes[s.id] ?? makeNode(id: s.id, in: scene.playerLayer, store: &playerNodes)
@@ -166,16 +167,16 @@ final class WorldRenderer {
             place(node, centerX: snapToPixel(b.center.x), centerY: snapToPixel(b.center.y))
         }
 
-        // Callout text (M4 replaces this with chrome-gradient arcade callouts).
-        if let c = frame.callout {
-            calloutNode.isHidden = false
-            setTexture(calloutNode, textures.texture(TextKey(text: c)) {
-                var b = PixelBuffer(width: PixelFont.width(of: c) + 2, height: PixelFont.lineHeight + 1)
-                b.drawText(c, x: 0, y: 0, RGBA(hex: 0xFFE45C), shadow: Palette.outline)
-                return b
-            })
-            place(calloutNode, centerX: Canvas.width / 2, centerY: 108)
-        } else { calloutNode.isHidden = true }
+        // HUD, play-call cards, kick meter and callouts (shared layout with the preview tool).
+        calloutNode.isHidden = true
+        let items = UILayout.items(for: frame, safeArea: safeArea, accent: accent)
+        syncPool(&uiPool, count: items.count, parent: scene.uiLayer)
+        for (node, item) in zip(uiPool, items) {
+            setTexture(node, textures.texture(item.key, make: item.make))
+            let h = Int(node.size.height)
+            node.position = scenePoint(left: item.x, top: item.y, height: h)
+            node.zPosition = 1
+        }
 
         joyBase.isHidden = !joystick.isActive
         joyKnob.isHidden = !joystick.isActive
