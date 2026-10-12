@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "tierPrices": [120, 300, 650, 1300, 2600],
+  "items": [
+    { "id": "cleat1", "name": "CANVAS STUDS",   "category": "cleats",   "tier": 1, "boost": { "speed": 1, "acceleration": 1 },                   "appliesTo": ["rb","wr","cb","s"], "bestFor": "ANY SPEED PLAYER. A CHEAP FIRST STEP." },
+    { "id": "cleat2", "name": "SWIFT TALONS",   "category": "cleats",   "tier": 2, "boost": { "speed": 2, "acceleration": 2 },                   "appliesTo": ["rb","wr","cb","s"], "bestFor": "WIDEOUTS WHO WIN ON GO ROUTES." },
+    { "id": "cleat3", "name": "RAZOR SPIKES",   "category": "cleats",   "tier": 3, "boost": { "speed": 2, "agility": 3 },                        "appliesTo": ["rb","wr","cb","s"], "bestFor": "JUKE ARTISTS. SHARPER CUTS." },
+    { "id": "cleat4", "name": "THUNDER STEPS",  "category": "cleats",   "tier": 4, "boost": { "speed": 3, "acceleration": 4, "agility": 2 },     "appliesTo": ["rb","wr","te","cb","s","lb"], "bestFor": "WHOLE SKILL GROUP. EXPLOSIVE BURST." },
+    { "id": "cleat5", "name": "KITSUNE GETA",   "category": "cleats",   "tier": 5, "boost": { "speed": 4, "acceleration": 5, "agility": 4 },     "appliesTo": ["rb","wr","te","cb","s","lb"], "spiritCharge": 0.08, "bestFor": "LEGENDARY. FOX-SPIRIT SPEED, FASTER SPIRIT METER." },
+
+    { "id": "glove1", "name": "GRIP TAPE",      "category": "gloves",   "tier": 1, "boost": { "catching": 2 },                                   "appliesTo": ["wr","te"], "bestFor": "RECEIVERS WHO DROP EASY ONES." },
+    { "id": "glove2", "name": "TACKY MITTS",    "category": "gloves",   "tier": 2, "boost": { "catching": 3, "balance": 1 },                     "appliesTo": ["wr","te","rb"], "bestFor": "SECURE HANDS IN TRAFFIC." },
+    { "id": "glove3", "name": "IRON PALMS",     "category": "gloves",   "tier": 3, "boost": { "catching": 4, "strength": 2 },                    "appliesTo": ["wr","te","rb","cb","s"], "bestFor": "CONTESTED CATCHES AND PICKS." },
+    { "id": "glove4", "name": "MAGNET CLAWS",   "category": "gloves",   "tier": 4, "boost": { "catching": 6, "balance": 2 },                     "appliesTo": ["wr","te","rb","cb","s","lb"], "bestFor": "BALL HAWKS. TURNS PBUS INTO INTS." },
+    { "id": "glove5", "name": "DRAGON GRASP",   "category": "gloves",   "tier": 5, "boost": { "catching": 8, "strength": 3, "balance": 3 },      "appliesTo": ["wr","te","rb","cb","s","lb"], "spiritCharge": 0.08, "bestFor": "LEGENDARY. NOTHING SLIPS AWAY." },
+
+    { "id": "helm1", "name": "PADDED SHELL",    "category": "helmets",  "tier": 1, "boost": { "balance": 2 },                                    "appliesTo": ["rb","te","og","c"], "bestFor": "STAYING UPRIGHT AFTER CONTACT." },
+    { "id": "helm2", "name": "STEEL VISOR",     "category": "helmets",  "tier": 2, "boost": { "strength": 2, "balance": 2 },                     "appliesTo": ["og","c","dl","lb"], "bestFor": "TRENCH WARRIORS. WIN THE LINE." },
+    { "id": "helm3", "name": "RAM CREST",       "category": "helmets",  "tier": 3, "boost": { "strength": 3, "balance": 3 },                     "appliesTo": ["rb","te","og","c","dl","lb"], "bestFor": "POWER BACKS AND PASS RUSHERS." },
+    { "id": "helm4", "name": "ONI FACEGUARD",   "category": "helmets",  "tier": 4, "boost": { "strength": 5, "balance": 4 },                     "appliesTo": ["rb","te","og","c","dl","lb","s"], "bestFor": "BIG HITS. BREAK MORE TACKLES." },
+    { "id": "helm5", "name": "TITAN KABUTO",    "category": "helmets",  "tier": 5, "boost": { "strength": 7, "balance": 6 },                     "appliesTo": ["rb","te","og","c","dl","lb","s","cb"], "spiritCharge": 0.08, "bestFor": "LEGENDARY. THE WHOLE FRONT HITS LIKE A WALL." },
+
+    { "id": "train1", "name": "FILM SESSION",   "category": "training", "tier": 1, "boost": { "throwAccuracy": 2 },                              "appliesTo": ["qb"], "bestFor": "QBS WHO MISS OPEN MEN." },
+    { "id": "train2", "name": "CANNON DRILLS",  "category": "training", "tier": 2, "boost": { "throwPower": 3 },                                 "appliesTo": ["qb","k"], "bestFor": "DEEP BALLS AND LONG KICKS." },
+    { "id": "train3", "name": "MOUNTAIN CAMP",  "category": "training", "tier": 3, "boost": { "throwPower": 2, "throwAccuracy": 3, "agility": 2 }, "appliesTo": ["qb","k"], "bestFor": "QBS UNDER PRESSURE. BETTER ON THE RUN." },
+    { "id": "train4", "name": "ZEN FOCUS",      "category": "training", "tier": 4, "boost": { "throwPower": 4, "throwAccuracy": 5 },             "appliesTo": ["qb","k"], "spiritCharge": 0.05, "bestFor": "PINPOINT PASSING. FASTER SPIRIT METER." },
+    { "id": "train5", "name": "SPIRIT DOJO",    "category": "training", "tier": 5, "boost": { "throwPower": 6, "throwAccuracy": 7, "acceleration": 2, "strength": 2 }, "appliesTo": ["qb","k","rb","wr","te","og","c","dl","lb","cb","s"], "spiritCharge": 0.12, "bestFor": "LEGENDARY. WHOLE ROSTER LEVELS UP." }
+  ]
+}

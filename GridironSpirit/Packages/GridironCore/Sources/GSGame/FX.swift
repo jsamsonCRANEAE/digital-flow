@@ -16,6 +16,8 @@ struct FXState {
     var squash: [Int: (level: Int, remaining: Double)] = [:]
     var callout: Callout?
     var haptics: [HapticPulse] = []
+    var sounds: [SoundCue] = []
+    var footTimer = 0.0
     var trail: [Vec3] = []
     var trailTick = 0
     var speedLineIntensity = 0.0
@@ -31,6 +33,7 @@ struct FXState {
 
     mutating func consumeImpactFrame() -> Bool { defer { impactPending = false }; return impactPending }
     mutating func drainHaptics() -> [HapticPulse] { defer { haptics.removeAll() }; return haptics }
+    mutating func drainSounds() -> [SoundCue] { defer { sounds.removeAll() }; return sounds }
 
     func squashLevel(for id: Int) -> Int { squash[id]?.level ?? 0 }
 
@@ -40,6 +43,7 @@ struct FXState {
         for e in events {
             switch e {
             case .snap:
+                sounds.append(.snap)
                 haptics.append(HapticPulse(intensity: 0.35, sharpness: 0.8))
             case .hardCut(_, let at):
                 turf(at: Vec3(at), count: 7, speed: 3)
@@ -47,6 +51,7 @@ struct FXState {
                 break
             case .throwRelease(_, _, let wobble):
                 trail.removeAll()
+                sounds.append(.throwRelease)
                 haptics.append(HapticPulse(intensity: 0.4, sharpness: 0.6))
                 if wobble > 0.55 { say("WOBBLY!", 0.8) }
             case .catchMade(let id, let at, let contested, let pick):
@@ -55,6 +60,7 @@ struct FXState {
                 squash[id] = (-1, 0.1)
                 haptics.append(HapticPulse(intensity: contested ? 0.8 : 0.55, sharpness: 0.5))
                 crowdHype = 1.5
+                sounds += [.catchMade(contested: contested), .crowd(pick ? 1 : contested ? 0.8 : 0.45)]
                 say(pick ? "INTERCEPTION!" : contested ? "WHAT A CATCH!" : "CATCH!")
             case .drop(_, let at):
                 say("DROPPED!")
@@ -64,6 +70,7 @@ struct FXState {
                 overlays.append(Overlay(kind: .starburst, at: at, sizeYards: 1.1, age: 0, duration: 0.18))
                 haptics.append(HapticPulse(intensity: 0.6, sharpness: 0.9))
                 say("TIPPED!")
+                sounds.append(.deflection)
             case .tackle(let r, let carrier, let tackler, let at):
                 let big = r.impact >= TackleResolver.bigHitImpact
                 let downs = r.outcome == .clean || r.outcome == .pushedForward
@@ -77,7 +84,8 @@ struct FXState {
                     squash[carrier] = (-1, 0.12)
                     squash[tackler] = (-1, 0.12)
                 }
-                if big { impactPending = true; crowdHype = 2 }
+                if big { impactPending = true; crowdHype = 2; sounds.append(.crowd(0.9)) }
+                if r.outcome != .whiff { sounds.append(.tackle(impact: r.impact)) }
                 haptics.append(HapticPulse(intensity: clamp(0.35 + r.impact * 0.08, 0, 1), sharpness: big ? 1 : 0.7))
                 switch r.outcome {
                 case .whiff: say("WHIFF!", 0.9)
@@ -87,6 +95,7 @@ struct FXState {
                 }
             case .fumble(_, let at):
                 say("FUMBLE!", 1.6)
+                sounds += [.fumble, .crowd(0.9)]
                 hitStop = max(hitStop, Self.frame * 4)
                 overlays.append(Overlay(kind: .starburst, at: at + Vec3(0, 0, 1), sizeYards: 2, age: 0, duration: 0.2))
                 haptics.append(HapticPulse(intensity: 1, sharpness: 1))
@@ -95,6 +104,7 @@ struct FXState {
             case .ballBounce(let at, let strength):
                 dust(at: Vec3(at.x, at.y, 0.05), count: Int(clamp(strength * 1.5, 2, 8)))
                 haptics.append(HapticPulse(intensity: clamp(strength * 0.08, 0.1, 0.4), sharpness: 0.3))
+                sounds.append(.bounce(strength))
             case .move(let id, let kind):
                 let p = world.player(id).body
                 switch kind {
@@ -103,14 +113,19 @@ struct FXState {
                 default: break
                 }
                 haptics.append(HapticPulse(intensity: 0.3, sharpness: 0.9))
+                sounds.append(.move)
             case .landing(let id, let at):
                 squash[id] = (-1, 0.1)
                 dust(at: Vec3(at.x, at.y, 0.05), count: 6)
-            case .handoff, .kick, .jump:
+            case .handoff, .jump:
                 haptics.append(HapticPulse(intensity: 0.25, sharpness: 0.6))
+            case .kick:
+                haptics.append(HapticPulse(intensity: 0.25, sharpness: 0.6))
+                sounds.append(.kick)
             case .flag:
                 say("FLAG!", 1.0)
             case .whistle(let reason, let spot):
+                sounds.append(reason == .touchdown ? .touchdown : .whistle)
                 switch reason {
                 case .touchdown:
                     say("TOUCHDOWN!", 2.2); crowdHype = 3
@@ -147,6 +162,13 @@ struct FXState {
         for (k, v) in squash { squash[k] = v.remaining - dt > 0 ? (v.level, v.remaining - dt) : nil }
         if var c = callout { c.remaining -= dt; callout = c.remaining > 0 ? c : nil }
         crowdHype = max(0, crowdHype - dt)
+
+        // Footsteps follow the ball carrier (else the controlled player); cadence follows speed.
+        let body = world.player(world.carrierID ?? world.controlledID).body
+        if body.speed > 2, !body.isAirborne {
+            footTimer -= dt * (0.6 + body.speedFraction)
+            if footTimer <= 0 { footTimer = 0.32; sounds.append(.footstep(body.speedFraction)) }
+        }
 
         // Ball trail: sample every 2 ticks while in flight, keep ~0.15 s.
         trailTick += 1

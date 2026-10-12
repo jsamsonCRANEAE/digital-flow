@@ -12,7 +12,8 @@ import GSRenderCore
 ///  2. SKRenderer draws the SpriteKit scene (players, shadows, UI) on top,
 ///     *at canvas resolution*, so sprites can only land on canvas pixels.
 ///  3. The canvas is drawn to the screen at an integer scale with nearest
-///     texel fetches; the remainder is letterboxed in a stadium color.
+///     texel fetches (or, with the "sharp fit" setting, a fractional scale
+///     with sharp-bilinear seams); the remainder is letterboxed.
 final class PixelPipeline {
     let device: MTLDevice
     private let queue: MTLCommandQueue
@@ -28,6 +29,7 @@ final class PixelPipeline {
         var origin: SIMD2<Float>
         var scale: Float
         var impact: Float
+        var sharp: Float
     }
 
     init?(view: MTKView, scene: SKScene) {
@@ -71,8 +73,15 @@ final class PixelPipeline {
         skRenderer.shouldCullNonVisibleNodes = true
     }
 
+    private var drawableSize = CGSize(width: Canvas.width, height: Canvas.height)
+    /// Settings: false = pixel-perfect integer scale, true = sharp fill.
+    var sharpFit = false {
+        didSet { if sharpFit != oldValue { updateLayout(drawableSize: drawableSize) } }
+    }
+
     func updateLayout(drawableSize: CGSize) {
-        layout = CanvasLayout(drawableWidth: Int(drawableSize.width), drawableHeight: Int(drawableSize.height))
+        self.drawableSize = drawableSize
+        layout = CanvasLayout(drawableWidth: Int(drawableSize.width), drawableHeight: Int(drawableSize.height), sharpFit: sharpFit)
     }
 
     /// Uploads the field pixels and renders + presents one frame.
@@ -121,8 +130,8 @@ final class PixelPipeline {
                                             znear: 0, zfar: 1))
                 enc.setRenderPipelineState(upscalePipeline)
                 enc.setFragmentTexture(canvas, index: 0)
-                var u = UpscaleUniforms(origin: SIMD2(Float(l.originX), Float(l.originY)), scale: Float(l.scale),
-                                        impact: impactFrame ? 1 : 0)
+                var u = UpscaleUniforms(origin: SIMD2(Float(l.originX), Float(l.originY)), scale: Float(l.pixelScale),
+                                        impact: impactFrame ? 1 : 0, sharp: l.sharpFit ? 1 : 0)
                 enc.setFragmentBytes(&u, length: MemoryLayout<UpscaleUniforms>.stride, index: 0)
                 enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
                 enc.endEncoding()

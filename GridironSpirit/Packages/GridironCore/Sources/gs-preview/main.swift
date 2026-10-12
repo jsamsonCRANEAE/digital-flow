@@ -8,6 +8,8 @@ import GSInput
 import GSSimulation
 import GSRenderCore
 import GSGame
+import GSAudio
+import GSUI
 
 extension String {
     /// FNV-1a: stable across runs (Swift's hashValue is randomly seeded).
@@ -19,6 +21,30 @@ extension String {
 }
 
 let outDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
+
+// --- Audio export: one full loop of each song + an SFX reel (22.05 kHz mono WAV) ---
+if CommandLine.arguments.contains("--audio") {
+    let sr = 22_050.0
+    for song in Soundtrack.all {
+        let core = AudioCore(sampleRate: sr)
+        core.setCrowd(0.05)
+        core.play(song)
+        let pcm = core.renderSeconds(song.duration + (song.loops ? 0 : 1))
+        let peak = pcm.map { abs($0) }.max() ?? 0
+        let rms = (pcm.reduce(0) { $0 + $1 * $1 } / Float(pcm.count)).squareRoot()
+        let file = song.name.lowercased().replacingOccurrences(of: " ", with: "_")
+        try AudioCore.wav(pcm, sampleRate: Int(sr)).write(to: URL(fileURLWithPath: "\(outDir)/\(file).wav"))
+        print(String(format: "%@  %.1fs  peak %.2f  rms %.3f", song.name, song.duration, peak, rms))
+    }
+    let core = AudioCore(sampleRate: sr)
+    var reel: [Float] = []
+    let effects: [SoundEffect] = [.whistle, .snap, .footstep(1), .footstep(0.8), .footstep(1), .throwWhoosh, .catchPop,
+                                  .hit(0.5), .hit(1.2), .kick, .cheer(1), .spirit, .uiTap, .uiBack, .uiBuy, .uiError]
+    for e in effects { core.play(e); reel += core.renderSeconds(0.55) }
+    try AudioCore.wav(reel, sampleRate: Int(sr)).write(to: URL(fileURLWithPath: "\(outDir)/sfx_reel.wav"))
+    print("sfx reel \(effects.count) effects")
+    exit(0)
+}
 let league = try DataLoader.bundledLeague()
 var rt = GameRuntime(league: league)
 let style = FieldStyle(homeEndZone: rt.offenseTeam.colors.primaryRGBA, awayEndZone: rt.defenseTeam.colors.primaryRGBA)
@@ -26,7 +52,8 @@ let field = FieldRasterizer(style: style, backdrop: StadiumBackdrop(horizonRow: 
                                                                     home: style.homeEndZone, away: style.awayEndZone))
 
 var shadowCache: [Int: PixelBuffer] = [:]
-func composite(_ f: RenderFrame, joystick: VirtualJoystick?) -> PixelBuffer {
+func composite(_ f: RenderFrame, joystick: VirtualJoystick?, runtime: GameRuntime? = nil, extraUI: [UIItem] = []) -> PixelBuffer {
+    let rt = runtime ?? rt
     var canvas = PixelBuffer(width: Canvas.width, height: Canvas.height)
     field.setEndZones(near: f.endZones.near, far: f.endZones.far)
     field.render(into: &canvas, camera: f.camera, crowdFrame: f.crowdFrame)
@@ -83,6 +110,7 @@ func composite(_ f: RenderFrame, joystick: VirtualJoystick?) -> PixelBuffer {
     for item in UILayout.items(for: f, safeArea: Canvas.bounds, accent: rt.teams[0].colors.primaryRGBA) {
         canvas.blit(item.make(), x: item.x, y: item.y)
     }
+    for item in extraUI { canvas.blit(item.make(), x: item.x, y: item.y) }
     if f.impactFrame {
         // Same math as the Metal impact pass: invert + contrast boost.
         for i in canvas.pixels.indices {
@@ -161,6 +189,40 @@ do {
     for (i, c) in cells.enumerated() { sheet.blit(c, x: (i % cols) * (cw + 4) + 2, y: (i / cols) * (ch + 4) + 2) }
     try writePNG(upscaled(sheet, 2), to: "\(outDir)/portrait_sheet.png")
     if CommandLine.arguments.contains("--portraits-only") { exit(0) }
+}
+
+// --- M5 menus: drive the real AppFlow and save each screen ---
+if CommandLine.arguments.contains("--menus") {
+    var saved: Data?
+    let flow = AppFlow(league: league, gear: try DataLoader.bundledGear(), savedProfile: nil, persist: { saved = $0 },
+                       audio: AudioCore(), seed: 42)
+    func shot(_ name: String, warm: Int = 4) throws {
+        var out: FlowOutput = flow.advance(frameTime: 1.0 / 60)
+        for _ in 0..<warm { out = flow.advance(frameTime: 1.0 / 60) }
+        let img: PixelBuffer
+        switch out {
+        case .menu(let b): img = b
+        case .game(let f, let r, let ui, _): img = composite(f, joystick: r.touches.joystick, runtime: r, extraUI: ui)
+        }
+        try writePNG(upscaled(img, 2), to: "\(outDir)/menu_\(name).png")
+        print("menu \(name) -> \(flow.screen)")
+    }
+    try shot("title", warm: 240)
+    flow.handle(TouchEvent(id: 1, phase: .ended, location: Vec2(320, 150)))
+    flow.store.profile.coins = 1840; flow.store.profile.wins = 7; flow.store.profile.gamesPlayed = 9; flow.store.profile.bestGrade = "A"
+    try shot("main")
+    flow.tap("exhibition"); try shot("teamselect")
+    flow.tap("back"); flow.tap("settings"); try shot("settings")
+    flow.tap("back"); flow.tap("shop")
+    flow.store.profile.trophies = ["kurogane_ronin"]
+    for id in ["cleat1", "cleat2", "glove1", "helm2", "train1"] { flow.tap("item." + id); flow.tap("buy") }
+    flow.tap("item.cleat3"); try shot("shop")
+    flow.tap("item.helm5"); flow.tap("buy"); try shot("shop_broke")
+    flow.tap("back"); flow.tap("cup"); flow.tap("play"); try shot("cup")
+    flow.tap("cup.play"); try shot("game", warm: 30)
+    flow.tap("pause"); try shot("pause")
+    print("profile bytes \(saved?.count ?? 0)")
+    exit(0)
 }
 
 // --- Scripted scenarios through the real runtime ---

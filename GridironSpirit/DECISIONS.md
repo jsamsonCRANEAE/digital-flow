@@ -346,3 +346,151 @@ the QB's.
   - Ronin: Takashiro (QB, *Iai Strike*), Mibu (RB, *Kage Step*), Aramaki (DL, *Iron Wall*), Kusaka (S, *Hawk Eye*).
   - Strays: Vantablue (QB, *Laser Line*), Razz (RB, *Neon Drift*), Venn (DL, *Riot Rush*), Shade (CB, *Ghost Pick*).
   - Colossi: Kane (RB, *Landslide*), Varga (OG, *Bulwark*), Ash (DL, *Quake*).
+
+## M5: Menus, gear shop, Spirit Cup, audio
+
+### Answers to my own M4 questions (decided, per your brief)
+- **Shop economy: a top-tier item costs about 5–6 strong wins.**
+  - Prices per tier: 120 / 300 / 650 / 1,300 / 2,600 coins.
+  - A strong win pays about 400–550 coins: 150 for the win, up to 75 for
+    TDs, up to 60 for takeaways, sacks and big hits, plus whichever daily
+    trials you clear (50 / 100 / 200).
+    - The test's 28-10 win clearing two trials pays 400.
+    - Clearing the hard trial too pushes a win past 600.
+  - So the first item is affordable after a single game, and a legendary
+    piece takes about a week of casual play.
+  - Unit-tested: `testTopTierCostsAboutFiveStrongWins` fails if a
+    data change makes the top tier cheaper than 4 wins or dearer than 7.
+- **Spirit Cup ships now**, as a 3-round ladder: quarterfinal, semifinal,
+  then the **Shadow Final**.
+  - The final is a mirror match against your own team, recolored in a
+    dark-violet palette with magenta eyes and +4 to every rating. It's a
+    classic anime rival beat, and it works with a 3-team league because the
+    final opponent is always "you, but stronger".
+  - Win the cup: +500 coins and a trophy on the shop shelf.
+  - Lose any round: the run ends and you start again (ties count as losses).
+  - The run is saved between launches and resumes at the bracket.
+- **Kick and punt returns: deferred to M6.** Menus, shop and audio were already a full milestone.
+- **Spirit Plays stay risk-free.** The comeback charging already gives
+  trailing teams a lifeline. A risk mechanic would make the best-feeling
+  moment feel like a gamble.
+
+### Gear
+- **Four categories, five tiers each**, so the shop grid is exactly the
+  spec's 5x4 (rows are categories, columns are tiers I–V).
+  - Categories: cleats, gloves, helmets, training.
+  - The tabs pick the category, and the grid always shows everything, so
+    players can see what's ahead of them.
+  - Tier colors: steel, jade, azure, violet, then gold for legendary.
+- **One item equipped per category; boosts stack across categories.**
+  Buying an item equips it immediately. Tapping an owned item toggles it on and off.
+- **Gear only boosts the positions it lists** (`appliesTo`); for example, cleats don't help linemen.
+  - Ratings are capped at 99.
+  - Tier IV–V items also add +5–12% Spirit meter charge.
+  - The boost applies to a copy of your team when a match starts, so the
+    data files never change.
+- **Gear boosts are small:** +1–8 per stat. They make a difference without
+  breaking the AI balance tuned in M3/M4. Strength comes from the stats, never
+  from damage multipliers.
+- **Original item names only** (Razor Spikes, Oni Faceguard, Titan Kabuto, Spirit Dojo…). No real brands.
+
+### Shop art (spec reference 3)
+- **The room:** vertical wood planks with procedural grain, a warm lamp falloff
+  (Bayer-dithered), a trophy shelf, a pegboard, a pennant, a framed photo and
+  a beveled counter.
+- **The shelf** has one slot per club, filled by Spirit Cup wins. Empty slots
+  show a dusty "?" cup, which is a visible goal. Filled trophies sparkle.
+- **The pegboard** shows the gear you own, best first, so your collection is on display.
+- **Shopkeeper "Old Man Goro"** is a retired lineman: #77, a gray buzz cut,
+  a hachimaki headband and an apron.
+  - He's built on the portrait renderer without its background, so he
+    matches the game's anime style.
+  - His expression follows what you do: confident when you buy, shocked
+    (with a sweat drop) when you can't afford something, neutral otherwise.
+- **The right panel** follows the spec: tabs, coin counter, preview (2x icon,
+  tier, stat line, price or OWNED/EQUIPPED), a "BEST FOR:" box, the 5x4 grid,
+  BUY/EQUIP/UNEQUIP, and a loadout strip.
+
+### Menus and flow
+- **Everything above the match lives in `GSUI.AppFlow`**, which is platform independent.
+  - Each frame it returns either `.menu(PixelBuffer)` (a full CPU-composed
+    640x296 screen) or `.game(frame, runtime, extraUI)`.
+  - The iOS layer only forwards touches and presents the output. Menu
+    frames reuse the field-texture upload path with the sprite layers hidden.
+  - The preview tool drives the same `AppFlow`, so the screenshots in
+    `docs/m5` are the real screens, not mockups.
+- **Buttons are immediate-mode.** Each screen draws itself and registers hit
+  rects in the same pass, so layout and hit-testing can never drift apart.
+  - Small targets are padded to the 44 pt minimum. Exact hits win over padded ones.
+  - A press is cancelled if you drag off the button.
+- **The title screen is attract mode:** a real CPU-vs-CPU game (45 s quarters)
+  with the HUD and callouts hidden under the logo. It restarts with new teams
+  when the game ends.
+- **The main menu** shows your team's star, your coins, your record, your trophies, and today's three trials with their rewards.
+- **Post-game:**
+  - Coins count up.
+  - The cup result is shown.
+  - A **"NEXT UNLOCK"** card shows the cheapest item you don't own and how
+    many coins you still need, or "YOU CAN AFFORD" when you're there. This
+    is the hook to play one more game.
+- **Pause:** a "II" button next to the down-and-distance panel. The game also
+  auto-pauses when the app resigns active (calls, app switch).
+  - Pause → Settings → Back returns to the pause menu.
+  - Live touches are released on pause so the joystick can't get stuck.
+- **Persistence:** one Codable `Profile` JSON blob in UserDefaults
+  (`gs.profile.v1`). It stores coins, record, owned and equipped gear, cup
+  run, trophies and settings.
+  - M4's loose keys are migrated into it once.
+  - A corrupt save falls back to a fresh profile instead of crashing.
+
+### Audio
+- **Everything is synthesized live in Swift** (`GSAudio`). There are no audio files, so the IP is original by construction.
+  - **Voices:** 2-operator FM (lead, brass, bells, bass), pulse and triangle
+    (NES-style), and a 15-bit LFSR noise channel clocked by pitch (drums,
+    crowd, hits).
+  - ADSR envelopes, pitch slides (kick drum, hits) and delayed vibrato.
+  - A tanh-style soft clip on the master.
+- **The music** is written in a small tracker text format (`"D5 - - - A4 . x"`), with 16 steps per bar.
+  - **"Spirit Rising"** (title): D major, 150 bpm, heroic brass lead.
+  - **"Locker Room"** (menus): laid-back, 108 bpm.
+  - **"Gridiron Drive"** (in-game): A minor, 140 bpm, kept sparse so the SFX cut through.
+  - **"Touchdown!"**: a non-looping 2-bar fanfare stinger.
+  - A test fails if any loop's tracks have different lengths, because the
+    loop would drift. That test caught a real 2-step error in the title bass line.
+- **SFX are driven by `SoundCue`s** that the match emits next to its haptics:
+  snap, throw whoosh, catch pop, hits scaled by impact, whistle, kick, Spirit
+  activation, footsteps for the ball carrier (cadence follows speed), and
+  crowd swells.
+  - The crowd is a filtered noise bed that rises on big plays and decays back.
+- **The audio session is `.ambient`:** it respects the silent switch and mixes
+  with the player's own music, which suits a casual game. It restarts after
+  interruptions.
+- **Verified objectively here:** every song and SFX is rendered offline and
+  checked for audibility (RMS), headroom (peak at most 1, no NaNs),
+  determinism and loop alignment. The WAVs are in `docs/m5/`.
+
+### Scaling: "Sharp fill" setting
+- **Pixel perfect (default):** the M1 pipeline unchanged. Integer scale, exact NxN blocks, a thin letterbox.
+- **Sharp fill:** a fractional scale that fills the screen; for example
+  3.98x instead of 3x on a 2556x1179 panel. The shader uses "sharp bilinear":
+  each texel's interior samples its own center (solid color) and only the
+  ~1 drawable-pixel seam is blended.
+  - Plain nearest-neighbor at a fractional scale would give uneven 3- and
+    4-pixel columns ("pixel wobble"). Sharp bilinear avoids that while
+    still filling the screen.
+  - It falls back to pixel perfect when the gain would be under 5%.
+  - Touch mapping uses the same fractional scale and is unit-tested.
+
+### Bugs found while building M5
+- **Events emitted between simulation steps were lost.** `world.snap()`, and
+  any action applied from input before a step, appended its event, and then
+  the next `World.step` cleared the list. So the snap haptic (since M1) and
+  the snap sound never fired. Now each step drops only the events the
+  previous step produced.
+- **Scheduled note-offs silenced short SFX.** The envelope treated a future
+  note-off as already reached. The audibility tests caught it.
+- **Stale incremental builds on Linux.** After adding a stored property to
+  `World` (a struct stored inline in `GameRuntime`), SwiftPM didn't rebuild a
+  dependent module. That produced a memory-layout mismatch and a segfault in
+  `GameRuntime.deinit`. A clean build fixed it. Rule: do a clean build after
+  changing a struct's stored properties.

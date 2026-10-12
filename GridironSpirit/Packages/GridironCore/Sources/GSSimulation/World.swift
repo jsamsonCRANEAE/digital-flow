@@ -102,6 +102,9 @@ public struct World: Sendable {
     public let lineOfScrimmage: Double
     public var wind: Vec2 = .zero
     public private(set) var events: [GameEvent] = []
+    /// How many of `events` the last step produced. Events emitted between
+    /// steps (snap, handoff, kick, flags...) survive into the next step's list.
+    var eventsFromLastStep = 0
     /// Where the play ended (for the next line of scrimmage).
     public private(set) var deadSpot: Vec2?
     public private(set) var timeSinceWhistle: Double = 0
@@ -298,7 +301,7 @@ public struct World: Sendable {
 
     /// - Parameter intents: desired move per player id (length <= 1).
     public mutating func step(intents: [Vec2], dt: Double) {
-        events.removeAll(keepingCapacity: true)
+        events.removeFirst(min(eventsFromLastStep, events.count))
         if phase.isDead { timeSinceWhistle += dt }
         if phase.isLive { playTime += dt }
 
@@ -314,6 +317,7 @@ public struct World: Sendable {
         }
         tick += 1
         time += dt
+        eventsFromLastStep = events.count
     }
 
     mutating func updateThrow(dt: Double) {

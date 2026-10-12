@@ -9,7 +9,7 @@ let package = Package(
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "GridironCore",
-                 targets: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRules", "GSRenderCore", "GSGame"]),
+                 targets: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRules", "GSRenderCore", "GSGame", "GSAudio", "GSUI"]),
     ],
     targets: [
         .target(name: "GSFoundation"),
@@ -20,9 +20,11 @@ let package = Package(
         .target(name: "GSRules", dependencies: ["GSFoundation"]),
         .target(name: "GSRenderCore", dependencies: ["GSFoundation", "GSSimulation"]),
         .target(name: "GSGame", dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRules", "GSRenderCore"]),
+        .target(name: "GSAudio", dependencies: ["GSFoundation"]),
+        .target(name: "GSUI", dependencies: ["GSFoundation", "GSData", "GSRenderCore", "GSGame", "GSAudio", "GSInput", "GSAI"]),
         .testTarget(name: "GridironCoreTests",
-                    dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRules", "GSRenderCore", "GSGame"]),
+                    dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSAI", "GSRules", "GSRenderCore", "GSGame", "GSAudio", "GSUI"]),
     ]
 )
 // Dev-only CPU preview renderer (writes PNGs). Not linked into the app.
-package.targets.append(.executableTarget(name: "gs-preview", dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSRenderCore", "GSGame"]))
+package.targets.append(.executableTarget(name: "gs-preview", dependencies: ["GSFoundation", "GSData", "GSSimulation", "GSInput", "GSRenderCore", "GSGame", "GSAudio", "GSUI"]))

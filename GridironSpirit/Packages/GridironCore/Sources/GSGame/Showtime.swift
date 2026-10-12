@@ -24,7 +24,7 @@ extension GameRuntime {
     /// alive and comebacks feel earned rather than impossible.
     func charge(_ team: Int, _ amount: Double) {
         let trailing = state.score[team] < state.score[1 - team]
-        spiritMeter[team] = min(1, spiritMeter[team] + amount * Self.spiritChargeRate * (trailing ? 1.35 : 1))
+        spiritMeter[team] = min(1, spiritMeter[team] + amount * Self.spiritChargeRate * (trailing ? 1.35 : 1) * (1 + spiritChargeBonus[team]))
     }
 
     /// Tuned so each team gets about 2-3 Spirit Plays a game: special, not routine.
@@ -55,6 +55,7 @@ extension GameRuntime {
         cutIn = (team, play, player, 0)
         teamStats[team].spiritPlaysUsed += 1
         fx.haptics.append(HapticPulse(intensity: 1, sharpness: 0.5))
+        fx.sounds += [.spirit, .crowd(1)]
         fx.crowdHype = 3
         playLog.append("   ** \(teams[team].abbreviation) SPIRIT PLAY: \(play.name) (\(player.lastName.uppercased()))")
         return true
@@ -199,7 +200,7 @@ extension GameRuntime {
     func recordForReplay(_ f: RenderFrame) {
         guard replaysEnabled, phase == .live || (phase == .postPlay && phaseTimer < 0.9), cutIn == nil else { return }
         var c = f
-        c.haptics = []; c.hud = nil; c.icons = []; c.buttons = []; c.playCall = nil; c.kickMeter = nil
+        c.haptics = []; c.sounds = []; c.hud = nil; c.icons = []; c.buttons = []; c.playCall = nil; c.kickMeter = nil
         c.matchup = nil; c.trialsBanner = nil; c.report = nil
         replayBuffer.append((wallClock, c))
         while let first = replayBuffer.first, first.t < wallClock - 6 { replayBuffer.removeFirst() }

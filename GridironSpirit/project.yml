@@ -41,6 +41,9 @@ schemes:
       # The per-frame CPU field raster is ~10x slower unoptimized. Use the
       # "GridironSpirit (Debug)" scheme when you need the debugger.
       config: Release
+      # Tick to show the FPS / frame-time overlay in Release (on-device perf checks).
+      commandLineArguments:
+        "-diagnostics": false
     test:
       config: Debug
     profile:

@@ -8,25 +8,37 @@ import GSFoundation
 public struct CanvasLayout: Sendable, Equatable {
     public let drawableWidth: Int
     public let drawableHeight: Int
+    /// Integer part of the scale (the exact scale in pixel-perfect mode).
     public let scale: Int
+    /// Actual canvas-to-drawable scale: equals `scale` in pixel-perfect mode,
+    /// fractional in sharp-fit mode (fills the screen; the shader keeps texel
+    /// interiors solid and blends only the 1-pixel seams).
+    public let pixelScale: Double
+    public let sharpFit: Bool
     public let originX: Int
     public let originY: Int
 
-    public init(drawableWidth: Int, drawableHeight: Int) {
+    public init(drawableWidth: Int, drawableHeight: Int, sharpFit: Bool = false) {
         self.drawableWidth = max(1, drawableWidth)
         self.drawableHeight = max(1, drawableHeight)
         let s = min(self.drawableWidth / Canvas.width, self.drawableHeight / Canvas.height)
         scale = max(1, s)
-        originX = (self.drawableWidth - Canvas.width * scale) / 2
-        originY = (self.drawableHeight - Canvas.height * scale) / 2
+        let fit = min(Double(self.drawableWidth) / Double(Canvas.width), Double(self.drawableHeight) / Double(Canvas.height))
+        // Sharp fit only helps when it is meaningfully bigger than the integer scale.
+        self.sharpFit = sharpFit && fit > Double(scale) + 0.05
+        pixelScale = self.sharpFit ? fit : Double(scale)
+        originX = (self.drawableWidth - Self.scaledWidth(pixelScale)) / 2
+        originY = (self.drawableHeight - Self.scaledHeight(pixelScale)) / 2
     }
 
-    public var scaledWidth: Int { Canvas.width * scale }
-    public var scaledHeight: Int { Canvas.height * scale }
+    private static func scaledWidth(_ s: Double) -> Int { Int((Double(Canvas.width) * s).rounded(.down)) }
+    private static func scaledHeight(_ s: Double) -> Int { Int((Double(Canvas.height) * s).rounded(.down)) }
+    public var scaledWidth: Int { Self.scaledWidth(pixelScale) }
+    public var scaledHeight: Int { Self.scaledHeight(pixelScale) }
 
     /// Drawable pixel -> canvas pixel (may be outside the canvas).
     public func canvasPoint(drawableX x: Double, drawableY y: Double) -> Vec2 {
-        Vec2((x - Double(originX)) / Double(scale), (y - Double(originY)) / Double(scale))
+        Vec2((x - Double(originX)) / pixelScale, (y - Double(originY)) / pixelScale)
     }
 
     /// Safe area (given as insets in drawable pixels) expressed in canvas

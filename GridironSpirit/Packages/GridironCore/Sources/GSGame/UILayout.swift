@@ -8,6 +8,7 @@ public struct UIItem {
     public var x: Int
     public var y: Int
     public var make: () -> PixelBuffer
+    public init(key: AnyHashable, x: Int, y: Int, make: @escaping () -> PixelBuffer) { self.key = key; self.x = x; self.y = y; self.make = make }
 }
 
 /// Lays out the HUD, play-call cards, kick meter and callout inside the safe

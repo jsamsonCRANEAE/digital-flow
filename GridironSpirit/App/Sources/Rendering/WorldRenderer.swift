@@ -23,7 +23,7 @@ final class WorldRenderer {
 
     private let scene: GameScene
     private let textures: TextureFactory
-    private let looks: [PlayerLook]
+    private var looks: [PlayerLook]
     private var playerNodes: [Int: SKSpriteNode] = [:]
     private var shadowNodes: [Int: SKSpriteNode] = [:]
     private let marker: SKSpriteNode
@@ -58,6 +58,21 @@ final class WorldRenderer {
             scene.uiLayer.addChild(b); buttonNodes.append(b)
         }
         prewarm()
+    }
+
+    /// A new match brings new uniforms: player textures are keyed by team
+    /// index, so drop them and re-warm for the new colors.
+    func setLooks(_ newLooks: [PlayerLook]) {
+        guard newLooks != looks else { return }
+        looks = newLooks
+        textures.removeAll()
+        prewarm()
+    }
+
+    /// Menu frames: the CPU-composed screen is the whole picture.
+    func hideAll() {
+        for l in [scene.shadowLayer, scene.playerLayer, scene.overlayLayer] { l.isHidden = true }
+        for n in uiPool + buttonNodes + [joyBase, joyKnob, calloutNode] { n.isHidden = true }
     }
 
     /// Generate the most common size buckets up front so the first sprint
@@ -102,7 +117,8 @@ final class WorldRenderer {
         if node.texture !== tex { node.texture = tex; node.size = tex.size() }
     }
 
-    func apply(_ frame: RenderFrame, joystick: VirtualJoystick, safeArea: Rect, accent: RGBA) {
+    func apply(_ frame: RenderFrame, joystick: VirtualJoystick, safeArea: Rect, accent: RGBA, extraUI: [UIItem] = []) {
+        for l in [scene.shadowLayer, scene.playerLayer, scene.overlayLayer] { l.isHidden = false }
         marker.isHidden = true
         for s in frame.sprites {
             let node = playerNodes[s.id] ?? makeNode(id: s.id, in: scene.playerLayer, store: &playerNodes)
@@ -179,13 +195,15 @@ final class WorldRenderer {
 
         // HUD, play-call cards, kick meter and callouts (shared layout with the preview tool).
         calloutNode.isHidden = true
-        let items = UILayout.items(for: frame, safeArea: safeArea, accent: accent)
+        // Flow overlays (pause button/panel, title logo) draw above the HUD.
+        let hud = UILayout.items(for: frame, safeArea: safeArea, accent: accent)
+        let items = hud + extraUI
         syncPool(&uiPool, count: items.count, parent: scene.uiLayer)
-        for (node, item) in zip(uiPool, items) {
+        for (i, (node, item)) in zip(uiPool, items).enumerated() {
             setTexture(node, textures.texture(item.key, make: item.make))
             let h = Int(node.size.height)
             node.position = scenePoint(left: item.x, top: item.y, height: h)
-            node.zPosition = 1
+            node.zPosition = i < hud.count ? 1 : CGFloat(20 + i - hud.count)
         }
 
         joyBase.isHidden = !joystick.isActive

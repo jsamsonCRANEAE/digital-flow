@@ -293,5 +293,104 @@ the existing generic `UILayout` path, so the app needed no new node types.
    teams, then a final) would add a long-term goal on top of the daily
    trials. Do you want it in M5 with the menus?
 
-## ⏭ M5: HUD, menus, gear shop, audio
-## M6: Polish, haptics, performance profiling
+## ✅ M5: Menus, gear shop, Spirit Cup, audio
+
+### What's new
+- **The full app loop:**
+  - Title screen over a live attract-mode game.
+  - Main menu with your coins, record, trophies, your star and today's trials.
+  - Team select with portraits and OFF/DEF/SPD bars, plus opponent and difficulty pickers.
+  - Settings: music and SFX volume, haptics, difficulty, quarter length 2/3/5 min, screen mode.
+  - Pause (with auto-pause when the app resigns active).
+  - Post-game with coin count-up, cup result and a "NEXT UNLOCK" card.
+- **Gear shop** (spec reference 3):
+  - The room: wood interior, shopkeeper Goro with reactive expressions, a
+    trophy shelf filled by cup wins, and a pegboard of your gear.
+  - The right panel: 4 tabs, coins, a 2x preview, tier and stat line, a
+    "BEST FOR:" box, a 5x4 grid and a loadout strip.
+  - 20 original items with prices from 120 to 2,600. Equipped gear raises
+    your players' ratings in matches, and legendary pieces also speed up the
+    Spirit meter.
+- **Spirit Cup:** quarterfinal → semifinal → **Shadow Final** against a
+  dark-palette, +4-rated mirror of your own team. Your progress is saved
+  between rounds. A cup win pays +500 and a trophy.
+- **Original audio, synthesized live:**
+  - 4 songs: title, menu, in-game, touchdown fanfare.
+  - 13 SFX, a crowd bed that swells, and footsteps for the ball carrier.
+  - On iOS it streams through `AVAudioEngine` with an `.ambient` session.
+- **"Sharp fill" scaling option:** a fractional scale that fills the screen,
+  using a sharp-bilinear shader. Pixel perfect stays the default.
+- **Fixed a lost-event bug:** the snap event (and its haptic, since M1) was dropped.
+
+### Verified here
+- **`swift test`: 124/124 pass.** The 20 new tests cover:
+  - **Audio:** every song is audible with no clipping or NaNs, loops align to
+    whole bars, every SFX is audible and mutable, rendering is deterministic,
+    stingers end, and the WAV header is correct.
+  - **Gear:** the 5x4 catalog, prices, boosts applied only to the listed
+    positions, the 99 cap and the Spirit bonus.
+  - **Economy:** the top tier costs 4–7 strong wins, and the first item is affordable after one game.
+  - **Profile:** buy / equip / unequip / can't afford, save round-trips, and a corrupt save falls back cleanly.
+  - **Spirit Cup:** the ladder, the shadow team (boosted ratings, no id
+    collisions), and champion/eliminated outcomes.
+  - **AppFlow:**
+    - Every screen renders and navigates.
+    - Real touch coordinates hit the right buttons, and dragging off a button cancels it.
+    - A match applies gear to the in-game ratings, pause freezes the clock, and quit cleans up.
+    - The cup flow resumes at the bracket.
+  - **Sharp-fit layout:** it fills the screen and touches map back exactly.
+  - **Sound cues:** a CPU game emits snap, whistle, tackle and footstep cues.
+- **Renders:** [`docs/m5/`](docs/m5) has every screen, produced by driving
+  the real `AppFlow` in `gs-preview --menus`, plus WAV renders of all 4 songs
+  and an SFX reel from `--audio`.
+  - Peak levels are 0.49–0.69, so there's headroom.
+
+### Not verified here
+- **The iOS layer still hasn't been compiled.** There's no Xcode in this
+  environment. M5 touched:
+  - `GameController`: now drives `AppFlow`.
+  - New `AudioOutput`: `AVAudioSourceNode`.
+  - `WorldRenderer`: per-match looks, hide-all for menus, flow overlays.
+  - `PixelPipeline` and `Upscale.metal`: sharp-fit uniform and sampler.
+  - `GameViewController`: resign-active hook.
+  - I reviewed these by hand, for example fixing a `self` access before
+    `super.init`, but the first Xcode build may still flag something small.
+- **The music has only been checked by measurement** (levels, timing,
+  determinism). I can't listen to it, so its musical quality needs your ears.
+  The WAVs are in `docs/m5/`.
+
+### Device test checklist (M5)
+- [ ] Launch: the title logo sits over a live CPU game, "TAP TO START" blinks, and the "Spirit Rising" theme plays. A tap opens the main menu and the music changes.
+- [ ] Main menu: your coins (top right), record and best grade (bottom left), your team's star, and today's 3 trials with coin rewards.
+- [ ] Exhibition → team select: tap a card to pick your team. VS cycles the opponent and LEVEL cycles the difficulty. KICK OFF! starts the match with the in-game music.
+- [ ] In-game sounds: the snap pop, footsteps that speed up on breakaways, the throw whoosh, the catch pop, hits that get bigger with impact, the whistle, and the crowd swelling on big plays. A TD plays the fanfare.
+- [ ] Silent switch on: no audio. Your own music app keeps playing alongside the game.
+- [ ] "II" pauses the match (the clock stops). Settings from pause returns to pause, and QUIT goes back to the menu. Switching apps mid-play auto-pauses.
+- [ ] At the end of the game, CONTINUE appears after about 2 s. The post-game coins count up and the NEXT UNLOCK card shows the cheapest item you don't own.
+- [ ] Gear shop:
+  - Tabs switch rows, and tapping any grid cell previews that item.
+  - Buy something: Goro grins, the item hangs on the pegboard and appears in LOADOUT.
+  - Try a legendary item you can't afford: Goro looks shocked and says "NOT ENOUGH COIN!".
+- [ ] Equip Swift Talons (SPD+2): when you control an RB, WR, CB or S, the SPD on the in-game player card (top right) is 2 higher than without it.
+- [ ] Spirit Cup:
+  - Pick a team. The bracket shows 3 rounds, with the final as your SHADOW (dark purple, magenta eyes).
+  - Win round 1: the bracket advances.
+  - Quit the app and relaunch: the cup resumes at the bracket.
+  - Win the final: +500 coins, and a trophy appears on the shop shelf.
+- [ ] Settings: volume bars change the sound immediately. Haptics OFF stops vibration. Changes persist across launches.
+- [ ] SCREEN → SHARP FILL: the picture grows to fill the height with crisp
+      pixels (no uneven columns, no blur), and touches still land where
+      expected. PIXEL PERFECT restores the integer scale.
+- [ ] Coins from an M4 install carry over (one-time migration).
+
+### Questions for you before M6
+1. **Music:** I've written original chiptune themes, but I can't hear them.
+   After a listen (WAVs in `docs/m5/`), is the style right (FM/NES hybrid),
+   or would you rather go more SNES-orchestral or more synthwave?
+2. **Returns in M6:** kick and punt returns are the planned headline
+   feature, with blocking lanes and a "Spirit Return" cut-in. Any other
+   must-have for the final milestone (for example a 2-player pass-and-play,
+   more teams, or a season mode)?
+3. **The Shadow Final's +4:** should cup difficulty also step up each round (for example the final always at Legend), or stay at the level you choose?
+
+## ⏭ M6: Polish, returns, haptics, performance profiling

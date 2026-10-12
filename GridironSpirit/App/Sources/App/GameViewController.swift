@@ -28,6 +28,8 @@ final class GameViewController: UIViewController {
         metalView.onTouch = { [weak c] id, phase, p in c?.touch(id: id, phase: phase, drawablePoint: p) }
         NotificationCenter.default.addObserver(self, selector: #selector(didBecomeActive),
                                                name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(willResignActive),
+                                               name: UIApplication.willResignActiveNotification, object: nil)
     }
 
     override func viewWillLayoutSubviews() {
@@ -45,6 +47,8 @@ final class GameViewController: UIViewController {
     }
 
     @objc private func didBecomeActive() { controller?.resetClock() }
+    /// Calls, Control Center, app switch: auto-pause the match and the audio.
+    @objc private func willResignActive() { controller?.suspend() }
 
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }

@@ -57,6 +57,12 @@ public struct OverlayItem: Sendable, Equatable {
     public var frame: Int
 }
 
+/// Audio cues emitted by the match (mapped to synth SFX by GSUI, which owns audio).
+public enum SoundCue: Sendable, Equatable {
+    case snap, throwRelease, catchMade(contested: Bool), deflection, tackle(impact: Double), fumble
+    case bounce(Double), move, kick, whistle, touchdown, spirit, footstep(Double), crowd(Double)
+}
+
 public struct HapticPulse: Sendable, Equatable {
     /// 0...1
     public var intensity: Double
@@ -161,6 +167,7 @@ public struct RenderFrame: Sendable {
     public var calloutAge: Double = 0
     public var calloutLife: Double = 1
     public var haptics: [HapticPulse]
+    public var sounds: [SoundCue] = []
     public var crowdFrame: Int
     public var phase: MatchPhase
     public var hud: HUDInfo?

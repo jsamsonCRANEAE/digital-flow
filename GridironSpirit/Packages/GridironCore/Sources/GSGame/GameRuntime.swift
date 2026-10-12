@@ -88,6 +88,8 @@ public final class GameRuntime {
     public let trials: [Trial]
     public internal(set) var report: GameReport?
     public var progress: ProgressStore?
+    /// Extra Spirit meter rate per team from equipped gear (0.1 = +10%).
+    public var spiritChargeBonus: [Double] = [0, 0]
     var lastTackler: Int?
     var bigHitThisPlay = false
     var gameTime = 0.0
@@ -765,6 +767,7 @@ public final class GameRuntime {
                            phase: phase, hud: hud(), playCall: playCallVisual(), kickMeter: kickVisual(),
                            endZones: (near, far),
                            simTime: world.time, hitStopped: fx.hitStop > 0, alpha: alpha, stepsThisFrame: steps)
+        frame.sounds = fx.drainSounds()
         decorate(&frame)
         return frame
     }

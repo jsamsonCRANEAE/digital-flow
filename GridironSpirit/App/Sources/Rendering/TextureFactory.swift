@@ -20,6 +20,7 @@ final class TextureFactory {
     func makeTexture(_ buffer: PixelBuffer) -> SKTexture { Self.texture(from: buffer, colorSpace: colorSpace) }
 
     var count: Int { cache.count }
+    func removeAll() { cache.removeAll() }
 
     static func texture(from b: PixelBuffer, colorSpace: CGColorSpace) -> SKTexture {
         // Little-endian 32-bit ARGB == BGRA bytes. Pixels are either fully

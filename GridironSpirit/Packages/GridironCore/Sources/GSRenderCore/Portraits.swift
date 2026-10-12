@@ -40,7 +40,8 @@ public struct PortraitSpec: Sendable, Hashable {
 public enum Portraits {
     public static let size = 88
 
-    public static func render(_ s: PortraitSpec, _ e: Expression) -> PixelBuffer {
+    /// `background: false` returns just the figure (e.g. the shopkeeper standing in a room).
+    public static func render(_ s: PortraitSpec, _ e: Expression, background: Bool = true) -> PixelBuffer {
         let n = size
         var fig = PixelBuffer(width: n, height: n)
         let cx = 44.0, cy = 40.0
@@ -111,7 +112,7 @@ public enum Portraits {
 
         // Background, then the figure on top.
         var out = PixelBuffer(width: n, height: n)
-        drawBackground(&out, s, e)
+        if background { drawBackground(&out, s, e) }
         out.blit(fig, x: 0, y: 0)
         if e == .shocked { drawSweat(&out, x: 69, y: 20) }
         if e == .confident { drawSparkle(&out, x: 12, y: 30) }
