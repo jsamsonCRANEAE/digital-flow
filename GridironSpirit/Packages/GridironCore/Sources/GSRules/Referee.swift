@@ -182,6 +182,7 @@ public enum Referee {
 
     /// The scoring team's choice after a touchdown.
     public static func chooseConversion(_ kind: GameState.ConversionKind, _ s: inout GameState) {
+        let kind = s.mustGoForTwo ? .twoPoint : kind
         s.mode = .conversion(kind)
         s.ballOn = kind == .kick ? 85 : 98         // PAT from the 15, two from the 2
         s.down = 1
@@ -191,7 +192,7 @@ public enum Referee {
 
     /// Advances the game clock; returns true when the quarter just expired.
     public static func tick(_ s: inout GameState, dt: Double, live: Bool) -> Bool {
-        guard !s.isFinal, !s.isConversion, s.mode != .conversionChoice else { return false }
+        guard !s.isFinal, !s.isOvertime, !s.isConversion, s.mode != .conversionChoice else { return false }
         guard live || s.clockRunning else { return false }
         let before = s.clock
         s.clock = max(0, s.clock - dt)
@@ -201,8 +202,12 @@ public enum Referee {
     /// Call between plays once the clock reads 0:00 (and no try is pending).
     /// Returns a banner ("END OF Q1", "HALFTIME", "FINAL").
     public static func endQuarterIfExpired(_ s: inout GameState) -> String? {
-        guard s.clock <= 0, !s.isFinal, s.mode == .scrimmage else { return nil }
-        if s.quarter >= 4 { s.isFinal = true; return "FINAL" }
+        guard s.clock <= 0, !s.isFinal, !s.isOvertime, s.mode == .scrimmage else { return nil }
+        if s.quarter >= 4 {
+            if s.score[0] == s.score[1] { s.startOvertime(); return "OVERTIME" }
+            s.isFinal = true
+            return "FINAL"
+        }
         let ending = s.quarter
         s.quarter += 1
         s.clock = s.quarterLength

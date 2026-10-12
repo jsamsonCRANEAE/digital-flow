@@ -116,7 +116,7 @@ final class PlayIntegrationTests: XCTestCase {
     func testBigHitTriggersImpactFrameShakeAndHaptics() throws {
         let rt = GameRuntime(league: league)
         var rig = rt.rig
-        let r = TackleResult(outcome: .clean, impact: 8, fumble: false)
+        let r = TackleResult(outcome: .clean, impact: 10, fumble: false)
         rt.fx.handle([.tackle(r, carrier: 1, tackler: 8, at: Vec3(26, 40, 0))], world: rt.world, rig: &rig, gainFrom: 35)
         XCTAssertEqual(rt.fx.hitStop, 6.0 / 60, accuracy: 1e-9)
         XCTAssertTrue(rt.fx.consumeImpactFrame())

@@ -130,7 +130,7 @@ final class RulesTests: XCTestCase {
         s.quarter = 2; s.clock = 0; s.possession = 0
         XCTAssertEqual(Referee.endQuarterIfExpired(&s), "HALFTIME")
         XCTAssertEqual(s.possession, 1, "team that didn't open receives the second half")
-        s.quarter = 4; s.clock = 0
+        s.quarter = 4; s.clock = 0; s.score = [7, 3]
         XCTAssertEqual(Referee.endQuarterIfExpired(&s), "FINAL")
         XCTAssertTrue(s.isFinal)
         // A pending try is played even with 0:00 on the clock.
@@ -147,5 +147,41 @@ final class RulesTests: XCTestCase {
         XCTAssertEqual(s.fieldPosition, "OPP 7")
         s.clock = 65
         XCTAssertEqual(s.clockText, "1:05")
+    }
+
+    func testOvertimeAlternatesFromThe25AndSettlesAfterBothPossessions() {
+        var s = fresh()
+        s.quarter = 4; s.clock = 0; s.score = [10, 10]
+        XCTAssertEqual(Referee.endQuarterIfExpired(&s), "OVERTIME")
+        XCTAssertTrue(s.isOvertime); XCTAssertEqual(s.possession, 0); XCTAssertEqual(s.ballOn, 75)
+        XCTAssertEqual(s.clockText, "OT1")
+        XCTAssertFalse(Referee.tick(&s, dt: 30, live: true), "overtime is untimed")
+        // Team 0 scores a TD + PAT.
+        Referee.apply(PlayResult(.touchdown(byOffense: true)), to: &s)
+        Referee.chooseConversion(.kick, &s)
+        Referee.apply(PlayResult(.fieldGoal(made: true, kickSpot: 78)), to: &s)
+        XCTAssertFalse(s.isFinal, "the other team still gets its possession")
+        XCTAssertEqual(s.possession, 1); XCTAssertEqual(s.ballOn, 75)
+        // Team 1 only manages a field goal: game over.
+        Referee.apply(PlayResult(.fieldGoal(made: true, kickSpot: 65)), to: &s)
+        XCTAssertTrue(s.isFinal)
+        XCTAssertEqual(s.score, [17, 13])
+    }
+
+    func testSecondOvertimeForcesTwoPointTries() {
+        var s = fresh()
+        s.quarter = 4; s.clock = 0; s.score = [3, 3]
+        _ = Referee.endQuarterIfExpired(&s)
+        Referee.apply(PlayResult(.turnover(spot: 80, interception: true)), to: &s)   // team 0's possession ends
+        XCTAssertEqual(s.possession, 1); XCTAssertEqual(s.ballOn, 75, "turnovers don't keep field position in OT")
+        s.down = 4
+        Referee.apply(PlayResult(.down(spot: 77)), to: &s)                          // team 1 fails on downs
+        XCTAssertFalse(s.isFinal)
+        XCTAssertEqual(s.overtimePeriod, 2)
+        XCTAssertEqual(s.possession, 1, "the period-2 opener alternates")
+        XCTAssertTrue(s.mustGoForTwo)
+        Referee.apply(PlayResult(.touchdown(byOffense: true)), to: &s)
+        Referee.chooseConversion(.kick, &s)
+        XCTAssertEqual(s.mode, .conversion(.twoPoint), "no kicked PATs from OT2 on")
     }
 }

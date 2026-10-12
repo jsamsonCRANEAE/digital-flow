@@ -27,6 +27,11 @@ public struct ProjectedSprite: Sendable, Equatable {
     public var view: SpriteView
     public var flipX: Bool
     public var isControlled: Bool
+    public var number: Int = 0
+    /// Lineman build.
+    public var big: Bool = false
+    /// Spirit Play aura color.
+    public var aura: RGBA? = nil
 
     /// Legacy accessor used by M1 tests: 0 idle, 1...4 run.
     public var frame: Int { pose.runIndex.map { $0 + 1 } ?? 0 }
@@ -58,7 +63,7 @@ public struct HapticPulse: Sendable, Equatable {
     public var sharpness: Double
 }
 
-public enum MatchPhase: Sendable, Equatable { case playCall, preSnap, live, postPlay, banner, final }
+public enum MatchPhase: Sendable, Equatable { case playCall, preSnap, live, postPlay, banner, replay, final }
 
 public struct HUDInfo: Sendable, Equatable {
     public var abbreviations: [String]
@@ -100,6 +105,41 @@ public struct PlayCallVisual: Sendable, Equatable {
     public var accent: RGBA
 }
 
+/// Who to draw in a portrait.
+public struct PortraitInfo: Sendable, Equatable {
+    public var playerID: String
+    public var name: String
+    public var number: Int
+    public var jersey: RGBA
+    public var trim: RGBA
+    public var archetype: Int
+    public var big: Bool
+    public var spec: PortraitSpec {
+        PortraitSpec(seed: stableHash(playerID), jersey: jersey, trim: trim, number: number, archetype: archetype, big: big)
+    }
+}
+
+/// Matchup portraits sliding in from both sides (snap) or reacting (big plays).
+public struct MatchupVisual: Sendable, Equatable {
+    public var left: PortraitInfo
+    public var right: PortraitInfo
+    public var leftExpression: Expression
+    public var rightExpression: Expression
+    /// 0...1 slide progress (1 = fully on screen).
+    public var slide: Double
+}
+
+public struct CutInVisual: Sendable, Equatable {
+    public var portrait: PortraitInfo
+    public var spiritName: String
+    public var playerName: String
+    public var primary: RGBA
+    public var accent: RGBA
+    public var motif: Int
+    /// Seconds since the cut-in started (0...1.5).
+    public var t: Double
+}
+
 public struct KickMeterVisual: Sendable, Equatable {
     public var power: Double
     public var aim: Double
@@ -118,6 +158,8 @@ public struct RenderFrame: Sendable {
     /// Inverted / high-contrast anime impact frame.
     public var impactFrame: Bool
     public var callout: String?
+    public var calloutAge: Double = 0
+    public var calloutLife: Double = 1
     public var haptics: [HapticPulse]
     public var crowdFrame: Int
     public var phase: MatchPhase
@@ -126,6 +168,16 @@ public struct RenderFrame: Sendable {
     public var kickMeter: KickMeterVisual?
     /// Near (offense) and far end-zone colors for the field rasterizer.
     public var endZones: (near: RGBA, far: RGBA)
+    public var matchup: MatchupVisual? = nil
+    public var cutIn: CutInVisual? = nil
+    /// Showing an instant replay (letterboxed, slow motion).
+    public var replay: Bool = false
+    /// Spirit meters 0...1 for teams 0 and 1, and whether the human's is ready.
+    public var spirit: [Double] = [0, 0]
+    public var spiritColors: [RGBA] = []
+    public var report: GameReport? = nil
+    /// Today's trials, shown on the first play call of a game.
+    public var trialsBanner: [String]? = nil
     public var simTime: Double
     public var hitStopped: Bool
     /// Interpolation factor used for this frame (diagnostics).

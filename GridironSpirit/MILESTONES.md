@@ -213,6 +213,85 @@ colors, safe-area accent) and `DebugOverlay` (moved to bottom-left).
 4. M4 brings the art pass. Who are the two featured teams' star players (QB +
    defensive star) whose portraits and Spirit Plays should come first?
 
-## ⏭ M4: Art pass: 2 teams, portraits, callouts, Spirit Play cut-ins
-## M5: HUD, menus, gear shop, audio
+## ✅ M4: Art pass, portraits, callouts, Spirit Plays (+ replayability systems)
+
+### Summary
+- **Portraits:** procedural anime busts for every player with 3 expressions,
+  beveled frames and caps name plates. Matchups slide in for 1 s at every
+  snap; reactions (confident vs. shocked) follow highlights.
+- **Spirit Plays:**
+  - 11 unique plays in `spirits.json`, each with real effects.
+  - A meter charged by good plays, faster when trailing.
+  - SPRT button: before the snap on offense; in the defensive pre-snap context on defense.
+  - A 1.5 s cut-in: dim, diagonal band with brush glyphs, 2× portrait, chrome
+    name, flash. Then a one-snap boost and a glowing aura on the star.
+  - The CPU fires its meter on 3rd down, in the red zone, late in close games and in OT.
+- **Callouts:** chrome, rainbow or fire block letters with an integer-step
+  overshoot pop for TOUCHDOWN!, FIRST DOWN!, INTERCEPTION!, SACK!, BIG HIT!,
+  FIELD GOAL! and more.
+- **Sprites:** jersey numbers, three helmet designs by archetype, lineman builds, Spirit aura.
+- **Replays:** instant replays of highlights at half speed, letterboxed with
+  a blinking REPLAY tag. Tap to skip.
+- **Overtime:** college style, alternating from the 25, untimed, 2-pt tries forced from OT2.
+- **Progression:**
+  - Per-team and per-player stats.
+  - Daily Spirit Trials (3 per day from a pool of 19, date-seeded) shown on the first play call.
+  - A report card at FINAL: grade S–D, MVP, box score, trials and coins.
+  - Coins persist (UserDefaults) for the M5 gear shop.
+- **Team identity:** archetype-weighted CPU play calling.
+
+### Verified here
+- `swift test`: **104/104 pass**. The 14 new tests cover:
+  - Overtime: walk-off rules and OT2 forcing two-point tries.
+  - Spirit: data integrity (every team has an offensive and a defensive
+    Spirit), activation, the cut-in world freeze, effects, aura, picking the
+    RB's Spirit on runs, CPU usage, comeback charging, and effects changing
+    tackle and catch resolution.
+  - Progression: daily trials that are deterministic and rotate, report
+    grades and coins (losses capped at B).
+  - Art: portrait determinism and expressions, and the integer callout pop.
+  - Flow: a forced TD → slow-motion replay → skip.
+  - A full CPU game that uses Spirit Plays and produces a report.
+- In 3 CPU games: 4–5 Spirit Plays per game, final scores of 20-28 to 36-39,
+  and no hangs. That's arcade-high scoring, by design.
+- [`docs/m4/`](docs/m4) has the stills (cut-in, matchup, reaction,
+  touchdown, replay, report), a portrait sheet, a GIF of a Spirit Play
+  drive, and a play-by-play.
+
+### Not verified here
+The iOS layer still hasn't been compiled. This round touched `WorldRenderer`
+(sprite keys with number/build/aura), `GameController` (progress store) and
+the new `UserDefaultsProgressStore`. Every new screen element goes through
+the existing generic `UILayout` path, so the app needed no new node types.
+
+### Device test checklist (M4)
+- [ ] The first play call shows TODAY'S SPIRIT TRIALS (3 lines with coin rewards).
+- [ ] At every snap, two framed portraits slide in from the sides for about 1 s: your QB (or RB on runs) vs. their defensive star.
+- [ ] Make a big play: the portraits come back, yours grinning with a sparkle and theirs shocked with a sweat drop.
+- [ ] The SPIRIT bars under the scorebug fill as you play and flash when
+      full. Before a snap, SPRT lights up: tap it for the cut-in (1.5 s,
+      everything frozen). Your star glows during the play.
+- [ ] Spirit effects are noticeable:
+      - *Iai Strike / Laser Line:* the pass is on a rope.
+      - *Kage Step / Neon Drift:* jukes and spins can't be tackled.
+      - *Iron Wall / Riot Rush:* rushers blow through blocks.
+      - *Hawk Eye / Ghost Pick:* defenders jump routes.
+- [ ] Fall behind by two scores: your meter visibly charges faster.
+- [ ] A TD, pick or big hit replays in slow motion with black bars and a blinking REPLAY tag. A tap skips it.
+- [ ] TOUCHDOWN! pops in rainbow block letters (small → big → settle); SACK! and BIG HIT! in fire; FIRST DOWN! in chrome.
+- [ ] Near players show jersey numbers. Ronin helmets have a gold crest from
+      the front, Strays a neon bolt, Colossi twin stripes. Linemen look wider.
+- [ ] Tie after Q4: OVERTIME. The clock reads OT1 and each team gets a shot from the 25.
+- [ ] At FINAL, the report card shows the grade, MVP, stats, trial checkboxes and coins. Coins persist across launches.
+
+### Questions for you before M5
+1. **Shop economy:** the base is 60–150 coins per game, plus trials (up to
+   +350) and highlights. A good win pays about 400–600. Should a top-tier
+   item take about 5 good games, or more?
+2. **Returns** (kickoff and punt) are the next big highlight generator. Should they go into M5, or wait for polish in M6?
+3. **Season or cup mode:** a short "Spirit Cup" ladder (beat the other two
+   teams, then a final) would add a long-term goal on top of the daily
+   trials. Do you want it in M5 with the menus?
+
+## ⏭ M5: HUD, menus, gear shop, audio
 ## M6: Polish, haptics, performance profiling

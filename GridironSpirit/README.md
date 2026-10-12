@@ -4,24 +4,21 @@ An arcade-style, anime-flavoured American football game for iPhone, set in the
 16-bit era. Swift 5.9+, SpriteKit and Metal, iOS 17+, landscape only. All
 teams, players, sponsors and stadiums are original.
 
-**Status: Milestone 3 done.** You can now play a full 7v7 game:
-- **Plays:** 6 offensive and 6 defensive, called from cards with chalkboard diagrams.
-- **AI:** a CPU quarterback that reads coverage.
-- **Rules:** downs, scoring (TD, PAT, 2-pt, FG, safety), punts, field goals with a kick meter, wind, a 4 × 3:00 clock, false starts and pass interference.
-- **Sides:** you play offense and defense.
+**Status: Milestone 4 done.** This milestone is the anime art pass plus the systems that bring players back:
+- Procedural bust portraits with 3 expressions, matchup slide-ins at the snap, and reaction portraits after big plays.
+- 11 unique Spirit Plays with full-screen cut-ins and real gameplay effects.
+- Chrome, rainbow and fire arcade callouts.
+- Slow-motion instant replays of highlights.
+- College-style overtime.
+- Daily Spirit Trials, coins and a graded post-game report card.
 
-See [MILESTONES.md](MILESTONES.md) for summaries and checklists, and
-[DECISIONS.md](DECISIONS.md) for the reasoning.
+See [MILESTONES.md](MILESTONES.md) and [DECISIONS.md](DECISIONS.md).
 
-| Play call | Field goal + kick meter | CPU drive to a TD |
+| Spirit cut-in | Snap matchup | Reaction + TOUCHDOWN! |
 |---|---|---|
-| ![](docs/m3/playcall_offense_p1.png) | ![](docs/m3/field_goal.gif) | ![](docs/m3/touchdown.gif) |
-
-| Bullet slant | Lob go route | Open-field speed lines |
-|---|---|---|
-| ![](docs/m2/bullet_slant.gif) | ![](docs/m2/lob_go.gif) | ![](docs/m2/breakaway.gif) |
-
-These GIFs are real plays run by the game code and rendered on the CPU by `gs-preview`.
+| ![](docs/m4/spirit_cutin.png) | ![](docs/m4/snap_matchup.png) | ![](docs/m4/game_touchdown.png) |
+| **Instant replay** | **Report card** | **Portraits (3 expressions)** |
+| ![](docs/m4/game_replay.png) | ![](docs/m4/game_report.png) | ![](docs/m4/portrait_sheet.png) |
 
 ## Layout
 
@@ -38,7 +35,7 @@ GridironSpirit/
 │   └── Support/Info.plist
 ├── Packages/GridironCore/       Platform-independent Swift package (builds and tests on Linux too)
 │   ├── GSFoundation             Vec2/Vec3, RGBA + hue-shift shading, SplitMix64, FixedTimestep, Rect
-│   ├── GSData                   Codable team/player/playbook models + teams.json, plays.json
+│   ├── GSData                   Codable team/player/playbook/Spirit models + teams.json, plays.json, spirits.json
 │   ├── GSSimulation             Field, MovementProfile, PlayerBody, Ball (drag/wind/prolate bounce),
 │   │                            ThrowSolver, KickPhysics, Catch/Tackle resolvers, World, Formation
 │   ├── GSInput                  Floating VirtualJoystick, TouchRouter (context buttons, receiver icons)
@@ -46,10 +43,12 @@ GridironSpirit/
 │   │                            lead-angle pursuit, PlayCaller (situational calls, 4th down, PAT/2), KickAI
 │   ├── GSRules                  GameState + Referee: downs, scoring, clock, penalties, quarters
 │   ├── GSRenderCore             Camera, CameraRig, FieldRasterizer, StadiumBackdrop, PixelFont,
-│   │                            PlaceholderSprites (poses), FXSprites, EffectsRasterizer, CanvasLayout
-│   ├── GSGame                   GameRuntime (match flow, hit-stop, kicks), FX, UILayout (HUD/cards), SpecialPlays
+│   │                            PlaceholderSprites (poses, numbers, helmets), FXSprites, Portraits, ArcadeArt,
+│   │                            EffectsRasterizer, UIArt, CanvasLayout
+│   ├── GSGame                   GameRuntime (match flow, hit-stop, kicks), Showtime (Spirit, portraits, replays),
+│   │                            Progression (stats, Spirit Trials, report, coins), FX, UILayout, SpecialPlays
 │   └── gs-preview               Dev tool: renders frames to PNG on the CPU
-└── docs/m1, m2, m3/             Preview renders, GIFs and a full-game play-by-play from gs-preview
+└── docs/m1 … m4/                Preview renders, GIFs and full-game play-by-plays from gs-preview
 ```
 
 The UI (menus/HUD) and Audio modules arrive in M5, so there are no empty stubs yet.
@@ -71,7 +70,7 @@ slower unoptimized. Use **GridironSpirit (Debug)** when you need the debugger.
 
 ```sh
 cd Packages/GridironCore
-swift test                              # 90 unit tests incl. 2 full CPU-vs-CPU games
+swift test                              # 104 unit tests incl. 3 full CPU-vs-CPU games
 swift run -c release gs-preview /tmp    # plays scripted snaps, writes stills + raw frames
 ```
 

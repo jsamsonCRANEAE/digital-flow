@@ -121,6 +121,9 @@ public struct World: Sendable {
     /// Defensive pass interference flagged this play (accept/decline in rules).
     public private(set) var passInterference: (defender: Int, receiver: Int, spot: Vec2)?
     public private(set) var falseStartFlag = false
+    /// Active Spirit Play effects per side (index = TeamSide.rawValue).
+    public var spirit: [SpiritEffects?] = [nil, nil]
+    func eff(_ side: TeamSide) -> SpiritEffects? { spirit[side.rawValue] }
     /// Defenders already judged for interference on the current pass.
     var piJudged = Set<Int>()
     /// Time since the snap.
@@ -325,14 +328,15 @@ public struct World: Sendable {
         guard phase.isLive, let qbID = ball.holder else { return }
         let qb = players[qbID]
         let release = qb.body.position + Vec3(Vec2.fromAngle(qb.body.facing, length: 0.35), z: 1.95)
-        let arm = 21.5 + 7 * Double(qb.data.ratings.throwPower) / 99    // 21.5 ... 28.5 yd/s
+        let arm = (21.5 + 7 * Double(qb.data.ratings.throwPower) / 99) * (eff(qb.side)?.throwSpeed ?? 1)   // 21.5 ... 28.5 yd/s
         let aimPos = pt.target.map { players[$0].body.position.ground } ?? pt.point ?? release.ground
         let aimVel = pt.target.map { players[$0].body.velocity } ?? .zero
         let sol = ThrowSolver.solve(from: release, receiver: aimPos,
                                     receiverVelocity: aimVel, kind: pt.kind, maxSpeed: arm, wind: wind)
         let pressure = pressureOn(qbID)
-        let (v, wobble) = ThrowSolver.applyError(sol.velocity, accuracy: qb.data.ratings.throwAccuracy,
+        var (v, wobble) = ThrowSolver.applyError(sol.velocity, accuracy: qb.data.ratings.throwAccuracy,
                                                  pressure: pressure, kind: pt.kind, rng: &rng)
+        if eff(qb.side)?.perfectPass == true { v = sol.velocity; wobble = 0 }   // Spirit: on a rope
         ball.launch(from: release, velocity: v, wobble: wobble, tumbling: false)
         ball.isForwardPass = true
         passThrown = true
@@ -382,7 +386,13 @@ public struct World: Sendable {
                 intent = .zero
                 speedScale = 0.2
             }
-            if p.engaged { speedScale *= p.side == .defense ? 0.3 : 0.45 }
+            if p.engaged {
+                let mine = eff(p.side)?.blockWin == true, theirs = eff(p.side == .offense ? .defense : .offense)?.blockWin == true
+                if mine { speedScale *= 0.8 }                    // sheds the block
+                else if theirs { speedScale *= 0.12 }            // pancaked
+                else { speedScale *= p.side == .defense ? 0.3 : 0.45 }
+            }
+            speedScale *= eff(p.side)?.speed ?? 1
             if p.throwTimer > 0 { speedScale *= 0.35 }
             // Moves lock the stick during their commitment window.
             if var m = p.move {
@@ -558,7 +568,9 @@ public struct World: Sendable {
                                    isIntendedReceiver: p.id == ball.target, ballSpeed: ball.velocity.length,
                                    ballHeight: ball.position.z - p.body.position.z, centered: 1 - hd / radius,
                                    contest: clamp((1.6 - nearest) / 1.6, 0, 1), diving: diving)
-            let outcome = CatchResolver.resolve(ctx, roll: rng.unit())
+            var ctx2 = ctx
+            ctx2.bonus = p.side == .offense ? (eff(.offense)?.catchBonus ?? 0) : (eff(.defense)?.pickBonus ?? 0)
+            let outcome = CatchResolver.resolve(ctx2, roll: rng.unit())
             let at = ball.position
             switch outcome {
             case .caught:
@@ -641,6 +653,12 @@ public struct World: Sendable {
                                     move: carrier.move?.kind, moveAge: carrier.move?.age ?? 0, tacklerDiving: diving)
             var c2 = ctx
             c2.tacklerEngaged = t.engaged
+            let off = eff(carrier.side), def = eff(t.side)
+            c2.extraResist = off?.tackleResist ?? 0
+            c2.extraPower = def?.tacklePower ?? 0
+            c2.unbreakableMoves = off?.unbreakableMoves ?? false
+            c2.forcePile = off?.pushPile ?? false
+            c2.fumbleMultiplier = def?.fumbleMultiplier ?? 1
             let r = TackleResolver.resolve(c2, rolls: (rng.unit(), rng.unit(), rng.unit()))
             apply(r, carrier: cid, tackler: i, normal: n)
             return

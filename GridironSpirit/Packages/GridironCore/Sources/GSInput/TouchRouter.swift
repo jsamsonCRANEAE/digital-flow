@@ -17,6 +17,8 @@ public enum ControlContext: Sendable, Equatable {
     case defense        // SWITCH / DIVE TACKLE / JUMP
     case playCall       // play cards: tap to call, swipe to page
     case kick           // tap anywhere to stop the meter
+    case defensePreSnap // SPIRIT / SWITCH
+    case replay         // tap anywhere to skip
     case none
 }
 
@@ -32,6 +34,7 @@ public enum InputCommand: Sendable, Equatable {
     case selectCard(Int)
     case page(Int)
     case kickTap
+    case skip
 }
 
 public struct ButtonSlot: Sendable, Equatable {
@@ -70,6 +73,8 @@ public struct TouchRouter: Sendable {
     /// Held receiver icon (for lob charge feedback).
     public private(set) var charging: (receiverID: Int, since: Double)?
     public var now: Double = 0
+    /// Spirit meter full: lights up the SPIRIT button.
+    public var spiritReady = false { didSet { if spiritReady != oldValue { layoutButtons() } } }
     public static let lobHoldThreshold = 0.18
 
     var buttonTouches: [Int: (index: Int, start: Vec2, time: Double, swiped: Bool)] = [:]
@@ -101,10 +106,11 @@ public struct TouchRouter: Sendable {
         }
         let spec: [(ButtonAction?, String, Bool)]
         switch context {
-        case .preSnap: spec = [(.snap, "SNAP", true), (.audible, "AUDBL", false), (.spirit, "SPRT", false)]
+        case .preSnap: spec = [(.snap, "SNAP", true), (.audible, "AUDBL", false), (.spirit, "SPRT", spiritReady)]
+        case .defensePreSnap: spec = [(.spirit, "SPRT", spiritReady), (.switchPlayer, "SWTCH", true), (nil, "", false)]
         case .ballCarrier: spec = [(.juke, "JUKE", true), (.spin, "SPIN", true), (.stiffArm, "STIFF", true)]
         case .defense: spec = [(.diveTackle, "DIVE", true), (.switchPlayer, "SWTCH", true), (.jump, "JUMP", true)]
-        case .passing, .none, .playCall, .kick: spec = [(nil, "", false), (nil, "", false), (nil, "", false)]
+        case .passing, .none, .playCall, .kick, .replay: spec = [(nil, "", false), (nil, "", false), (nil, "", false)]
         }
         let pressed = Set(buttonTouches.values.map(\.index))
         buttons = zip([inside(a), inside(b), inside(c)], spec).enumerated().map { i, pair in
@@ -122,6 +128,10 @@ public struct TouchRouter: Sendable {
         if context == .playCall { return handleCards(e) }
         if context == .kick {
             if e.phase == .began { commands.append(.kickTap) }
+            return
+        }
+        if context == .replay {
+            if e.phase == .began { commands.append(.skip) }
             return
         }
         switch e.phase {

@@ -16,6 +16,8 @@ public struct CatchContext: Sendable {
     /// 0 = uncontested, 1 = defender's hands right there.
     public var contest: Double
     public var diving: Bool
+    /// Spirit Play bonus added to the catch (offense) / pick (defense) chance.
+    public var bonus: Double = 0
 
     public init(catching: Int, isOffense: Bool, isIntendedReceiver: Bool, ballSpeed: Double, ballHeight: Double,
                 centered: Double, contest: Double, diving: Bool) {
@@ -37,11 +39,11 @@ public enum CatchResolver {
         if c.isOffense {
             let base = c.isIntendedReceiver ? 0.38 : 0.2
             let pc = clamp(base + 0.58 * skill + 0.14 * centered - speedPenalty - heightPenalty
-                           - divePenalty - 0.5 * contest, 0.03, 0.97)
+                           - divePenalty - 0.5 * contest + c.bonus, 0.03, 0.99)
             return (pc, (1 - pc) * contest * 0.6)
         } else {
             // Defenders mostly play the ball: deflections are far likelier than picks.
-            let pi = clamp(0.03 + 0.3 * skill * centered - speedPenalty - heightPenalty, 0.01, 0.4)
+            let pi = clamp(0.03 + 0.3 * skill * centered - speedPenalty - heightPenalty + c.bonus, 0.01, 0.4 + c.bonus)
             let pd = clamp(0.12 + 0.38 * centered + 0.12 * (c.diving ? 1 : 0), 0, 1 - pi)
             return (pi, pd)
         }
@@ -92,6 +94,12 @@ public struct TackleContext: Sendable {
     public var tacklerDiving: Bool
     /// Tackler is locked up with a blocker: only an arm tackle is possible.
     public var tacklerEngaged: Bool = false
+    // Spirit Play modifiers.
+    public var extraPower: Double = 0
+    public var extraResist: Double = 0
+    public var unbreakableMoves = false
+    public var forcePile = false
+    public var fumbleMultiplier: Double = 1
 
     public init(tacklerMass: Double, tacklerStrength: Int, tacklerSpeed: Double, carrierMass: Double,
                 carrierStrength: Int, carrierBalance: Int, closingSpeed: Double, frontalness: Double,
@@ -112,7 +120,9 @@ public struct TackleResult: Sendable, Equatable {
 }
 
 public enum TackleResolver {
-    public static let bigHitImpact = 6.0
+    /// ~9 = a genuinely violent collision (a full-speed head-on hit is ~11),
+    /// so "BIG HIT!" stays rare enough to mean something.
+    public static let bigHitImpact = 9.0
 
     /// Impact uses the two-body reduced mass so a lineman hitting a receiver
     /// rates higher than two receivers bumping at the same speed.
@@ -126,7 +136,10 @@ public enum TackleResolver {
     public static func resolve(_ c: TackleContext, rolls r: (Double, Double, Double)) -> TackleResult {
         let imp = impact(c)
         // Juke: lateral/front contacts early in the move can whiff entirely.
-        if c.move == .juke && c.moveAge < 0.22 && c.frontalness > -0.3 && r.0 < 0.6 {
+        if c.move == .juke && c.moveAge < 0.22 && c.frontalness > -0.3 && (r.0 < 0.6 || c.unbreakableMoves) {
+            return TackleResult(outcome: .whiff, impact: 0, fumble: false)
+        }
+        if c.unbreakableMoves && (c.move == .spin || c.move == .juke) && c.moveAge < 0.45 {
             return TackleResult(outcome: .whiff, impact: 0, fumble: false)
         }
         let str = Double(c.tacklerStrength) / 99
@@ -135,8 +148,10 @@ public enum TackleResolver {
         power += c.frontalness < -0.4 ? 0.2 : 0          // wrapped up from behind
         power += c.tacklerDiving ? 0.22 : 0
         power -= c.tacklerEngaged ? 0.4 : 0
+        power += c.extraPower
         var resist = 0.18 + 0.35 * Double(c.carrierBalance) / 99 + 0.25 * Double(c.carrierStrength) / 99
         resist += 0.0015 * max(0, c.carrierMass - c.tacklerMass)  // big backs bounce off small DBs
+        resist += c.extraResist
         switch c.move {
         case .stiffArm? where c.frontalness > -0.2 && c.moveAge < 0.5: resist += 0.38
         case .spin? where side > 0.3 || c.frontalness < 0: resist += 0.42 * (c.moveAge < 0.42 ? 1 : 0.3)
@@ -148,7 +163,7 @@ public enum TackleResolver {
             // Carrier running downhill into a frontal hit falls forward for extra yards.
             let carrierMomentum = c.carrierMass * c.carrierSpeed
             let tacklerMomentum = c.tacklerMass * c.tacklerSpeed * max(0, c.frontalness)
-            outcome = (carrierMomentum > tacklerMomentum * 1.15 && c.frontalness > 0.3) ? .pushedForward : .clean
+            outcome = c.forcePile || (carrierMomentum > tacklerMomentum * 1.15 && c.frontalness > 0.3) ? .pushedForward : .clean
         } else if margin > -0.06 {
             outcome = .stumble
         } else {
@@ -158,6 +173,6 @@ public enum TackleResolver {
         // NFL fumble rate is ~1 per 60-70 touches; big hits raise it, capped.
         let fumbleChance = down && imp > bigHitImpact
             ? clamp(0.03 + 0.008 * (imp - bigHitImpact) - 0.015 * Double(c.carrierStrength) / 99, 0, 0.07) : 0
-        return TackleResult(outcome: outcome, impact: imp, fumble: r.2 < fumbleChance)
+        return TackleResult(outcome: outcome, impact: imp, fumble: r.2 < fumbleChance * c.fumbleMultiplier)
     }
 }

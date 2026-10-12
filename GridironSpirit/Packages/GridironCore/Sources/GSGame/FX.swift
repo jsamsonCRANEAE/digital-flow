@@ -7,7 +7,7 @@ import GSRenderCore
 /// Advanced at the fixed sim rate so it is deterministic and replayable.
 struct FXState {
     struct Overlay { var kind: OverlayKind; var at: Vec3; var sizeYards: Double; var age: Double; var duration: Double }
-    struct Callout { var text: String; var remaining: Double }
+    struct Callout { var text: String; var remaining: Double; var life: Double }
 
     var hitStop = 0.0
     var impactPending = false
@@ -34,7 +34,7 @@ struct FXState {
 
     func squashLevel(for id: Int) -> Int { squash[id]?.level ?? 0 }
 
-    mutating func say(_ t: String, _ seconds: Double = 1.3) { callout = Callout(text: t, remaining: seconds) }
+    mutating func say(_ t: String, _ seconds: Double = 1.3) { callout = Callout(text: t, remaining: seconds, life: seconds) }
 
     mutating func handle(_ events: [GameEvent], world: World, rig: inout CameraRig, gainFrom los: Double) {
         for e in events {

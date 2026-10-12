@@ -12,10 +12,12 @@ public struct Situation: Sendable, Equatable {
     public var quarter: Int
     public var clock: Double
     public var isConversion: Bool
+    public var isOvertime: Bool
 
-    public init(down: Int, distance: Double, ballOn: Double, scoreDiff: Int, quarter: Int, clock: Double, isConversion: Bool = false) {
+    public init(down: Int, distance: Double, ballOn: Double, scoreDiff: Int, quarter: Int, clock: Double,
+                isConversion: Bool = false, isOvertime: Bool = false) {
         self.down = down; self.distance = distance; self.ballOn = ballOn; self.scoreDiff = scoreDiff
-        self.quarter = quarter; self.clock = clock; self.isConversion = isConversion
+        self.quarter = quarter; self.clock = clock; self.isConversion = isConversion; self.isOvertime = isOvertime
     }
 
     public var lateAndTrailing: Bool { quarter == 4 && clock < 120 && scoreDiff < 0 }
@@ -29,9 +31,15 @@ public enum ConversionCall: Sendable, Equatable { case kick, twoPoint }
 /// CPU coordinator: situational play calling with a little randomness.
 public struct PlayCaller: Sendable {
     var rng: SplitMix64
-    public init(seed: UInt64) { rng = SplitMix64(seed: seed) }
+    /// Team personality: 0 disciplined (timing passes), 1 flashy (shots downfield), 2 powerhouse (ground and pound).
+    public var archetype: Int
+    public init(seed: UInt64, archetype: Int = 0) { rng = SplitMix64(seed: seed); self.archetype = archetype }
 
     public mutating func fourthDown(_ s: Situation, kickerRange: Double = 52) -> FourthDownCall {
+        if s.isOvertime {
+            // No punting in overtime: kick if it ties or wins, else go.
+            return s.fieldGoalDistance <= kickerRange && s.scoreDiff >= -3 && s.distance > 2 ? .fieldGoal : .goForIt
+        }
         if s.lateAndTrailing && (s.scoreDiff < -3 || s.fieldGoalDistance > kickerRange) { return .goForIt }
         if s.fieldGoalDistance <= kickerRange && !(s.distance <= 1 && s.ballOn > 95) { return .fieldGoal }
         if s.distance <= 1.5 && s.ballOn >= 45 { return .goForIt }
@@ -52,6 +60,11 @@ public struct PlayCaller: Sendable {
         else { w = [.run: 0.42, .shortPass: 0.38, .deepPass: 0.2] }
         if s.lateAndTrailing { w[.run] = 0.05; w[.deepPass] = (w[.deepPass] ?? 0) + 0.2 }
         if s.ballOn > 88 { w[.deepPass] = 0.1 }   // compressed field
+        switch archetype {
+        case 0: w[.shortPass] = (w[.shortPass] ?? 0) * 1.35
+        case 1: w[.deepPass] = (w[.deepPass] ?? 0) * 1.6; w[.run] = (w[.run] ?? 0) * 0.8
+        default: w[.run] = (w[.run] ?? 0) * 1.6; w[.deepPass] = (w[.deepPass] ?? 0) * 0.7
+        }
         let cat = pick(w)
         let options = book.offense.filter { $0.category == cat }
         return options.isEmpty ? book.offense[0] : options[rng.int(options.count)]

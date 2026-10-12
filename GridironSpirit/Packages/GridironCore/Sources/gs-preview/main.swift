@@ -9,6 +9,15 @@ import GSSimulation
 import GSRenderCore
 import GSGame
 
+extension String {
+    /// FNV-1a: stable across runs (Swift's hashValue is randomly seeded).
+    var hashValueStable: Int {
+        var h: UInt64 = 0xcbf29ce484222325
+        for b in utf8 { h = (h ^ UInt64(b)) &* 0x100000001b3 }
+        return Int(truncatingIfNeeded: h)
+    }
+}
+
 let outDir = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "."
 let league = try DataLoader.bundledLeague()
 var rt = GameRuntime(league: league)
@@ -40,7 +49,8 @@ func composite(_ f: RenderFrame, joystick: VirtualJoystick?) -> PixelBuffer {
     for (_, it) in items {
         switch it {
         case .player(let s):
-            var spr = PlaceholderSprites.player(height: s.height, look: rt.looks[s.teamIndex], view: s.view, pose: s.pose, squash: s.squash)
+            var spr = PlaceholderSprites.player(height: s.height, look: rt.looks[s.teamIndex], view: s.view, pose: s.pose,
+                                                squash: s.squash, number: s.height >= 44 ? s.number : nil, big: s.big, aura: s.aura)
             if s.flipX { spr = spr.flippedHorizontally() }
             canvas.blit(spr, x: s.footX - spr.width / 2, y: s.footY - spr.height + 1)
             if s.isControlled {
@@ -132,6 +142,27 @@ func writePNG(_ b: PixelBuffer, to path: String) throws {
     try Data(png).write(to: URL(fileURLWithPath: path))
 }
 
+// --- Portrait sheet: every star, three expressions ---
+do {
+    var cells: [PixelBuffer] = []
+    for (ti, team) in league.teams.enumerated() {
+        for p in team.roster.prefix(5) {
+            let spec = PortraitSpec(seed: SplitMix64.hash(p.id.hashValueStable), jersey: team.colors.primaryRGBA,
+                                    trim: team.colors.accentRGBA, number: p.number, archetype: ti,
+                                    big: [.og, .c, .dl].contains(p.position))
+            for e in Expression.allCases {
+                cells.append(Portraits.framed(Portraits.render(spec, e), name: p.lastName.uppercased(), accent: team.colors.primaryRGBA))
+            }
+        }
+    }
+    let cw = cells[0].width, ch = cells[0].height, cols = 9
+    let rows = (cells.count + cols - 1) / cols
+    var sheet = PixelBuffer(width: cols * (cw + 4), height: rows * (ch + 4), fill: Palette.letterbox)
+    for (i, c) in cells.enumerated() { sheet.blit(c, x: (i % cols) * (cw + 4) + 2, y: (i / cols) * (ch + 4) + 2) }
+    try writePNG(upscaled(sheet, 2), to: "\(outDir)/portrait_sheet.png")
+    if CommandLine.arguments.contains("--portraits-only") { exit(0) }
+}
+
 // --- Scripted scenarios through the real runtime ---
 func touchStick(_ dir: Vec2) {
     if !rt.touches.joystick.isActive { rt.handle(TouchEvent(id: 1, phase: .began, location: Vec2(110, 220))) }
@@ -160,9 +191,13 @@ rt.perform(.page(1)); _ = rt.advance(frameTime: 1.0 / 60)
 rt.perform(.selectCard(1))
 var frames: [PixelBuffer] = []
 var thrown = false
-for t in 0..<(60 * 9) {
-    if t == 30 { rt.perform(.button(.snap)) }
-    if rt.world.canThrow && t > 75 && !thrown {
+rt.debugFillSpirit(team: 0)
+var cutShots = 0
+var snapAt = -1
+for t in 0..<(60 * 11) {
+    if t == 4 { rt.perform(.button(.spirit)) }
+    if t == 130 { rt.perform(.button(.snap)); snapAt = t }
+    if rt.world.canThrow && t > snapAt + 50 && snapAt > 0 && !thrown {
         if let r = rt.world.players.first(where: { $0.slot == "WR2" }) { rt.perform(.throwTo(receiver: r.id, lob: false)); thrown = true }
     }
     if let c = rt.world.carrierID, c == rt.world.controlledID, rt.world.player(c).slot != "QB", rt.world.phase.isLive {
@@ -170,8 +205,11 @@ for t in 0..<(60 * 9) {
     }
     f = rt.advance(frameTime: 1.0 / 60)
     if t % 2 == 0 { frames.append(composite(f, joystick: rt.touches.joystick)) }
-    if t == 40 { try still("presnap_hud", f) }
-    if rt.phase == .playCall && t > 60 { break }
+    if let c = f.cutIn, (c.t > 0.5 && cutShots == 0) || (c.t > 0.1 && cutShots == -1) { try still("spirit_cutin", f); cutShots = 1 }
+    if t == 120 { try still("presnap_hud", f) }
+    if snapAt > 0 && t == snapAt + 20 { try still("snap_matchup", f) }
+    if f.replay && t % 30 == 0 { try still("replay", f) }
+    if rt.phase == .playCall && t > 140 { break }
 }
 releaseStick()
 try writeRaw(frames, to: "\(outDir)/m3_slants.rgb")
@@ -215,15 +253,19 @@ do {
     var n = 0
     var highlight: [PixelBuffer] = []
     var ring: [PixelBuffer] = []
-    while rt.phase != .final && n < 60 * 60 * 40 {
+    while (rt.phase != .final || n % 60 != 0 || !shots.contains("report")) && n < 60 * 60 * 45 {
         let fr = rt.advance(frameTime: 1.0 / 60)
         n += 1
         if n % 2 == 0 && rt.phase == .live {
             ring.append(composite(fr, joystick: nil))
             if ring.count > 150 { ring.removeFirst() }
         }
+        if fr.cutIn != nil && fr.cutIn!.t > 0.6 && !shots.contains("cutin") { shots.insert("cutin"); try still("game_cutin", fr) }
+        if fr.replay && !shots.contains("replay") && fr.calloutAge > 0 { shots.insert("replay"); try still("game_replay", fr) }
+        if let m = fr.matchup, m.leftExpression != .neutral, m.slide >= 1, !shots.contains("react") { shots.insert("react"); try still("game_reaction", fr) }
+        if fr.report != nil && !shots.contains("report") { shots.insert("report"); try still("game_report", fr) }
         if let c = fr.callout, ["TOUCHDOWN!", "INTERCEPTION!", "FIELD GOAL!", "SACK!", "FIRST DOWN!", "PUNT", "HALFTIME", "FINAL"].contains(c),
-           !shots.contains(c) {
+           !shots.contains(c), fr.calloutAge > 0.3 {
             shots.insert(c)
             try still("game_" + c.lowercased().filter { $0.isLetter }, fr)
             if c == "TOUCHDOWN!" && highlight.isEmpty { highlight = ring }

@@ -118,7 +118,7 @@ public final class StadiumBackdrop {
         for x in stride(from: 0, to: Self.width, by: 6) { b.fillRect(x: x, y: railTop + m, width: 1, height: 4, RGBA(hex: 0x6A6890)) }
         b.fillRect(x: 0, y: railTop + m, width: Self.width, height: 1, RGBA(hex: 0xB8B8D8))
 
-        drawScoreboard(&b, top: m + 21)   // below the HUD scorebug, between the side panels
+        drawScoreboard(&b, top: m + 34)   // below the HUD scorebug + spirit meters, between the side panels
         drawWall(&b, top: wallTop + m, home: home, away: away)
 
         // Below the wall (only seen during shake): wall base.

@@ -272,3 +272,77 @@ Two seeded CPU-vs-CPU games now average 3.6–4.8 yd per run, 4.9–6.4 per shor
 pass and 6.8–7.3 per deep pass, with 2–3 turnovers, 2–4 PI flags and scores
 like 24-24 and 20-24. Sacks are rare when the CPU is at QB, because it reads
 fast; humans holding the ball do get sacked. Pass-rush tuning is an M6 item.
+
+## M4: Art pass and replayability
+The brief for this round was "make it the best there is, with high
+replayability". These are the levers I chose, and why.
+
+### Why these systems
+Replay value in arcade sports games comes from three places:
+1. **Moments.** Plays you want to see again and talk about.
+2. **Mastery.** Choices that matter and keep revealing depth.
+3. **Pull.** A reason to start "one more game" tomorrow.
+
+Each system below targets at least one of them.
+
+| System | Lever | Notes |
+|---|---|---|
+| **Spirit Plays** (11, one per star) | Mastery + moments | Real gameplay effects, not cosmetics (below). Each team has an offensive and a defensive star; *when* to spend the meter is the strategic decision. Tuned so each team gets about 2–3 per game, so they stay special. |
+| **Comeback charging** | Keeps games alive | The trailing team's meter fills 35% faster, and conceding a TD charges the scored-on team. Blowouts get a lifeline without fake rubber-banding of stats. |
+| **Instant replays** | Moments | Triggered by TDs, picks, fumbles, big hits, 25+ yd gains and 45+ yd FGs. Played at half speed, letterboxed, with the original hit-stop and impact frame. Tap to skip. They're built from recorded render frames, so they cost no simulation and are always exact. |
+| **Reaction portraits** | Moments | After highlights, the winner looks confident and the loser shocked, giving the 3 expressions a purpose. Matchups (QB or RB vs. the defensive star) slide in for 1 s at every snap. |
+| **Daily Spirit Trials** | Pull | 3 goals a day (easy +50, medium +100, hard +200 coins), seeded by date so everyone shares the same set. The pool has 19, so a week rarely repeats. |
+| **Report card** | Mastery | A grade from S to D (margin plus completeness, capped at B for a loss), an MVP, a box score, trial results and coins earned. It tells you *how* you won, not just that you did. |
+| **College overtime** | Moments | Alternating possessions from the 25, untimed, two-point tries forced from OT2. No ties unless you want them. This answers M3 question 2. |
+| **Team identity** | Mastery | The CPU calls plays by archetype. Disciplined teams lean on timing throws (short ×1.35), flashy teams take shots (deep ×1.6), powerhouse teams pound the ball (run ×1.6). Helmets and portraits follow archetype too: kabuto crest and headbands, neon bolts, twin stripes. |
+
+### Spirit Play effects (data in `spirits.json`)
+- **Speed:** a ×1.03–1.15 multiplier.
+- **Tackling:** extra tackle resistance (carrier) or power (defense).
+- **Passing:** *perfect pass* (no error, no wobble) and faster throws.
+- **Catching:** catch or pick bonuses.
+- **Blocking:** *block win* (pancake blocks, or rushers shed blocks).
+- **Moves:** *unbreakable moves* (juke or spin always whiffs inside its window).
+- **Piles and fumbles:** *push pile* (every tackle falls forward), and a fumble multiplier.
+- **Reads:** *instant reads*, where the defense AI has zero reaction lag and perfect angles.
+
+The star is chosen to fit the call: on a run play the RB's Spirit, on a pass
+the QB's.
+
+### Art decisions
+- **Portraits are procedural (88×88 content, 96×111 framed).** Each one is
+  seeded by a stable FNV hash of the player id, so a player always has the
+  same face. The generator picks from 6 hair styles, 6 iris colors, 5 skin
+  tones, headbands and eye black, and varies jaw width for linemen.
+  Shading is cel style with hue-shifted shadows and a 1 px outline.
+  - *Confident:* half-lidded eyes, a grin and a sparkle.
+  - *Shocked:* pinprick pupils, an open mouth, a sweat drop and a purple burst.
+- **Callouts** are block letters built from the 5×7 font at integer scales
+  2–5, with vertical gradient bands (chrome, rainbow or fire), a hard drop
+  shadow and a double outline. The pop-in (small → overshoot → settle) steps
+  through integer scales only, so it never produces mixels.
+- **The cut-in** is 1.5 s with the world frozen. A diagonal band in team
+  colors carries original abstract brush-stroke "glyphs" (deliberately not
+  real kanji, so nothing reads as unintended text). The portrait is shown at
+  an integer 2× in its confident expression. The rest of the screen is dimmed
+  with a 50% checker (pixel-art transparency), and the sequence ends on a
+  white flash.
+- **Sprites:**
+  - 3×5 jersey numbers on near sprites (44 px and taller).
+  - Lineman builds 18% wider.
+  - Three helmet designs.
+  - A dithered aura ring around a Spirit star.
+- **"BIG HIT!" threshold.** Raised to impact 9 (a full-speed head-on hit is
+  about 11), and only counted when the hit brings the runner down. At 7.5 a
+  game had 15+ of them and the word stopped meaning anything.
+
+### Answers to my own M3 questions (I decided, per your brief)
+- **Returns:** still touchbacks and fair catches. Returns are the next
+  biggest source of highlight plays, so they're the first thing I'd add (M5+).
+- **Overtime:** yes, college style (see above).
+- **Quarter length:** kept at about 13 plays per 3:00 quarter, so a full
+  game runs about 10 minutes, which is right for a phone session.
+- **Featured stars:**
+  - Ronin: Takashiro (QB, *Iai Strike*), Mibu (RB, *Kage Step*), Aramaki (DL, *Iron Wall*), Kusaka (S, *Hawk Eye*).
+  - Strays: Vantablue (QB, *Laser Line*), Razz (RB, *Neon Drift*), Venn (DL, *Riot Rush*), Shade (CB, *Ghost Pick*).
+  - Colossi: Kane (RB, *Landslide*), Varga (OG, *Bulwark*), Ash (DL, *Quake*).

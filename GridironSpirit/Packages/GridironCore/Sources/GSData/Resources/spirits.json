@@ -1,0 +1,146 @@
+{
+ "spirits": [
+  {
+   "id": "ronin_iai_strike",
+   "name": "IAI STRIKE",
+   "side": "offense",
+   "playType": "pass",
+   "flavor": "One draw. One cut. The ball arrives before the defense blinks.",
+   "motif": 0,
+   "effects": {
+    "perfectPass": true,
+    "throwSpeed": 1.22,
+    "catchBonus": 0.25
+   }
+  },
+  {
+   "id": "ronin_kage_step",
+   "name": "KAGE STEP",
+   "side": "offense",
+   "playType": "run",
+   "flavor": "Shadow footwork: every tackler grabs only an afterimage.",
+   "motif": 1,
+   "effects": {
+    "speed": 1.08,
+    "unbreakableMoves": true,
+    "tackleResist": 0.35
+   }
+  },
+  {
+   "id": "ronin_iron_wall",
+   "name": "IRON WALL",
+   "side": "defense",
+   "playType": "any",
+   "flavor": "The line becomes a castle wall marching forward.",
+   "motif": 2,
+   "effects": {
+    "blockWin": true,
+    "tacklePower": 0.3,
+    "speed": 1.04
+   }
+  },
+  {
+   "id": "ronin_hawk_eye",
+   "name": "HAWK EYE",
+   "side": "defense",
+   "playType": "any",
+   "flavor": "Sees the throw before the quarterback decides it.",
+   "motif": 3,
+   "effects": {
+    "instantReads": true,
+    "pickBonus": 0.3,
+    "speed": 1.05
+   }
+  },
+  {
+   "id": "strays_laser_line",
+   "name": "LASER LINE",
+   "side": "offense",
+   "playType": "pass",
+   "flavor": "Neon-hot, ruler-straight, and absolutely on time.",
+   "motif": 4,
+   "effects": {
+    "perfectPass": true,
+    "throwSpeed": 1.3,
+    "catchBonus": 0.2,
+    "speed": 1.04
+   }
+  },
+  {
+   "id": "strays_neon_drift",
+   "name": "NEON DRIFT",
+   "side": "offense",
+   "playType": "run",
+   "flavor": "Drifts through traffic like a car sliding through a midnight corner.",
+   "motif": 5,
+   "effects": {
+    "speed": 1.15,
+    "unbreakableMoves": true,
+    "tackleResist": 0.2
+   }
+  },
+  {
+   "id": "strays_riot_rush",
+   "name": "RIOT RUSH",
+   "side": "defense",
+   "playType": "any",
+   "flavor": "Everybody comes. Nobody stays blocked.",
+   "motif": 6,
+   "effects": {
+    "blockWin": true,
+    "speed": 1.1,
+    "tacklePower": 0.2
+   }
+  },
+  {
+   "id": "strays_ghost_pick",
+   "name": "GHOST PICK",
+   "side": "defense",
+   "playType": "any",
+   "flavor": "She was never covering him. She was waiting for the ball.",
+   "motif": 7,
+   "effects": {
+    "instantReads": true,
+    "pickBonus": 0.45
+   }
+  },
+  {
+   "id": "colossi_landslide",
+   "name": "LANDSLIDE",
+   "side": "offense",
+   "playType": "run",
+   "flavor": "A mountain decides to move downhill.",
+   "motif": 8,
+   "effects": {
+    "tackleResist": 0.55,
+    "pushPile": true,
+    "speed": 1.03
+   }
+  },
+  {
+   "id": "colossi_bulwark",
+   "name": "BULWARK",
+   "side": "offense",
+   "playType": "any",
+   "flavor": "The pocket becomes a fortress; the hole becomes a highway.",
+   "motif": 9,
+   "effects": {
+    "blockWin": true,
+    "catchBonus": 0.1
+   }
+  },
+  {
+   "id": "colossi_quake",
+   "name": "QUAKE",
+   "side": "defense",
+   "playType": "any",
+   "flavor": "Every hit registers on the seismograph.",
+   "motif": 10,
+   "effects": {
+    "tacklePower": 0.4,
+    "fumbleMultiplier": 3.0,
+    "blockWin": true
+   }
+  }
+ ]
+}

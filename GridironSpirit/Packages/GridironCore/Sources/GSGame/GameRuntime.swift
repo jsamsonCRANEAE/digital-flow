@@ -1,3 +1,4 @@
+import Foundation
 import GSFoundation
 import GSData
 import GSSimulation
@@ -18,18 +19,18 @@ public final class GameRuntime {
     public let teams: [TeamData]
     public let humanTeam: Int?
     public internal(set) var state: GameState
-    public private(set) var phase: MatchPhase = .playCall
-    public private(set) var world: World
-    public private(set) var ai: PlayAI
-    public private(set) var rig: CameraRig
+    public internal(set) var phase: MatchPhase = .playCall
+    public internal(set) var world: World
+    public internal(set) var ai: PlayAI
+    public internal(set) var rig: CameraRig
     public var touches: TouchRouter
     public let looks: [PlayerLook]
-    public private(set) var playCount = 0
-    public private(set) var lastPlayGain: Double?
-    public private(set) var lastRuling: Ruling?
-    public private(set) var playLog: [String] = []
+    public internal(set) var playCount = 0
+    public internal(set) var lastPlayGain: Double?
+    public internal(set) var lastRuling: Ruling?
+    public internal(set) var playLog: [String] = []
     /// Per play-category (plays, net yards) for balancing.
-    public private(set) var stats: [String: (plays: Int, yards: Double)] = [:]
+    public internal(set) var stats: [String: (plays: Int, yards: Double)] = [:]
     /// Wind in team 0's frame (team 0 attacking +y), yd/s.
     public let wind: Vec2
 
@@ -69,6 +70,28 @@ public final class GameRuntime {
     var lastBallY = 0.0
     var currentOffensePlay: OffensivePlay?
 
+    // M4: Spirit, portraits, replays, progression.
+    public let spirits: SpiritCatalog
+    public internal(set) var spiritMeter: [Double] = [0, 0]
+    var activeSpirit: [(team: Int, play: SpiritPlay, player: PlayerData)] = []
+    var cutIn: (team: Int, play: SpiritPlay, player: PlayerData, t: Double)?
+    var matchup: (left: PlayerData, lt: Int, right: PlayerData, rt: Int, le: Expression, re: Expression, t: Double, life: Double)?
+    var replayBuffer: [(t: Double, frame: RenderFrame)] = []
+    var replayFrames: [(t: Double, frame: RenderFrame)] = []
+    var replayClock = 0.0
+    var wallClock = 0.0
+    var pendingReplay = false
+    var replayLabel = ""
+    public var replaysEnabled = true
+    public internal(set) var teamStats = [TeamGameStats(), TeamGameStats()]
+    public internal(set) var playerStats: [String: PlayerGameStats] = [:]
+    public let trials: [Trial]
+    public internal(set) var report: GameReport?
+    public var progress: ProgressStore?
+    var lastTackler: Int?
+    var bigHitThisPlay = false
+    var gameTime = 0.0
+
     public static let cardRects: [Rect] = (0..<3).map { i in
         Rect(x: Double(81 + i * 164), y: 92, width: Double(UIArt.cardSize.w), height: Double(UIArt.cardSize.h))
     }
@@ -77,7 +100,7 @@ public final class GameRuntime {
     ///   - humanTeam: 0 for a human playing teams[0]; nil for CPU vs CPU.
     public init(league: League, playbook: Playbook? = nil, offenseID: String? = nil, defenseID: String? = nil,
                 difficulty: Difficulty = .pro, humanTeam: Int? = 0, seed: UInt64 = 0xF00D,
-                quarterLength: Double = 180, openingReceiver: Int = 0) {
+                quarterLength: Double = 180, openingReceiver: Int = 0, dayKey: Int? = nil) {
         self.league = league
         self.playbook = playbook ?? (try? DataLoader.bundledPlaybook()) ?? Playbook(offense: [], defense: [])
         let a = league.teams.first { $0.id == offenseID } ?? league.teams[0]
@@ -88,7 +111,10 @@ public final class GameRuntime {
         var rng = SplitMix64(seed: seed ^ 0x5EED)
         let mph = rng.unit() * 14
         wind = Vec2.fromAngle(rng.unit() * 2 * Double.pi, length: mph * 0.4889)
-        callers = [PlayCaller(seed: seed &+ 1), PlayCaller(seed: seed &+ 2)]
+        callers = [PlayCaller(seed: seed &+ 1, archetype: Self.archetypeIndex(a)),
+                   PlayCaller(seed: seed &+ 2, archetype: Self.archetypeIndex(b))]
+        spirits = (try? DataLoader.bundledSpirits()) ?? SpiritCatalog(spirits: [])
+        trials = Trials.daily(dayKey: dayKey ?? Self.todayKey())
         state = GameState(openingReceiver: openingReceiver, quarterLength: quarterLength)
         world = Formation.sandbox(offense: a, defense: b)
         ai = PlayAI(difficulty: difficulty)
@@ -98,9 +124,21 @@ public final class GameRuntime {
         touches.cardRects = Self.cardRects
         looks = teams.map { t in
             PlayerLook(jersey: t.colors.primaryRGBA, trim: t.colors.accentRGBA, pants: t.colors.secondaryRGBA,
-                       helmet: t.colors.secondaryRGBA, skin: Palette.skinTones[1])
+                       helmet: t.colors.secondaryRGBA, skin: Palette.skinTones[1], helmetStyle: Self.archetypeIndex(t))
         }
         enterPlayCall()
+    }
+
+    static func archetypeIndex(_ t: TeamData) -> Int {
+        switch t.archetype { case .disciplined: return 0; case .flashy: return 1; case .powerhouse: return 2 }
+    }
+
+    static func todayKey() -> Int {
+        let d = Date()
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone.current
+        let c = cal.dateComponents([.year, .month, .day], from: d)
+        return (c.year ?? 2026) * 10000 + (c.month ?? 1) * 100 + (c.day ?? 1)
     }
 
     public var cameraConfig: CameraConfig { rig.config }
@@ -118,7 +156,7 @@ public final class GameRuntime {
     func situation(for team: Int) -> Situation {
         Situation(down: state.down, distance: state.distance, ballOn: state.ballOn,
                   scoreDiff: state.score[team] - state.score[1 - team], quarter: state.quarter,
-                  clock: state.clock, isConversion: state.isConversion)
+                  clock: state.clock, isConversion: state.isConversion, isOvertime: state.isOvertime)
     }
 
     func enterPlayCall() {
@@ -131,13 +169,13 @@ public final class GameRuntime {
         let off = state.possession
 
         if state.mode == .conversionChoice {
-            if humanOnOffense {
+            if humanOnOffense && !state.mustGoForTwo {
                 menuPages = [[.conversion(.kick), .conversion(.twoPoint)]]
                 menuHeader = "TOUCHDOWN! CHOOSE THE TRY"
                 return
             }
             let diff = state.score[off] - state.score[1 - off]
-            let c = callers[off].conversion(scoreDiffAfterTD: diff, quarter: state.quarter)
+            let c = state.mustGoForTwo ? .twoPoint : callers[off].conversion(scoreDiffAfterTD: diff, quarter: state.quarter)
             Referee.chooseConversion(c == .twoPoint ? .twoPoint : .kick, &state)
         }
         if state.mode == .conversion(.kick) {
@@ -211,6 +249,10 @@ public final class GameRuntime {
         default: offensePlay = playbook.offense.first!
         }
         currentOffensePlay = offensePlay
+        activeSpirit = []
+        ai.spiritInstantReads = false
+        lastTackler = nil
+        bigHitThisPlay = false
         let off = state.possession, def = state.defense
         let humanSlot = humanOnDefense ? "LB1" : (offensePlay.category == .run ? "RB" : "QB")
         world = Formation.lineUp(offense: teams[off], offensePlay: offensePlay, defense: teams[def], defensePlay: dc,
@@ -232,6 +274,7 @@ public final class GameRuntime {
         lastBallY = currBall.y
         rig.mode = .follow
         fx.resetForPlay()
+        replayBuffer.removeAll(keepingCapacity: true)
         phase = .preSnap
         phaseTimer = 0
         falseStartTimer = 0
@@ -242,12 +285,16 @@ public final class GameRuntime {
 
     public func advance(frameTime: Double) -> RenderFrame {
         var steps = 0
+        wallClock += frameTime
         let alpha = timestep.advance(by: frameTime) { dt in
             self.tick(dt)
             steps += 1
         }
         touches.now = world.time
-        return buildFrame(alpha: alpha, steps: steps)
+        if phase == .replay, let f = replayFrame() { return f }
+        let f = buildFrame(alpha: alpha, steps: steps)
+        recordForReplay(f)
+        return f
     }
 
     func tick(_ dt: Double) {
@@ -264,9 +311,29 @@ public final class GameRuntime {
         prevRig = rig.state
         prevBall = currBall
         touches.now = world.time
+        if let h = humanTeam { touches.spiritReady = spiritMeter[h] >= 1 && kick == nil && activeSpirit.isEmpty }
         updateContext()
         let commands = touches.drainCommands() + pendingCommands
         pendingCommands.removeAll()
+        gameTime += dt
+        if matchup != nil { matchup!.t += dt; if matchup!.t > matchup!.life { matchup = nil } }
+
+        // Spirit cut-in: everything holds for 1.5 s while the star takes the screen.
+        if var c = cutIn {
+            c.t += dt
+            cutIn = c.t >= Self.cutInLength ? nil : c
+            fx.update(dt: dt, world: world)
+            return
+        }
+        if phase == .replay {
+            replayClock += dt * 0.5                          // half-speed slow motion
+            if commands.contains(.skip) || replayClock > replayLength { endReplay() }
+            return
+        }
+        if phase == .preSnap || phase == .playCall {
+            for c in commands where c == .button(.spirit) { if let h = humanTeam { activateSpirit(team: h) } }
+            if phase == .preSnap { cpuSpiritDecision() }
+        }
 
         switch phase {
         case .playCall:
@@ -286,7 +353,7 @@ public final class GameRuntime {
             if !humanOnOffense && phaseTimer > 1.3 { world.snap() }
             if playClock <= 0 { world.snap() }
             stepWorld(dt: dt, intents: nil)
-            if world.phase.isLive { phase = .live; phaseTimer = 0 }
+            if world.phase.isLive { phase = .live; phaseTimer = 0; startSnapMatchup() }
             if world.phase.isDead { endPlay() }
         case .live:
             for c in commands { apply(c) }
@@ -300,7 +367,7 @@ public final class GameRuntime {
         case .banner:
             phaseTimer += dt
             if phaseTimer > 2.4 { state.isFinal ? (phase = .final) : enterPlayCall() }
-        case .final:
+        case .final, .replay:
             break
         }
         fx.update(dt: dt, world: world)
@@ -312,6 +379,7 @@ public final class GameRuntime {
     func stepWorld(dt: Double, intents: [Vec2]?) {
         world.step(intents: intents ?? [Vec2](repeating: .zero, count: world.players.count), dt: dt)
         fx.handle(world.events, world: world, rig: &rig, gainFrom: world.lineOfScrimmage)
+        harvest(world.events)
     }
 
     /// The human steers their player unless the play is in a scripted phase
@@ -368,7 +436,9 @@ public final class GameRuntime {
         case .button(.diveTackle): world.requestDefenderAction(.dive, for: me)
         case .button(.jump): world.requestDefenderAction(.jump, for: me)
         case .button(.switchPlayer): switchDefender()
-        case .button(.audible), .button(.spirit): break     // Spirit Plays arrive in M4
+        case .button(.spirit): if let h = humanTeam { activateSpirit(team: h) }
+        case .button(.audible): break
+        case .skip: break
         case .throwTo(let r, let lob): world.requestThrow(to: r, kind: lob ? .lob : .bullet)
         case .kickTap:
             if var k = kick, !kicked, world.carrierID == holderID {
@@ -487,6 +557,7 @@ public final class GameRuntime {
         let result = playResult()
         let ruling = Referee.apply(result, to: &state)
         lastRuling = ruling
+        afterRuling(result: result, ruling: ruling, before: before)
         if let s = world.deadSpot { lastPlayGain = s.y - world.lineOfScrimmage }
         // Next spot laterally (mirrored when the other team takes over).
         let x = world.deadSpot?.x ?? Field.centerX
@@ -515,12 +586,24 @@ public final class GameRuntime {
 
     func finishPostPlay() {
         if state.clockRunning { _ = Referee.tick(&state, dt: Referee.runoffBetweenPlays, live: false) }
+        if pendingReplay && replaysEnabled { return startReplay() }
+        continueAfterPlay()
+    }
+
+    func continueAfterPlay() {
+        if state.isFinal {                                       // overtime walk-off
+            fx.say("FINAL", 2.4)
+            phase = .banner; phaseTimer = 0
+            finishGame()
+            return
+        }
         if let banner = Referee.endQuarterIfExpired(&state) {
             fx.say(banner, 2.4)
             playLog.append("== \(banner)  \(teams[0].abbreviation) \(state.score[0]) - \(teams[1].abbreviation) \(state.score[1])")
             phase = .banner
             phaseTimer = 0
-            if banner == "HALFTIME" { nextLateral = Field.centerX }
+            if banner == "HALFTIME" || banner == "OVERTIME" { nextLateral = Field.centerX }
+            if state.isFinal { finishGame() }
             return
         }
         enterPlayCall()
@@ -532,7 +615,7 @@ public final class GameRuntime {
         switch phase {
         case .playCall: touches.context = menuPages.isEmpty ? .none : .playCall
         case .preSnap:
-            touches.context = humanOnOffense ? (kick == nil ? .preSnap : .preSnap) : (humanOnDefense ? .defense : .none)
+            touches.context = humanOnOffense ? .preSnap : (humanOnDefense ? .defensePreSnap : .none)
         case .live:
             guard humanTeam != nil else { touches.context = .none; return }
             if humanOnDefense { touches.context = .defense; return }
@@ -540,6 +623,7 @@ public final class GameRuntime {
             if world.canThrow && world.carrierID == world.controlledID && humanControlID != nil { touches.context = .passing }
             else if world.carrierID == world.controlledID && humanControlID != nil { touches.context = .ballCarrier }
             else { touches.context = .none }
+        case .replay: touches.context = .replay
         default: touches.context = .none
         }
     }
@@ -577,6 +661,9 @@ public final class GameRuntime {
         setupPlay()
     }
 
+    /// Fills a team's Spirit meter (previews, tests, debug menu).
+    public func debugFillSpirit(team: Int) { spiritMeter[team] = 1 }
+
     /// Jumps to a down/distance/spot and re-opens the play call (previews, tests).
     public func debugSetSituation(down: Int, ballOn: Double, lineToGain: Double) {
         state.down = down; state.ballOn = ballOn; state.lineToGain = lineToGain
@@ -613,9 +700,14 @@ public final class GameRuntime {
         for i in currPlayers.indices where i < world.players.count && i < prevPlayers.count {
             let s = PlayerState.lerped(prevPlayers[i], currPlayers[i], alpha)
             let sim = world.players[i]
-            let sp = Self.project(s, sim: sim, camera: camera,
+            var sp = Self.project(s, sim: sim, camera: camera,
                                   controlled: humanTeam != nil && sim.id == world.controlledID && humanControlID != nil,
                                   squash: fx.squashLevel(for: sim.id), time: world.time)
+            sp.number = sim.data.number
+            sp.big = [.c, .og, .dl].contains(sim.data.position)
+            if activeSpirit.contains(where: { $0.player.id == sim.data.id }) {
+                sp.aura = Int(world.time * 12) & 1 == 0 ? teams[sim.teamIndex].colors.accentRGBA : Palette.highlight
+            }
             sprites.append(sp)
             if passing, sp.visible, let slot = receiverSlots[sim.id], sim.status.canMakePlays {
                 icons.append(ReceiverIcon(receiverID: sim.id, center: Vec2(Double(sp.footX), Double(sp.footY - sp.height - 9)),
@@ -666,13 +758,15 @@ public final class GameRuntime {
                                frame: min(2, Int((o.age / o.duration) * 3)))
         }
         let near = teams[state.possession].colors.primaryRGBA, far = teams[state.defense].colors.primaryRGBA
-        return RenderFrame(camera: camera, sprites: sprites, ball: pball, effects: effects, overlays: overlays,
+        var frame = RenderFrame(camera: camera, sprites: sprites, ball: pball, effects: effects, overlays: overlays,
                            icons: icons, chargingReceiver: touches.charging?.receiverID, buttons: touches.buttons,
                            impactFrame: fx.consumeImpactFrame(), callout: fx.callout?.text,
                            haptics: fx.drainHaptics(), crowdFrame: Int(world.time * (fx.crowdHype > 0 ? 6 : 2.5)) & 1,
                            phase: phase, hud: hud(), playCall: playCallVisual(), kickMeter: kickVisual(),
                            endZones: (near, far),
                            simTime: world.time, hitStopped: fx.hitStop > 0, alpha: alpha, stepsThisFrame: steps)
+        decorate(&frame)
+        return frame
     }
 
     func hud() -> HUDInfo {

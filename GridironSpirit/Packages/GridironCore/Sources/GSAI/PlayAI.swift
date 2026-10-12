@@ -95,6 +95,8 @@ public enum Pursuit {
 /// Assignment-driven AI for every player the human doesn't control.
 public struct PlayAI: Sendable {
     public var difficulty: Difficulty
+    /// Spirit Play: defense reads everything instantly with perfect angles.
+    public var spiritInstantReads = false
     public private(set) var assignments: [Assignment] = []
     var waypoint: [Int] = []
     /// Low-passed velocity estimates: this lag *is* the reaction time.
@@ -222,7 +224,10 @@ public struct PlayAI: Sendable {
         if assignments.count != world.players.count { setup(for: world) }
         // Perception lag (first-order filter with time constant = reaction time).
         let k = 1 - expD(-dt / max(0.02, difficulty.reactionTime))
-        for i in world.players.indices { perceived[i] = lerp(perceived[i], world.players[i].body.velocity, k) }
+        for i in world.players.indices {
+            let kk = spiritInstantReads && world.players[i].side == .offense ? 1 : k
+            perceived[i] = lerp(perceived[i], world.players[i].body.velocity, kk)
+        }
 
         var out = [Vec2](repeating: .zero, count: world.players.count)
         guard world.phase.isLive else { return out }
@@ -249,7 +254,7 @@ public struct PlayAI: Sendable {
             func pursue(_ id: Int) -> Vec2 {
                 let t = world.player(id)
                 let aim = Pursuit.aimPoint(from: pos, speed: p.body.profile.topSpeed, target: t.body.position.ground,
-                                           velocity: perceived[id], quality: difficulty.pursuitQuality)
+                                           velocity: perceived[id], quality: spiritInstantReads && p.side == .defense ? 1 : difficulty.pursuitQuality)
                 return toward(aim, arrive: 0.3)
             }
             if kick {
@@ -289,7 +294,7 @@ public struct PlayAI: Sendable {
             // Linemen react at once; the second level needs a beat to read
             // run (unless the runner is already past the line).
             let diagnosed = assignments[p.id] == .passRush || !isRunPlay
-                || world.playTime - exchangeTime > difficulty.runReadDelay
+                || world.playTime - exchangeTime > (spiritInstantReads ? 0 : difficulty.runReadDelay)
                 || c.body.position.y > world.lineOfScrimmage + 1
             if diagnosed { return pursue(c.id) }
         }

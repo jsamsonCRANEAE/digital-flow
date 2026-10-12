@@ -29,6 +29,7 @@ final class GameController: NSObject, MTKViewDelegate {
     init?(view: MTKView, displayMaxFPS: Int) {
         guard let league = try? DataLoader.bundledLeague() else { return nil }
         runtime = GameRuntime(league: league)
+        runtime.progress = UserDefaultsProgressStore()
         let scene = GameScene.make()
         self.scene = scene
         guard let pipeline = PixelPipeline(view: view, scene: scene) else { return nil }

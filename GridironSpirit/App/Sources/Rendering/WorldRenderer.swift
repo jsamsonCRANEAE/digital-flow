@@ -10,7 +10,10 @@ import GSGame
 /// coordinates, so every texel maps 1:1 to a canvas pixel. (A centered
 /// anchor on an odd-sized texture would put edges on half pixels.)
 final class WorldRenderer {
-    private struct SpriteKey: Hashable { let team: Int, height: Int, view: SpriteView, pose: SpritePose, squash: Int }
+    private struct SpriteKey: Hashable {
+        let team: Int, height: Int, view: SpriteView, pose: SpritePose, squash: Int
+        let number: Int, big: Bool, aura: RGBA?
+    }
     private struct ShadowKey: Hashable { let width: Int }
     private struct BallKey: Hashable { let length: Int, angle: Int, spin: Int }
     private struct OverlayKey: Hashable { let kind: OverlayKind, size: Int, frame: Int }
@@ -64,16 +67,22 @@ final class WorldRenderer {
         for team in looks.indices {
             for h in stride(from: 34, through: 54, by: 2) {
                 for view in [SpriteView.back, .front] {
-                    for pose in poses { _ = playerTexture(team: team, height: h, view: view, pose: pose, squash: 0) }
+                    for pose in poses { _ = playerTexture(team: team, height: h, view: view, pose: pose, squash: 0,
+                                                          number: -1, big: false, aura: nil) }
                 }
             }
         }
     }
 
-    private func playerTexture(team: Int, height: Int, view: SpriteView, pose: SpritePose, squash: Int) -> SKTexture {
+    private func playerTexture(team: Int, height: Int, view: SpriteView, pose: SpritePose, squash: Int,
+                               number: Int, big: Bool, aura: RGBA?) -> SKTexture {
         let look = looks[team]
-        return textures.texture(SpriteKey(team: team, height: height, view: view, pose: pose, squash: squash)) {
-            PlaceholderSprites.player(height: height, look: look, view: view, pose: pose, squash: squash)
+        // Numbers only appear on near (big) sprites, so far ones share textures.
+        let n = height >= 44 ? number : -1
+        return textures.texture(SpriteKey(team: team, height: height, view: view, pose: pose, squash: squash,
+                                          number: n, big: big, aura: aura)) {
+            PlaceholderSprites.player(height: height, look: look, view: view, pose: pose, squash: squash,
+                                      number: n >= 0 ? n : nil, big: big, aura: aura)
         }
     }
 
@@ -102,7 +111,8 @@ final class WorldRenderer {
             shadow.isHidden = !s.visible
             guard s.visible else { continue }
 
-            let tex = playerTexture(team: s.teamIndex, height: s.height, view: s.view, pose: s.pose, squash: s.squash)
+            let tex = playerTexture(team: s.teamIndex, height: s.height, view: s.view, pose: s.pose, squash: s.squash,
+                                    number: s.number, big: s.big, aura: s.aura)
             setTexture(node, tex)
             let w = Int(tex.size().width), h = Int(tex.size().height)
             // Bottom row of the sprite sits on the foot pixel.

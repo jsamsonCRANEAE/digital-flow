@@ -18,8 +18,11 @@ public struct PlayerLook: Sendable, Hashable {
     public var pants: RGBA
     public var helmet: RGBA
     public var skin: RGBA
-    public init(jersey: RGBA, trim: RGBA, pants: RGBA, helmet: RGBA, skin: RGBA) {
+    /// 0 disciplined (gold kabuto crest), 1 flashy (neon lightning), 2 powerhouse (twin stripes).
+    public var helmetStyle: Int
+    public init(jersey: RGBA, trim: RGBA, pants: RGBA, helmet: RGBA, skin: RGBA, helmetStyle: Int = 0) {
         self.jersey = jersey; self.trim = trim; self.pants = pants; self.helmet = helmet; self.skin = skin
+        self.helmetStyle = helmetStyle
     }
 }
 
@@ -46,13 +49,42 @@ public enum PlaceholderSprites {
     /// - Parameter squash: -1 squashed (landing / impact), 0 normal, +1 stretched (launch).
     ///   Drawn natively at the new size so outlines stay 1 px.
     public static func player(height h: Int, look: PlayerLook, view: SpriteView, pose: SpritePose, squash: Int) -> PixelBuffer {
+        player(height: h, look: look, view: view, pose: pose, squash: squash, number: nil, big: false, aura: nil)
+    }
+
+    /// - Parameters:
+    ///   - number: jersey number drawn on chest/back when the sprite is big enough.
+    ///   - big: lineman build (wider, thicker).
+    ///   - aura: Spirit Play aura color (drawn as an extra outline ring).
+    public static func player(height h: Int, look: PlayerLook, view: SpriteView, pose: SpritePose, squash: Int,
+                              number: Int?, big: Bool, aura: RGBA?) -> PixelBuffer {
+        var b = playerCore(height: h, look: look, view: view, pose: pose, squash: squash, number: number, big: big)
+        if let a = aura { b = withAura(b, a) }
+        return b
+    }
+
+    static func withAura(_ src: PixelBuffer, _ c: RGBA) -> PixelBuffer {
+        var b = PixelBuffer(width: src.width + 4, height: src.height + 3)
+        b.blit(src, x: 2, y: 2)
+        var ring = b
+        ring.addOutline(c)
+        ring.addOutline(c.hueShifted(0.5))
+        // Keep the ring dithered so it reads as energy, not a hard border.
+        for y in 0..<ring.height { for x in 0..<ring.width where !b.isOpaque(x, y) && ring.isOpaque(x, y) && (x + y) & 1 == 1 {
+            ring[x, y] = 0
+        } }
+        return ring
+    }
+
+    static func playerCore(height h: Int, look: PlayerLook, view: SpriteView, pose: SpritePose, squash: Int,
+                           number: Int?, big: Bool) -> PixelBuffer {
         switch pose {
         case .down, .dive:
             // Lying / flying horizontally: draw the upright figure, rotate it a
             // quarter turn (lossless in pixel art) and foreshorten vertically,
             // because a body lying on the turf is seen at a grazing angle.
-            let upright = body(height: h, widthScale: 1, look: look, view: view,
-                               pose: pose == .dive ? .throwing : .idle, armsUp: pose == .dive)
+            let upright = body(height: h, widthScale: big ? 1.18 : 1, look: look, view: view,
+                               pose: pose == .dive ? .throwing : .idle, armsUp: pose == .dive, number: nil)
             var lying = upright.rotatedClockwise()
             lying = lying.resampledVertically(to: max(6, Int(Double(lying.height) * (pose == .dive ? 0.62 : 0.5))))
             lying.addOutline(Palette.outline)
@@ -60,8 +92,8 @@ public enum PlaceholderSprites {
         default:
             let (hs, ws) = squash < 0 ? (0.86, 1.18) : squash > 0 ? (1.1, 0.9) : (1.0, 1.0)
             let hh = max(8, Int((Double(h) * hs / 2).rounded()) * 2)
-            var b = body(height: hh, widthScale: ws * (pose == .stiffArm ? 1.45 : 1), look: look, view: view,
-                         pose: pose, armsUp: false)
+            var b = body(height: hh, widthScale: ws * (pose == .stiffArm ? 1.45 : 1) * (big ? 1.18 : 1), look: look, view: view,
+                         pose: pose, armsUp: false, number: number)
             if pose == .stumble { b = b.sheared(amount: 0.14) }
             b.addOutline(Palette.outline)
             return b
@@ -69,7 +101,7 @@ public enum PlaceholderSprites {
     }
 
     static func body(height h: Int, widthScale sx: Double, look: PlayerLook, view: SpriteView,
-                     pose: SpritePose, armsUp: Bool) -> PixelBuffer {
+                     pose: SpritePose, armsUp: Bool, number: Int?) -> PixelBuffer {
         var w = Int((Double(width(forHeight: h)) * sx).rounded())
         w += w & 1
         var b = PixelBuffer(width: w, height: h)
@@ -141,18 +173,58 @@ public enum PlaceholderSprites {
         let collarY = py(0.27 + crouch + bob)
         fillRectD(&b, x0: px(-0.06), x1: px(0.06), y0: collarY, y1: collarY + max(1, 0.025 * s), trim)
 
-        // Jersey number placeholder block (real numerals come with M4 art).
+        // Jersey number (3x5 digits) when there's room; otherwise two trim blocks.
         if h >= 36 {
             let ny0 = py(0.36 + crouch + bob), ny1 = py(0.48 + crouch + bob)
-            fillRectD(&b, x0: px(-0.07), x1: px(-0.015), y0: ny0, y1: ny1, trim)
-            fillRectD(&b, x0: px(0.015), x1: px(0.07), y0: ny0, y1: ny1, trim)
+            if let n = number, h >= 44 {
+                let digits = Array(String(n % 100))
+                let dw = 3, gap = 1
+                let total = digits.count * dw + (digits.count - 1) * gap
+                var x = Int(cx.rounded()) - total / 2
+                let y0 = Int(ny0.rounded())
+                for d in digits {
+                    let v = Int(String(d)) ?? 0
+                    for row in 0..<5 { for col in 0..<3 where Self.digit3x5[v][row] & (4 >> col) != 0 {
+                        b.set(x + col, y0 + row, trim)
+                    } }
+                    x += dw + gap
+                }
+            } else {
+                fillRectD(&b, x0: px(-0.07), x1: px(-0.015), y0: ny0, y1: ny1, trim)
+                fillRectD(&b, x0: px(0.015), x1: px(0.07), y0: ny0, y1: ny1, trim)
+            }
         }
 
         // Helmet: anime-big head.
         let hy = py(0.145 + crouch + bob)
         shadedEllipse(&b, cx: px(0), cy: hy, rx: 0.15 * s, ry: 0.14 * s, base: helmet)
-        // Center stripe.
-        fillRectD(&b, x0: px(-0.018), x1: px(0.018), y0: hy - 0.14 * s, y1: hy + (view == .back ? 0.12 : 0.0) * s, trim)
+        // Team helmet design.
+        switch look.helmetStyle {
+        case 0:
+            // Disciplined: center stripe + gold kabuto crest (V horns) on the front.
+            fillRectD(&b, x0: px(-0.018), x1: px(0.018), y0: hy - 0.14 * s, y1: hy + (view == .back ? 0.12 : 0.0) * s, trim)
+            if view == .front && h >= 28 {
+                let gold = RGBA(hex: 0xF6C040)
+                for i in 0..<Int(0.12 * s) {
+                    let y = Int(hy - 0.04 * s) - i
+                    guard y >= 2 else { break }                      // keep the outline margin
+                    b.set(Int(px(-0.03)) - i, y, gold)
+                    b.set(Int(px(0.03)) + i, y, gold)
+                }
+            }
+        case 1:
+            // Flashy: neon lightning bolt down the side.
+            let neon = trim
+            let x0 = px(view == .back ? -0.08 : 0.05)
+            for i in 0..<Int(0.2 * s) {
+                let zig = (i / max(1, Int(0.05 * s))) & 1 == 0 ? 0 : 2
+                b.set(Int(x0) + zig, Int(hy - 0.12 * s) + i, neon)
+            }
+        default:
+            // Powerhouse: twin stripes.
+            fillRectD(&b, x0: px(-0.05), x1: px(-0.025), y0: hy - 0.14 * s, y1: hy + 0.06 * s, trim)
+            fillRectD(&b, x0: px(0.025), x1: px(0.05), y0: hy - 0.14 * s, y1: hy + 0.06 * s, trim)
+        }
         if view == .front {
             // Face opening + mask bars.
             fillRectD(&b, x0: px(-0.085), x1: px(0.085), y0: hy + 0.0 * s, y1: hy + 0.10 * s, skin.hueShifted(-0.3))
@@ -165,6 +237,12 @@ public enum PlaceholderSprites {
 
         return b
     }
+
+    /// 3x5 digit bitmaps (bit 2 = left column).
+    static let digit3x5: [[Int]] = [
+        [7, 5, 5, 5, 7], [2, 6, 2, 2, 7], [7, 1, 7, 4, 7], [7, 1, 7, 1, 7], [5, 5, 7, 1, 1],
+        [7, 4, 7, 1, 7], [7, 4, 7, 5, 7], [7, 1, 2, 2, 2], [7, 5, 7, 5, 7], [7, 5, 7, 1, 7],
+    ]
 
     /// Soft oval ground shadow: solid core with a dithered rim. Drawn with node
     /// alpha by the renderer; it never leaves the ground, which is what makes

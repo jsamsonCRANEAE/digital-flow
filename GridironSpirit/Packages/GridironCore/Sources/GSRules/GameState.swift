@@ -25,6 +25,15 @@ public struct GameState: Sendable, Equatable {
     public var mode: Mode = .scrimmage
     public let openingReceiver: Int
     public var isFinal = false
+    // Overtime (college style): alternating possessions from the opponent's 25.
+    public var isOvertime = false
+    public var overtimePeriod = 0
+    /// Possessions completed in the current OT period (0, 1, 2).
+    public var overtimePossessions = 0
+    /// Team that started the current OT period with the ball.
+    public var overtimeFirst = 0
+    /// From the 2nd period on, teams must go for two (no kicked PATs).
+    public var mustGoForTwo: Bool { isOvertime && overtimePeriod >= 2 }
 
     public init(openingReceiver: Int = 0, quarterLength: Double = 180) {
         self.openingReceiver = openingReceiver
@@ -58,6 +67,7 @@ public struct GameState: Sendable, Equatable {
     }
 
     public var clockText: String {
+        if isOvertime { return "OT\(overtimePeriod)" }
         let t = max(0, Int(clock.rounded(.up)))
         return "\(t / 60):" + (t % 60 < 10 ? "0" : "") + "\(t % 60)"
     }
@@ -69,6 +79,7 @@ public struct GameState: Sendable, Equatable {
     }
 
     mutating func changePossession(ballOn spot: Double) {
+        if isOvertime { return overtimePossessionEnded() }   // turnovers end the OT possession
         possession = 1 - possession
         mode = .scrimmage
         firstDown(at: min(99, max(1, spot)))
@@ -76,8 +87,40 @@ public struct GameState: Sendable, Equatable {
 
     /// Kickoffs are simplified to an automatic touchback (see DECISIONS.md).
     mutating func kickoff(receiving team: Int) {
+        if isOvertime { return overtimePossessionEnded() }
         possession = team
         mode = .scrimmage
         firstDown(at: 25)
+    }
+
+    /// Ends the current OT possession: hand the ball to the other team at the
+    /// opponent's 25, or settle the period once both teams have had it.
+    mutating func overtimePossessionEnded() {
+        overtimePossessions += 1
+        mode = .scrimmage
+        if overtimePossessions >= 2 {
+            if score[0] != score[1] { isFinal = true; return }
+            overtimePeriod += 1
+            overtimePossessions = 0
+            overtimeFirst = 1 - overtimeFirst
+            possession = overtimeFirst
+        } else {
+            possession = 1 - overtimeFirst
+        }
+        firstDown(at: 75)
+        lineToGain = 85
+    }
+
+    mutating func startOvertime() {
+        isOvertime = true
+        overtimePeriod = 1
+        overtimePossessions = 0
+        overtimeFirst = openingReceiver      // the opening receiver gets the ball first
+        possession = overtimeFirst
+        clock = 0
+        clockRunning = false
+        mode = .scrimmage
+        firstDown(at: 75)
+        lineToGain = 85
     }
 }

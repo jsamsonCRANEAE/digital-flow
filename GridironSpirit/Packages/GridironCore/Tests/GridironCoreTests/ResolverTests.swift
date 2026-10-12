@@ -32,7 +32,7 @@ final class ResolverTests: XCTestCase {
     }
 
     func testImpactUsesReducedMassAndClosingSpeed() {
-        XCTAssertGreaterThan(TackleResolver.impact(tackle(tacklerMass: 300, closing: 10)), TackleResolver.bigHitImpact)
+        XCTAssertGreaterThan(TackleResolver.impact(tackle(tacklerMass: 300, closing: 13)), TackleResolver.bigHitImpact)
         XCTAssertLessThan(TackleResolver.impact(tackle(tacklerMass: 185, carrierMass: 185, closing: 3)), 3)
     }
 
@@ -44,7 +44,7 @@ final class ResolverTests: XCTestCase {
         XCTAssertGreaterThan(rate(tackle(frontal: -1), downed), base, "wrap-up from behind")
         XCTAssertGreaterThan(rate(tackle(frontal: 0.5, move: .juke, moveAge: 0.05)) { $0.outcome == .whiff }, 0.4)
         XCTAssertEqual(rate(tackle(frontal: 0.5, move: .juke, moveAge: 0.4)) { $0.outcome == .whiff }, 0, "commitment window over")
-        XCTAssertGreaterThan(rate(tackle(tacklerMass: 300, closing: 11), \.fumble), 0.02)
+        XCTAssertGreaterThan(rate(tackle(tacklerMass: 300, closing: 13), \.fumble), 0.02)
         XCTAssertEqual(rate(tackle(closing: 2), \.fumble), 0)
     }
 
