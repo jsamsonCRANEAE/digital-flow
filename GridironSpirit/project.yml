@@ -1,0 +1,53 @@
+# XcodeGen spec. Generate the Xcode project with:
+#   brew install xcodegen && xcodegen generate
+name: GridironSpirit
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+packages:
+  GridironCore:
+    path: Packages/GridironCore
+targets:
+  GridironSpirit:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/Sources
+    settings:
+      base:
+        INFOPLIST_FILE: App/Support/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.gridironspirit
+        PRODUCT_NAME: GridironSpirit
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        CODE_SIGN_STYLE: Automatic
+        # Set your team here or in Xcode > Signing & Capabilities.
+        DEVELOPMENT_TEAM: ""
+    dependencies:
+      - package: GridironCore
+        product: GridironCore
+schemes:
+  GridironSpirit:
+    build:
+      targets:
+        GridironSpirit: all
+    run:
+      # The per-frame CPU field raster is ~10x slower unoptimized. Use the
+      # "GridironSpirit (Debug)" scheme when you need the debugger.
+      config: Release
+    test:
+      config: Debug
+    profile:
+      config: Release
+  GridironSpirit (Debug):
+    build:
+      targets:
+        GridironSpirit: all
+    run:
+      config: Debug
