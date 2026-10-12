@@ -12,3 +12,5 @@ import Glibc
 @inlinable public func atan2Safe(_ y: Double, _ x: Double) -> Double { (x == 0 && y == 0) ? 0 : atan2(y, x) }
 @inlinable public func expD(_ x: Double) -> Double { exp(x) }
 @inlinable public func powD(_ x: Double, _ y: Double) -> Double { pow(x, y) }
+@inlinable public func logD(_ x: Double) -> Double { log(x) }
+@inlinable public func asinD(_ x: Double) -> Double { asin(x) }

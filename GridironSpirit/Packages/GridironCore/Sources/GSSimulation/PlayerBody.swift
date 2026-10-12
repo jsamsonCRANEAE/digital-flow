@@ -32,6 +32,7 @@ public struct PlayerBody: Sendable {
     }
 
     public var speed: Double { velocity.length }
+    public var isAirborne: Bool { position.z > 0 || verticalVelocity > 0 }
     public var speedFraction: Double { speed / profile.topSpeed }
 
     static let gravity = 32.17 / 3   // yd/s^2
@@ -40,9 +41,10 @@ public struct PlayerBody: Sendable {
 
     /// Steers toward `intent` (desired direction * throttle, length <= 1).
     @discardableResult
-    public mutating func step(intent rawIntent: Vec2, dt: Double) -> MovementEvents {
+    public mutating func step(intent rawIntent: Vec2, dt: Double, speedScale: Double = 1) -> MovementEvents {
         var events: MovementEvents = []
-        let p = profile
+        var p = profile
+        p.topSpeed *= speedScale
         let intent = rawIntent.clampedLength(1)
         let throttle = intent.length
         var speed = velocity.length
@@ -101,7 +103,7 @@ public struct PlayerBody: Sendable {
         stridePhase += speed * dt * 0.95
         cutCooldown = max(0, cutCooldown - dt)
 
-        let atTop = speed >= p.topSpeed * 0.94
+        let atTop = speed >= profile.topSpeed * 0.94
         if atTop && !wasAtTopSpeed { events.insert(.reachedTopSpeed) }
         wasAtTopSpeed = atTop
         return events

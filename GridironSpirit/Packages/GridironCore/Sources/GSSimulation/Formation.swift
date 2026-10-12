@@ -1,8 +1,8 @@
 import GSFoundation
 import GSData
 
-/// Builds the M1 sandbox: a 7v7 lineup at a line of scrimmage, one
-/// human-controlled ball carrier. Plays/AI arrive in M3.
+/// Builds the sandbox play: a 7v7 lineup at a line of scrimmage with the
+/// human on the QB. The play book (6 + 6 plays) arrives in M3.
 public enum Formation {
     /// Offset from the ball (x lateral, y toward own end zone is negative).
     static let offense: [(Position, Vec2)] = [
@@ -19,7 +19,7 @@ public enum Formation {
     public static func sandbox(offense off: TeamData, defense def: TeamData,
                                ballOn ownYardLine: Double = 25,
                                lateral: Double = Field.centerX,
-                               controlled: Position = .rb) -> World {
+                               controlled: Position = .qb, seed: UInt64 = 0xF00D) -> World {
         let ball = Vec2(lateral, Field.worldY(ownYardLine: ownYardLine))
         var players: [SimPlayer] = []
         var used = Set<String>()
@@ -36,6 +36,6 @@ public enum Formation {
         add(off, 0, .offense, offense, facing: Double.pi / 2)
         add(def, 1, .defense, defense, facing: -Double.pi / 2)
         let controlledID = players.first { $0.side == .offense && $0.data.position == controlled }?.id ?? 0
-        return World(players: players, controlledID: controlledID)
+        return World(players: players, controlledID: controlledID, lineOfScrimmage: ball.y, seed: seed)
     }
 }

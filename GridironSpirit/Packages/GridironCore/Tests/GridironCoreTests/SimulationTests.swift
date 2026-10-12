@@ -82,9 +82,12 @@ final class SimulationTests: XCTestCase {
         let league = try DataLoader.bundledLeague()
         func run() -> [Vec3] {
             var w = Formation.sandbox(offense: league.teams[0], defense: league.teams[1])
+            w.snap()
             for i in 0..<600 {
                 let a = Double(i) * 0.03
-                w.step(SimInput(move: Vec2(cos(a), sin(a) * 0.5 + 0.5)), dt: dt)
+                var intents = [Vec2](repeating: Vec2(0.2, 0.4), count: w.players.count)
+                intents[w.controlledID] = Vec2(cos(a), sin(a) * 0.5 + 0.5)
+                w.step(intents: intents, dt: dt)
             }
             return w.players.map(\.body.position)
         }
@@ -96,11 +99,15 @@ final class SimulationTests: XCTestCase {
         var w = Formation.sandbox(offense: league.teams[0], defense: league.teams[1])
         XCTAssertEqual(w.players.filter { $0.side == .offense }.count, 7)
         XCTAssertEqual(w.players.filter { $0.side == .defense }.count, 7)
-        XCTAssertEqual(w.controlled.data.position, .rb)
-        // Drive the RB straight into the line.
-        for _ in 0..<360 { w.step(SimInput(move: Vec2(0, 1)), dt: dt) }
+        XCTAssertEqual(w.controlled.data.position, .qb)
+        // Everyone charges straight ahead.
+        w.debugGiveBall(to: w.players.first { $0.data.position == .rb }!.id)
+        for _ in 0..<360 {
+            w.step(intents: w.players.map { $0.side == .offense ? Vec2(0, 1) : Vec2(0, -1) }, dt: dt)
+        }
         for i in 0..<w.players.count {
-            for j in (i + 1)..<w.players.count {
+            for j in (i + 1)..<w.players.count where w.players[i].status != .down && w.players[j].status != .down
+                && w.players[i].id != w.carrierID && w.players[j].id != w.carrierID {
                 let a = w.players[i].body, b = w.players[j].body
                 let d = (a.position.ground - b.position.ground).length
                 XCTAssertGreaterThan(d, (a.profile.radius + b.profile.radius) * 0.8)

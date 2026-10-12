@@ -51,6 +51,8 @@ public struct Vec3: Hashable, Codable, Sendable {
 
     public static let zero = Vec3(0, 0, 0)
     public var ground: Vec2 { Vec2(x, y) }
+    public var length: Double { (x * x + y * y + z * z).squareRoot() }
+    public func dot(_ o: Vec3) -> Double { x * o.x + y * o.y + z * o.z }
 
     public static func + (a: Vec3, b: Vec3) -> Vec3 { Vec3(a.x + b.x, a.y + b.y, a.z + b.z) }
     public static func - (a: Vec3, b: Vec3) -> Vec3 { Vec3(a.x - b.x, a.y - b.y, a.z - b.z) }

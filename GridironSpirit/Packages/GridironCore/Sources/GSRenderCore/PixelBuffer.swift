@@ -83,6 +83,42 @@ public struct PixelBuffer: Sendable {
         PixelFont.draw(text, into: &self, x: x, y: y, c)
     }
 
+    /// Quarter turn clockwise (top edge becomes the right edge). Lossless.
+    public func rotatedClockwise() -> PixelBuffer {
+        var o = PixelBuffer(width: height, height: width)
+        for y in 0..<height { for x in 0..<width { o[height - 1 - y, x] = self[x, y] } }
+        return o
+    }
+
+    public func flippedHorizontally() -> PixelBuffer {
+        var o = self
+        for y in 0..<height { for x in 0..<width { o[x, y] = self[width - 1 - x, y] } }
+        return o
+    }
+
+    /// Nearest-neighbour vertical resample (used before outlining, so the
+    /// final outline is still exactly 1 px).
+    public func resampledVertically(to newHeight: Int) -> PixelBuffer {
+        var o = PixelBuffer(width: width, height: max(1, newHeight))
+        for y in 0..<o.height {
+            let sy = min(height - 1, Int((Double(y) + 0.5) * Double(height) / Double(o.height)))
+            for x in 0..<width { o[x, y] = self[x, sy] }
+        }
+        return o
+    }
+
+    /// Horizontal shear that leans the top forward (stumble pose); widens the
+    /// canvas so nothing is clipped. Feet row stays put.
+    public func sheared(amount: Double) -> PixelBuffer {
+        let extra = Int((Double(height) * amount).rounded(.up))
+        var o = PixelBuffer(width: width + extra, height: height)
+        for y in 0..<height {
+            let shift = Int((Double(height - 1 - y) * amount).rounded())
+            for x in 0..<width where self[x, y] >> 24 != 0 { o[x + shift, y] = self[x, y] }
+        }
+        return o
+    }
+
     public var distinctOpaqueColors: Int {
         Set(pixels.filter { $0 >> 24 != 0 }).count
     }

@@ -9,6 +9,7 @@ using namespace metal;
 struct UpscaleUniforms {
     float2 origin;   // top-left of the scaled rect in drawable pixels
     float  scale;    // integer scale factor
+    float  impact;   // 1 = anime impact frame (inverted, high contrast)
 };
 
 struct VOut { float4 position [[position]]; };
@@ -26,5 +27,11 @@ fragment float4 upscale_fragment(VOut in [[stage_in]],
                                  constant UpscaleUniforms& u [[buffer(0)]]) {
     float2 local = floor((in.position.xy - u.origin) / u.scale);
     uint2 texel = uint2(clamp(local, float2(0.0), float2(canvas.get_width() - 1, canvas.get_height() - 1)));
-    return canvas.read(texel);
+    float4 c = canvas.read(texel);
+    if (u.impact > 0.5) {
+        // One-frame impact flash: negative image with a hard contrast boost,
+        // so the whole screen "cracks" for a single frame on huge hits.
+        c.rgb = saturate((1.0 - c.rgb - 0.5) * 1.8 + 0.5);
+    }
+    return c;
 }

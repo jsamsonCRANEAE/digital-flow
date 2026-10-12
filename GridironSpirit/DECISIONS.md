@@ -87,7 +87,7 @@ pixel-art games, so I recommend adding it as a user setting in M6.
   sampled by the next sim tick inside the same display callback, so they are
   never more than one 8.3 ms tick old when the frame is built.
 - System edge gestures are deferred, and the home indicator auto-hides.
-- In M1, a tap on the right half triggers a test screen shake, standing in for the buttons that come in M2.
+- The right half holds the 3 context buttons (M2). The M1 debug shake tap is gone.
 
 ## Content (original IP)
 - Teams: **Kurogane Ronin** (disciplined, samurai-style), **Neon Alley Strays**
@@ -105,3 +105,92 @@ pixel-art games, so I recommend adding it as a user setting in M6.
 (`CADisableMinimumFrameDurationOnPhone` is set). If the 90th-percentile CPU
 frame work over 120 frames goes above 6 ms, it drops to 60 Hz for the rest of
 the session. It never goes back up, so the rate doesn't oscillate.
+
+## M2: Ball physics
+- **The ball is a custom deterministic projectile.** It uses semi-implicit
+  Euler at 120 Hz and doesn't touch SpriteKit physics. Gravity is
+  10.72 yd/s². Drag is quadratic against the air (wind is subtracted), with
+  k = ρ·Cd·A/2m ≈ 0.0025 per yard for a tight spiral. That assumes Cd of about
+  0.1, A = 0.0186 m² and m = 0.41 kg. These are **tunable approximations**,
+  not measured constants.
+- **Wobble.** A wobbly "duck" gets up to 4x the drag, plus an oscillating
+  sideways force. Wobble comes from pressure (a defender within 3.5 yd) and
+  from lower accuracy.
+- **The throw solver uses shooting.** It leads the receiver by iterating
+  flight time against the lead point, takes the vacuum solution, then
+  simulates with drag and wind and corrects the aim by the miss (up to 12
+  iterations). A test confirms it hits a moving receiver within 0.35 yd
+  through wind. Bullets are minimum-time at arm speed (21.5 to 28.5 yd/s from
+  `throwPower`). Lobs take longer and arc higher. Passer error is Gaussian yaw
+  and speed noise, scaled by accuracy and pressure.
+- **Prolate-spheroid ground behavior.** On every contact, the angle of the
+  ball's long axis decides the outcome. A point-first landing pops high
+  (restitution up to 0.62) and kicks off at a random angle of up to ±70°. A
+  belly landing skids low and keeps its line. The tumble rate is re-rolled at
+  each hop. A rolling ball rocks end over end, curves, and sometimes catches a
+  point and hops. A test asserts that identical impacts with different
+  orientations scatter widely; a round ball would not.
+- **Kicks.** Kick physics (power + elevation + yaw, tumbling drag, wind) is
+  done and tested. The power/angle meter UI ships with special teams in M3.
+
+## M2: Catching
+- **The attempt resolves at closest approach**, not the moment the ball
+  enters the catch radius. This was a real bug found by instrumenting: every
+  ball was rated "edge of reach".
+- Probability combines the catching rating, how centered the ball is, ball
+  speed (open bullets are still caught 85%+), awkward height, diving, and
+  contest (the nearest opponent's distance to the ball). Defenders mostly
+  break passes up rather than pick them off. A tipped ball stays live and
+  catchable. A drop is incomplete.
+- **Measured outcomes.** In 60 seeded sandbox plays with blind throws (random
+  target and random timing, often into coverage), passes split 50% complete,
+  38% incomplete and 12% intercepted. A human throwing to open men will
+  complete far more. QB-AI tuning is M3.
+
+## M2: Tackling
+- **Contact model.** Contact is resolved by the tackle model instead of being
+  pushed apart. Impact is the two-body reduced mass × closing speed / 100, so
+  a 300 lb lineman hitting a 185 lb receiver rates far above two receivers
+  bumping at the same speed.
+- **Angle and moves matter.** From behind, the tackler wraps up (bonus).
+  Stiff arm beats frontal and side contact. Spin beats side and rear contact.
+  A juke's first 0.22 s can make the tackler whiff entirely. Every move has a
+  commitment window.
+- **Five outcomes.** Clean, pushed forward (the carrier's momentum carries the
+  pile), stumble, broken, and whiff. A second defender arriving on a stumbling
+  or driven carrier finishes a gang tackle. Fumbles are possible only on big
+  hits (impact 6 and up) and stay live, so anyone can recover them.
+- **AI pursuit** solves the true intercept point (a quadratic in time) and
+  blends toward the carrier's current position by difficulty. Difficulty
+  changes only perception (reaction lag as a low-pass on observed velocity),
+  pursuit quality and coverage cushion. It never inflates stats.
+
+## M2: Game feel and the anime layer
+- **Hit-stop** is specified in 60 Hz frames: 3 for a catch, 4 for a tackle,
+  5 for a contested catch, 6 for a big hit. During it the world freezes but
+  screen shake keeps running.
+- **Impact frame.** One display frame is inverted with a hard contrast boost,
+  in the Metal upscale pass, so it costs nothing.
+- **Squash and stretch** is drawn natively as separate texture sizes, never
+  node scaling, so the 1 px outline holds.
+- **Down and dive poses** are made by rotating the upright sprite a quarter
+  turn (lossless in pixel art), then foreshortening it vertically.
+- **Ground-layer effects are drawn into the CPU field buffer**, under the
+  sprites. That covers turf and dirt particles, the ball shadow, the trail,
+  the landing reticle and speed lines. They cost almost nothing and stay
+  pixel-exact.
+- **Ball height readability.** The ball's shadow is always on the ground. It
+  shrinks and its dither thins as the ball rises, but it never disappears
+  (there's a test). Passes also get a pulsing landing reticle.
+- **Speed lines.** These are tapered manga wedges from the screen edge
+  toward the runner, with a clear window around them. They appear when the
+  controlled carrier is at 92%+ of top speed with no defender within 5 yd.
+- **Pass camera.** It frames the thrower and the landing spot, and the near
+  edge of the frame travels with the ball, so a deep catch arrives large.
+- **Controls.** Context buttons fire on touch-down, not release, for latency.
+  A swipe up on any carrier button means dive. Receiver icons have a full
+  44 pt hit target, and overlapping targets go to the nearest. Releasing an
+  icon in under 0.18 s throws a bullet; a longer hold throws a lob. The throw
+  pose shows instantly, and the ball leaves the hand after a 0.1 s wind-up.
+- Callouts are plain pixel text for now. The chrome-gradient,
+  overshoot-scaled versions are M4 art.

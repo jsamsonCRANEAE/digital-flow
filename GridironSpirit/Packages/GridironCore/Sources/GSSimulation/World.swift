@@ -3,19 +3,67 @@ import GSData
 
 public enum TeamSide: Int, Sendable { case offense = 0, defense = 1 }
 
+public enum PlayerStatus: Sendable, Equatable {
+    case normal
+    /// Off balance: slowed, can't make plays (seconds remaining).
+    case stumbling(Double)
+    /// On the turf after a missed or made tackle; gets back up.
+    case stunned(Double)
+    /// Pushed-forward pile: carrier keeps churning before going down.
+    case driven(Double)
+    /// Tackled. Out of the play until the next snap.
+    case down
+
+    public var canMakePlays: Bool {
+        switch self { case .normal, .driven: return true; default: return false }
+    }
+    public var isOnGround: Bool {
+        switch self { case .stunned, .down: return true; default: return false }
+    }
+}
+
+public struct ActiveMove: Sendable, Equatable {
+    public var kind: MoveKind
+    public var age: Double
+    public var duration: Double
+    /// Juke side: -1 left, +1 right (relative to heading).
+    public var side: Double
+
+    public static func duration(of k: MoveKind) -> Double {
+        switch k { case .juke: return 0.28; case .spin: return 0.42; case .stiffArm: return 0.5; case .dive: return 1.2 }
+    }
+}
+
 public struct SimPlayer: Sendable {
     public let id: Int
     public let data: PlayerData
     public let side: TeamSide
     public let teamIndex: Int
     public var body: PlayerBody
+    public var status: PlayerStatus = .normal
+    public var move: ActiveMove?
+    public var tackleCooldown: Double = 0
+    public var catchAttempted = false
+    /// > 0 while the throwing animation plays (wind-up then follow-through).
+    public var throwTimer: Double = 0
+    /// In contact with a blocker / rusher this tick.
+    public var engaged = false
+
+    public init(id: Int, data: PlayerData, side: TeamSide, teamIndex: Int, body: PlayerBody) {
+        self.id = id; self.data = data; self.side = side; self.teamIndex = teamIndex; self.body = body
+    }
+
+    public var isEligibleReceiver: Bool {
+        side == .offense && [.wr, .rb, .te].contains(data.position)
+    }
 }
 
-/// Per-tick inputs for the simulation (sampled from GSInput).
-public struct SimInput: Sendable {
-    /// Desired move in world space (x lateral, y downfield), length <= 1.
-    public var move: Vec2
-    public init(move: Vec2 = .zero) { self.move = move }
+public enum PlayPhase: Sendable, Equatable {
+    case preSnap
+    case live
+    case dead(DeadBallReason)
+    public var isLive: Bool { self == .live }
+    public var isDead: Bool { if case .dead = self { return true }; return false }
 }
 
 /// Minimal render-facing copy of a player, interpolated between sim ticks.
@@ -37,45 +85,244 @@ public struct PlayerState: Sendable {
     }
 }
 
-/// The deterministic game world. No rendering or platform types here.
+/// The deterministic game world: bodies, ball, contact resolution and
+/// dead-ball rules for a single play. No rendering or platform types.
 public struct World: Sendable {
     public private(set) var players: [SimPlayer] = []
     public var controlledID: Int
     public private(set) var tick: UInt64 = 0
     public private(set) var time: Double = 0
-    public private(set) var lastEvents: [(id: Int, events: MovementEvents)] = []
+    public private(set) var ball: Ball
+    public private(set) var phase: PlayPhase = .preSnap
+    public let lineOfScrimmage: Double
+    public var wind: Vec2 = .zero
+    public private(set) var events: [GameEvent] = []
+    /// Where the play ended (for the next line of scrimmage).
+    public private(set) var deadSpot: Vec2?
+    public private(set) var timeSinceWhistle: Double = 0
+    /// Predicted point where the current pass comes down (for the reticle).
+    public private(set) var passLanding: Vec3?
+    /// Seconds the current pass has left in the air (prediction).
+    public private(set) var passTimeRemaining: Double = 0
+    var rng: SplitMix64
+    var pendingThrow: (target: Int, kind: ThrowKind, timer: Double)?
+    var snapTarget: Int?
 
-    public init(players: [SimPlayer], controlledID: Int) {
+    public init(players: [SimPlayer], controlledID: Int, lineOfScrimmage: Double, seed: UInt64 = 0xF00D) {
         self.players = players
         self.controlledID = controlledID
+        self.lineOfScrimmage = lineOfScrimmage
+        rng = SplitMix64(seed: seed)
+        let center = players.first { $0.data.position == .c } ?? players[0]
+        ball = Ball(heldBy: center.id, at: center.body.position + Vec3(0, 0.4, 0.15))
     }
 
     public var controlled: SimPlayer { players[controlledID] }
+    public func player(_ id: Int) -> SimPlayer { players[id] }
+    public var carrierID: Int? { ball.holder }
+    public var quarterback: SimPlayer? { players.first { $0.data.position == .qb && $0.side == .offense } }
 
-    public mutating func step(_ input: SimInput, dt: Double) {
-        lastEvents.removeAll(keepingCapacity: true)
-        for i in players.indices {
-            let intent = players[i].id == controlledID ? input.move : .zero
-            let ev = players[i].body.step(intent: intent, dt: dt)
-            if !ev.isEmpty { lastEvents.append((players[i].id, ev)) }
+    /// True while the QB still holds the ball behind the line: receivers are targetable.
+    public var canThrow: Bool {
+        guard phase.isLive, pendingThrow == nil, let h = ball.holder, let qb = quarterback, h == qb.id else { return false }
+        return players[h].body.position.y < lineOfScrimmage && snapTarget == nil
+    }
+
+    // MARK: Commands
+
+    public mutating func snap() {
+        guard phase == .preSnap, let qb = quarterback, let c = ball.holder else { return }
+        phase = .live
+        let from = players[c].body.position + Vec3(0, -0.3, 0.45)
+        let s = ThrowSolver.solve(from: from, receiver: qb.body.position.ground, receiverVelocity: .zero,
+                                  kind: .bullet, maxSpeed: 13)
+        ball.launch(from: from, velocity: s.velocity, wobble: 0, tumbling: false)
+        ball.thrower = c
+        ball.target = qb.id
+        ball.isForwardPass = false
+        snapTarget = qb.id
+        events.append(.snap)
+    }
+
+    /// Starts the throwing motion; the ball leaves the hand after a short,
+    /// exaggerated wind-up (the pose shows immediately, so it still feels instant).
+    @discardableResult
+    public mutating func requestThrow(to target: Int, kind: ThrowKind) -> Bool {
+        guard canThrow, players.indices.contains(target), players[target].isEligibleReceiver,
+              let qb = ball.holder else { return false }
+        pendingThrow = (target, kind, 0.1)
+        players[qb].throwTimer = 0.32
+        return true
+    }
+
+    @discardableResult
+    public mutating func requestMove(_ kind: MoveKind, for id: Int, side: Double = 1) -> Bool {
+        guard phase.isLive, ball.holder == id, pendingThrow == nil else { return false }
+        var p = players[id]
+        guard p.status == .normal, p.move == nil || p.move?.kind != .dive, !p.body.isAirborne else { return false }
+        if let m = p.move, m.kind != .dive, kind != .dive { return false }   // commitment window
+        p.move = ActiveMove(kind: kind, age: 0, duration: ActiveMove.duration(of: kind), side: side >= 0 ? 1 : -1)
+        switch kind {
+        case .juke:
+            let perp = Vec2.fromAngle(p.body.facing + (side >= 0 ? -Double.pi / 2 : Double.pi / 2), length: 4.6)
+            p.body.velocity = (p.body.velocity * 0.82 + perp).clampedLength(p.body.profile.topSpeed * 1.05)
+        case .spin:
+            p.body.velocity = p.body.velocity * 0.85
+        case .stiffArm:
+            break
+        case .dive:
+            let fwd = Vec2.fromAngle(p.body.facing, length: max(p.body.speed, 4) + 1.6)
+            p.body.velocity = fwd
+            p.body.jump(verticalSpeed: 3.1)
         }
+        players[id] = p
+        events.append(.move(player: id, kind: kind))
+        return true
+    }
+
+    // MARK: Step
+
+    /// - Parameter intents: desired move per player id (length <= 1).
+    public mutating func step(intents: [Vec2], dt: Double) {
+        events.removeAll(keepingCapacity: true)
+        if phase.isDead { timeSinceWhistle += dt }
+
+        updateThrow(dt: dt)
+        movePlayers(intents: intents, dt: dt)
         resolveOverlaps()
+        updateBall(dt: dt)
+        if phase.isLive {
+            resolveCatches()
+            resolveRecoveries()
+            resolveTackles()
+            checkBoundaries()
+        }
         tick += 1
         time += dt
     }
 
-    /// Circle-vs-circle separation on the ground plane, mass-weighted so
-    /// linemen shove skill players more than the reverse.
+    mutating func updateThrow(dt: Double) {
+        for i in players.indices where players[i].throwTimer > 0 {
+            players[i].throwTimer = max(0, players[i].throwTimer - dt)
+        }
+        guard var pt = pendingThrow else { return }
+        pt.timer -= dt
+        pendingThrow = pt
+        guard pt.timer <= 0 else { return }
+        pendingThrow = nil
+        guard phase.isLive, let qbID = ball.holder else { return }
+        let qb = players[qbID]
+        let target = players[pt.target]
+        let release = qb.body.position + Vec3(Vec2.fromAngle(qb.body.facing, length: 0.35), z: 1.95)
+        let arm = 21.5 + 7 * Double(qb.data.ratings.throwPower) / 99    // 21.5 ... 28.5 yd/s
+        let sol = ThrowSolver.solve(from: release, receiver: target.body.position.ground,
+                                    receiverVelocity: target.body.velocity, kind: pt.kind, maxSpeed: arm, wind: wind)
+        let pressure = pressureOn(qbID)
+        let (v, wobble) = ThrowSolver.applyError(sol.velocity, accuracy: qb.data.ratings.throwAccuracy,
+                                                 pressure: pressure, kind: pt.kind, rng: &rng)
+        ball.launch(from: release, velocity: v, wobble: wobble, tumbling: false)
+        ball.isForwardPass = true
+        ball.thrower = qbID
+        ball.target = pt.target
+        ball.kind = pt.kind
+        let landing = ThrowSolver.descentPoint(through: ThrowSolver.catchHeight, from: release, velocity: v,
+                                               wobble: wobble, wind: wind)
+        passLanding = landing.point
+        passTimeRemaining = landing.time
+        for i in players.indices { players[i].catchAttempted = false }
+        events.append(.throwRelease(player: qbID, kind: pt.kind, wobble: wobble))
+    }
+
+    /// 0 = clean pocket, 1 = defender in the QB's face.
+    public func pressureOn(_ id: Int) -> Double {
+        let p = players[id].body.position.ground
+        let d = players.filter { $0.side != players[id].side && $0.status.canMakePlays }
+            .map { ($0.body.position.ground - p).length }.min() ?? 99
+        return clamp((3.5 - d) / 2.5, 0, 1)
+    }
+
+    mutating func movePlayers(intents: [Vec2], dt: Double) {
+        for i in players.indices {
+            var p = players[i]
+            var intent = phase == .live && i < intents.count ? intents[i] : .zero
+            var speedScale = 1.0
+            // Status effects.
+            switch p.status {
+            case .normal: break
+            case .stumbling(let t):
+                speedScale = 0.5
+                p.status = t - dt > 0 ? .stumbling(t - dt) : .normal
+            case .stunned(let t):
+                intent = .zero
+                speedScale = 0.25
+                p.status = t - dt > 0 ? .stunned(t - dt) : .normal
+            case .driven(let t):
+                intent = Vec2.fromAngle(p.body.facing)
+                speedScale = 0.42
+                if t - dt <= 0 {
+                    p.status = .down
+                    if ball.holder == p.id { whistle(.tackled, spot: p.body.position.ground) }
+                } else { p.status = .driven(t - dt) }
+            case .down:
+                intent = .zero
+                speedScale = 0.2
+            }
+            if p.engaged { speedScale *= 0.38 }
+            if p.throwTimer > 0 { speedScale *= 0.35 }
+            // Moves lock the stick during their commitment window.
+            if var m = p.move {
+                switch m.kind {
+                case .juke: intent = p.body.velocity.normalized
+                case .spin: intent = Vec2.fromAngle(p.body.facing); speedScale *= 0.92
+                case .stiffArm: speedScale *= 0.94
+                case .dive: intent = Vec2.fromAngle(p.body.facing); speedScale *= 1.25
+                }
+                m.age += dt
+                p.move = m.age >= m.duration && m.kind != .dive ? nil : m
+            }
+            if phase.isDead { intent = intent * 0.0; speedScale = min(speedScale, 0.6) }
+
+            let wasAirborne = p.body.isAirborne
+            let ev = p.body.step(intent: intent, dt: dt, speedScale: speedScale)
+            if ev.contains(.hardCut) { events.append(.hardCut(player: p.id, at: p.body.position.ground)) }
+            if ev.contains(.reachedTopSpeed) { events.append(.reachedTopSpeed(player: p.id)) }
+            if wasAirborne && !p.body.isAirborne {
+                events.append(.landing(player: p.id, at: p.body.position))
+                if p.move?.kind == .dive {
+                    p.move = nil
+                    p.status = .down
+                    p.body.velocity = p.body.velocity * 0.3
+                    if ball.holder == p.id && phase.isLive { whistle(.tackled, spot: p.body.position.ground) }
+                }
+            }
+            p.tackleCooldown = max(0, p.tackleCooldown - dt)
+            p.engaged = false
+            players[i] = p
+        }
+    }
+
+    /// Circle-vs-circle separation, mass-weighted so linemen shove skill
+    /// players more than the reverse. Opponent contacts away from the ball
+    /// are blocks: both players get bogged down.
     mutating func resolveOverlaps() {
         let n = players.count
         guard n > 1 else { return }
+        let carrier = ball.holder
         for i in 0..<(n - 1) {
             for j in (i + 1)..<n {
                 let a = players[i].body, b = players[j].body
+                if players[i].status == .down || players[j].status == .down { continue }
                 let d = b.position.ground - a.position.ground
                 let minDist = a.profile.radius + b.profile.radius
                 let dist2 = d.lengthSquared
                 guard dist2 < minDist * minDist else { continue }
+                if players[i].side != players[j].side && players[i].id != carrier && players[j].id != carrier && phase.isLive {
+                    players[i].engaged = true
+                    players[j].engaged = true
+                }
+                // The carrier vs a tackler is resolved by the tackle model, not pushed apart.
+                if (players[i].id == carrier || players[j].id == carrier) && players[i].side != players[j].side
+                    && phase.isLive { continue }
                 let dist = dist2.squareRoot()
                 let normal = dist > 1e-6 ? d / dist : Vec2(1, 0)
                 let overlap = minDist - dist
@@ -89,6 +336,223 @@ public struct World: Sendable {
         }
     }
 
+    mutating func updateBall(dt: Double) {
+        if let h = ball.holder {
+            let b = players[h].body
+            ball.position = b.position + Vec3(Vec2.fromAngle(b.facing, length: 0.25), z: 1.05)
+            ball.velocity = Vec3(b.velocity, z: 0)
+            ball.pitch = 0
+            return
+        }
+        passTimeRemaining = max(0, passTimeRemaining - dt)
+        let ev = ball.step(dt: dt, wind: wind, rng: &rng)
+        if ev.contains(.bounced) && ball.lastBounceStrength > 0.8 {
+            events.append(.ballBounce(at: ball.position, strength: ball.lastBounceStrength))
+        }
+        if ev.contains(.groundContact) {
+            if snapTarget != nil {
+                // Bad snap on the turf: live loose ball.
+                snapTarget = nil
+                ball.isForwardPass = false
+            }
+            if ball.isForwardPass && phase.isLive {
+                whistle(.incomplete, spot: Vec2(ball.position.x, lineOfScrimmage))
+            }
+            ball.isForwardPass = false
+            passLanding = nil
+            if ball.phase == .inFlight { ball.phase = .loose }
+        }
+    }
+
+    mutating func resolveCatches() {
+        guard ball.phase == .inFlight, ball.airTime > 0.08 else { return }
+        // Snaps are automatic unless the QB is somehow out of reach.
+        if let qb = snapTarget {
+            let d = (ball.position.ground - players[qb].body.position.ground).length
+            if d < 0.9 && ball.position.z < 2.4 {
+                ball.phase = .held(by: qb)
+                snapTarget = nil
+            }
+            return
+        }
+        for i in players.indices where players[i].id != ball.thrower && !players[i].catchAttempted
+            && players[i].status.canMakePlays && (players[i].side == .defense || players[i].isEligibleReceiver) {
+            let p = players[i]
+            let diving = p.move?.kind == .dive
+            let radius = 0.78 + 0.22 * Double(p.data.ratings.agility) / 99 + (diving ? 0.55 : 0)
+            let reach = 2.35 + p.body.position.z + (diving ? 0.2 : 0)
+            let hd = (ball.position.ground - p.body.position.ground).length
+            guard hd <= radius, ball.position.z >= 0.15, ball.position.z <= reach else { continue }
+            // Wait for the closest approach: hands meet the ball at its nearest
+            // point, not the instant it grazes the edge of the catch radius.
+            let dt = 1.0 / 120
+            let nextBall = ball.position + ball.velocity * dt
+            let nextBody = p.body.position.ground + p.body.velocity * dt
+            let nextHD = (nextBall.ground - nextBody).length
+            if nextHD < hd - 1e-4 && nextBall.z >= 0.15 && nextBall.z <= reach { continue }
+            players[i].catchAttempted = true
+            let opponents = players.filter { $0.side != p.side && $0.status.canMakePlays }
+            let nearest = opponents.map { ($0.body.position.ground - ball.position.ground).length }.min() ?? 9
+            let ctx = CatchContext(catching: p.data.ratings.catching, isOffense: p.side == .offense,
+                                   isIntendedReceiver: p.id == ball.target, ballSpeed: ball.velocity.length,
+                                   ballHeight: ball.position.z - p.body.position.z, centered: 1 - hd / radius,
+                                   contest: clamp((1.6 - nearest) / 1.6, 0, 1), diving: diving)
+            let outcome = CatchResolver.resolve(ctx, roll: rng.unit())
+            let at = ball.position
+            switch outcome {
+            case .caught:
+                ball.phase = .held(by: p.id)
+                ball.isForwardPass = false
+                passLanding = nil
+                let pick = p.side == .defense
+                events.append(.catchMade(player: p.id, at: at, contested: ctx.contest > 0.3, interception: pick))
+                if pick {
+                    whistle(.interception, spot: p.body.position.ground)
+                } else {
+                    controlledID = p.id
+                }
+                return
+            case .deflected:
+                // Tipped ball stays live and can be caught by anyone else.
+                let away = Vec2.fromAngle(ball.velocity.ground.angle + rng.signed() * 1.4, length: ball.velocity.ground.length * 0.35)
+                ball.velocity = Vec3(away.x, away.y, 2.2 + 2.5 * rng.unit())
+                ball.pitchRate = rng.signed() * 14
+                ball.spinRate = 0
+                for j in players.indices where j != i { players[j].catchAttempted = false }
+                passLanding = nil
+                events.append(.deflection(player: p.id, at: at))
+                return
+            case .dropped:
+                ball.velocity = Vec3(ball.velocity.x * 0.25, ball.velocity.y * 0.25, 1.2 + rng.unit())
+                ball.pitchRate = rng.signed() * 10
+                ball.spinRate = 0
+                passLanding = nil
+                events.append(.drop(player: p.id, at: at))
+                whistle(.incomplete, spot: Vec2(at.x, lineOfScrimmage))
+                ball.isForwardPass = false
+                return
+            case .missed:
+                continue
+            }
+        }
+    }
+
+    mutating func resolveRecoveries() {
+        guard ball.phase == .loose, ball.position.z < 0.6 else { return }
+        var best: (Int, Double)?
+        for p in players where p.status.canMakePlays {
+            let d = (p.body.position.ground - ball.position.ground).length
+            let reach = 0.7 + (p.move?.kind == .dive ? 0.5 : 0)
+            if d < reach && (best == nil || d < best!.1) { best = (p.id, d) }
+        }
+        guard let (id, _) = best, rng.unit() < 0.3 else { return }   // scramble for it
+        ball.phase = .held(by: id)
+        let offense = players[id].side == .offense
+        events.append(.recovery(player: id, offense: offense))
+        if offense { controlledID = id } else { whistle(.turnover, spot: players[id].body.position.ground) }
+    }
+
+    mutating func resolveTackles() {
+        guard let cid = ball.holder, ball.phase != .inFlight else { return }
+        let carrier = players[cid]
+        guard carrier.status != .down, !carrier.status.isOnGround else { return }
+        for i in players.indices where players[i].side != carrier.side && players[i].status.canMakePlays
+            && players[i].tackleCooldown <= 0 {
+            let t = players[i]
+            let d = carrier.body.position.ground - t.body.position.ground
+            let reach = carrier.body.profile.radius + t.body.profile.radius + 0.1
+            guard d.length < reach else { continue }
+            // Second hit on an already wrapped / stumbling carrier: gang tackle.
+            if case .driven = carrier.status { return finishGangTackle(cid, i) }
+            if case .stumbling = carrier.status { return finishGangTackle(cid, i) }
+
+            let n = d.normalized
+            let closing = (t.body.velocity - carrier.body.velocity).dot(n)
+            let heading = carrier.body.speed > 0.3 ? carrier.body.velocity.normalized : Vec2.fromAngle(carrier.body.facing)
+            let ctx = TackleContext(tacklerMass: t.body.profile.mass, tacklerStrength: t.data.ratings.strength,
+                                    tacklerSpeed: t.body.speed, carrierMass: carrier.body.profile.mass,
+                                    carrierStrength: carrier.data.ratings.strength,
+                                    carrierBalance: carrier.data.ratings.balance, closingSpeed: max(closing, 1.0),
+                                    frontalness: heading.dot(-n), carrierSpeed: carrier.body.speed,
+                                    move: carrier.move?.kind, moveAge: carrier.move?.age ?? 0)
+            let r = TackleResolver.resolve(ctx, rolls: (rng.unit(), rng.unit(), rng.unit()))
+            apply(r, carrier: cid, tackler: i, normal: n)
+            return
+        }
+    }
+
+    mutating func finishGangTackle(_ cid: Int, _ tackler: Int) {
+        let r = TackleResult(outcome: .clean, impact: 2.5, fumble: false)
+        apply(r, carrier: cid, tackler: tackler, normal: (players[cid].body.position.ground - players[tackler].body.position.ground).normalized)
+    }
+
+    mutating func apply(_ r: TackleResult, carrier cid: Int, tackler tid: Int, normal n: Vec2) {
+        let at = players[cid].body.position
+        events.append(.tackle(r, carrier: cid, tackler: tid, at: at))
+        players[tid].tackleCooldown = 1.0
+        switch r.outcome {
+        case .clean:
+            players[cid].status = .down
+            // Momentum transfer: pile moves along the hit direction a little.
+            players[cid].body.velocity = players[cid].body.velocity * 0.25 + n * min(3, r.impact * 0.3)
+            players[tid].status = .stunned(1.2)
+            players[tid].body.velocity = players[tid].body.velocity * 0.3
+            players[cid].move = nil
+            if !r.fumble { whistle(.tackled, spot: at.ground) }
+        case .pushedForward:
+            players[cid].status = .driven(0.5)
+            players[tid].status = .stunned(1.4)
+        case .stumble:
+            players[cid].status = .stumbling(0.55)
+            players[cid].body.velocity = players[cid].body.velocity * 0.6
+            players[tid].status = .stunned(0.9)
+        case .broken:
+            players[cid].body.velocity = players[cid].body.velocity * 0.85
+            players[tid].status = .stunned(1.3)
+            players[tid].body.velocity = players[tid].body.velocity * 0.4 - n * 1.5
+        case .whiff:
+            players[tid].status = .stumbling(0.6)
+            players[tid].tackleCooldown = 0.7
+        }
+        if r.fumble {
+            let pop = Vec2.fromAngle(rng.unit() * 2 * Double.pi, length: 2 + 3 * rng.unit())
+            ball.phase = .loose
+            ball.position = at + Vec3(0, 0, 1.0)
+            ball.velocity = Vec3(pop.x + players[cid].body.velocity.x, pop.y + players[cid].body.velocity.y, 2.5 + 2 * rng.unit())
+            ball.pitchRate = rng.signed() * 15
+            ball.spinRate = 0
+            ball.isForwardPass = false
+            events.append(.fumble(player: cid, at: at))
+        }
+    }
+
+    mutating func checkBoundaries() {
+        if let cid = ball.holder {
+            let p = players[cid].body.position
+            if p.x < 0 || p.x > Field.width {
+                whistle(.outOfBounds, spot: Vec2(clamp(p.x, 0, Field.width), p.y))
+            } else if players[cid].side == .offense && p.y >= Field.awayGoalLine {
+                whistle(.touchdown, spot: p.ground)
+            } else if players[cid].side == .offense && p.y < Field.homeGoalLine && players[cid].status == .down {
+                whistle(.safety, spot: p.ground)
+            }
+        } else if ball.phase == .loose {
+            let p = ball.position
+            if p.x < 0 || p.x > Field.width || p.y < 0 || p.y > Field.length {
+                whistle(.outOfBounds, spot: Vec2(clamp(p.x, 0, Field.width), clamp(p.y, 0, Field.length)))
+            }
+        }
+    }
+
+    mutating func whistle(_ reason: DeadBallReason, spot: Vec2) {
+        guard !phase.isDead else { return }
+        phase = .dead(reason)
+        deadSpot = spot
+        timeSinceWhistle = 0
+        pendingThrow = nil
+        events.append(.whistle(reason, spot: spot))
+    }
+
     public func snapshot(into out: inout [PlayerState]) {
         out.removeAll(keepingCapacity: true)
         for p in players {
@@ -98,5 +562,15 @@ public struct World: Sendable {
         }
     }
 
-    public func player(_ id: Int) -> SimPlayer { players[id] }
+    // MARK: Test hooks
+    public mutating func debugSetPlayer(_ id: Int, position: Vec2? = nil, velocity: Vec2? = nil) {
+        if let position { players[id].body.position = Vec3(position) }
+        if let velocity { players[id].body.velocity = velocity; players[id].body.facing = velocity.angle }
+    }
+    public mutating func debugGiveBall(to id: Int) {
+        phase = .live
+        snapTarget = nil
+        ball.phase = .held(by: id)
+        controlledID = id
+    }
 }

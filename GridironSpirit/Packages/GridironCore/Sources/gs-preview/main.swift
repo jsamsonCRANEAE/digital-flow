@@ -5,6 +5,7 @@ import Foundation
 import GSFoundation
 import GSData
 import GSInput
+import GSSimulation
 import GSRenderCore
 import GSGame
 
@@ -15,30 +16,52 @@ let style = FieldStyle(homeEndZone: rt.offenseTeam.colors.primaryRGBA, awayEndZo
 let field = FieldRasterizer(style: style, backdrop: StadiumBackdrop(horizonRow: Int(rt.cameraConfig.horizonRow),
                                                                     home: style.homeEndZone, away: style.awayEndZone))
 
+var shadowCache: [Int: PixelBuffer] = [:]
 func composite(_ f: RenderFrame, joystick: VirtualJoystick?) -> PixelBuffer {
     var canvas = PixelBuffer(width: Canvas.width, height: Canvas.height)
     field.render(into: &canvas, camera: f.camera, crowdFrame: f.crowdFrame)
-    // Shadows (alpha ~0.45 approximated by darkening).
+    EffectsRasterizer.render(f.effects, camera: f.camera, into: &canvas)
+    // Player shadows (node alpha 0.45 in the app; approximated by mixing).
     for s in f.sprites where s.visible {
-        let sh = PlaceholderSprites.shadow(width: s.shadowWidth)
+        let sh = shadowCache[s.shadowWidth] ?? PlaceholderSprites.shadow(width: s.shadowWidth)
+        shadowCache[s.shadowWidth] = sh
         for y in 0..<sh.height { for x in 0..<sh.width where sh.isOpaque(x, y) {
             let cx = s.shadowX - sh.width / 2 + x, cy = s.shadowY - sh.height / 2 + y
             guard canvas.contains(cx, cy) else { continue }
             canvas.set(cx, cy, canvas.color(cx, cy).mixed(with: Palette.shadow, 0.45))
         } }
     }
-    for s in f.sprites where s.visible {
-        var spr = PlaceholderSprites.player(height: s.height, look: rt.looks[s.teamIndex], view: s.view, frame: s.frame)
-        if s.flipX {
-            var flipped = spr
-            for y in 0..<spr.height { for x in 0..<spr.width { flipped[x, y] = spr[spr.width - 1 - x, y] } }
-            spr = flipped
+    // Players and ball in painter's order (same rules as WorldRenderer).
+    enum Item { case player(ProjectedSprite), ball(ProjectedBall) }
+    var items: [(Double, Item)] = f.sprites.filter(\.visible).map { ($0.drawOrder, .player($0)) }
+    if let b = f.ball { items.append((b.drawOrder, .ball(b))) }
+    items.sort { $0.0 < $1.0 }
+    for (_, it) in items {
+        switch it {
+        case .player(let s):
+            var spr = PlaceholderSprites.player(height: s.height, look: rt.looks[s.teamIndex], view: s.view, pose: s.pose, squash: s.squash)
+            if s.flipX { spr = spr.flippedHorizontally() }
+            canvas.blit(spr, x: s.footX - spr.width / 2, y: s.footY - spr.height + 1)
+            if s.isControlled {
+                let m = PlaceholderSprites.controlMarker()
+                canvas.blit(m, x: s.footX - m.width / 2, y: s.footY - spr.height - m.height - 1)
+            }
+        case .ball(let b):
+            let spr = FXSprites.ball(length: b.length, angleBucket: b.angleBucket, spinFrame: b.spinFrame)
+            canvas.blit(spr, x: b.x - spr.width / 2, y: b.y - spr.height / 2)
         }
-        canvas.blit(spr, x: s.footX - spr.width / 2, y: s.footY - spr.height + 1)
-        if s.isControlled {
-            let m = PlaceholderSprites.controlMarker()
-            canvas.blit(m, x: s.footX - m.width / 2, y: s.footY - spr.height - m.height - 1)
-        }
+    }
+    for o in f.overlays {
+        let spr = o.kind == .starburst ? FXSprites.starburst(size: o.size, frame: o.frame) : FXSprites.catchFlash(size: o.size, frame: o.frame)
+        canvas.blit(spr, x: o.x - spr.width / 2, y: o.y - spr.height / 2)
+    }
+    for icon in f.icons {
+        let spr = FXSprites.receiverIcon(slot: icon.slot, charging: f.chargingReceiver == icon.receiverID)
+        canvas.blit(spr, x: snapToPixel(icon.center.x) - spr.width / 2, y: snapToPixel(icon.center.y) - spr.height / 2)
+    }
+    for (i, b) in f.buttons.enumerated() where b.action != nil {
+        let spr = FXSprites.button(radius: Int(b.radius), slot: i, label: b.label, enabled: b.enabled, pressed: b.pressed)
+        canvas.blit(spr, x: snapToPixel(b.center.x) - spr.width / 2, y: snapToPixel(b.center.y) - spr.height / 2)
     }
     if let j = joystick, j.isActive {
         let r = Int(j.config.radius)
@@ -46,7 +69,18 @@ func composite(_ f: RenderFrame, joystick: VirtualJoystick?) -> PixelBuffer {
         canvas.blit(base, x: snapToPixel(j.base.x) - base.width / 2, y: snapToPixel(j.base.y) - base.height / 2)
         canvas.blit(knob, x: snapToPixel(j.knob.x) - knob.width / 2, y: snapToPixel(j.knob.y) - knob.height / 2)
     }
-    canvas.drawText("M1 PREVIEW  \(rt.offenseTeam.abbreviation) VS \(rt.defenseTeam.abbreviation)", x: 6, y: 6, .init(hex: 0xFFFFFF), shadow: Palette.outline)
+    if let c = f.callout {
+        canvas.drawText(c, x: (Canvas.width - PixelFont.width(of: c)) / 2, y: 104, .init(hex: 0xFFE45C), shadow: Palette.outline)
+    }
+    canvas.drawText("\(rt.offenseTeam.abbreviation) VS \(rt.defenseTeam.abbreviation)  PLAY \(rt.playCount)", x: 6, y: 6, .init(hex: 0xFFFFFF), shadow: Palette.outline)
+    if f.impactFrame {
+        // Same math as the Metal impact pass: invert + contrast boost.
+        for i in canvas.pixels.indices {
+            let c = RGBA(argb: canvas.pixels[i])
+            func k(_ v: UInt8) -> UInt8 { UInt8(clamp((255 - Double(v) - 128) * 1.8 + 128, 0, 255)) }
+            canvas.pixels[i] = RGBA(r: k(c.r), g: k(c.g), b: k(c.b)).argb
+        }
+    }
     return canvas
 }
 
@@ -98,27 +132,103 @@ func writePNG(_ b: PixelBuffer, to path: String) throws {
     try Data(png).write(to: URL(fileURLWithPath: path))
 }
 
-// Scenario: idle lineup, then the RB sprints up-right with the joystick.
-var frames: [(String, RenderFrame, VirtualJoystick?)] = []
-frames.append(("01_lineup", rt.advance(frameTime: 1.0 / 60), nil))
-rt.handle(TouchEvent(id: 1, phase: .began, location: Vec2(110, 220)))
-rt.handle(TouchEvent(id: 1, phase: .moved, location: Vec2(122, 200)))
-var f = rt.advance(frameTime: 1.0 / 60)
-for _ in 0..<50 { f = rt.advance(frameTime: 1.0 / 60) }
-frames.append(("02_running", f, rt.touches.joystick))
-for _ in 0..<110 { f = rt.advance(frameTime: 1.0 / 60) }
-frames.append(("03_open_field", f, rt.touches.joystick))
-
-var timings: [Double] = []
-for (name, frame, j) in frames {
-    let t0 = Date()
-    let c = composite(frame, joystick: j)
-    timings.append(Date().timeIntervalSince(t0))
-    try writePNG(c, to: "\(outDir)/\(name)_640x296.png")
-    try writePNG(upscaled(c, 3, letterbox: (2532, 1170)), to: "\(outDir)/\(name)_iphone12_3x.png")
+// --- Scripted plays through the real runtime ---
+func touchStick(_ dir: Vec2) {
+    // Hold the joystick: base at (110, 220), knob offset by dir * radius.
+    if !rt.touches.joystick.isActive { rt.handle(TouchEvent(id: 1, phase: .began, location: Vec2(110, 220))) }
+    rt.handle(TouchEvent(id: 1, phase: .moved, location: Vec2(110 + dir.x * 22, 220 - dir.y * 22)))
 }
+func releaseStick() { rt.handle(TouchEvent(id: 1, phase: .ended, location: Vec2(110, 220))) }
+
+/// Plays one snap with a simple "human" script. Returns frames (every 2nd at 60 Hz = 30 fps).
+func playScripted(lob: Bool, targetPos: Position, targetSide: Int, record: Bool) -> (frames: [PixelBuffer], summary: String) {
+    var out: [PixelBuffer] = []
+    var summary: [String] = []
+    let startPlay = rt.playCount
+    var t = 0
+    var thrown = false, juked = false
+    var stills: [(String, PixelBuffer)] = []
+    while rt.playCount == startPlay && t < 60 * 14 {
+        let w = rt.world
+        if t == 20 { rt.perform(.button(.snap)) }
+        if w.canThrow {
+            if t > 20 && t < 60 { touchStick(Vec2(0, -0.6)) } else { releaseStick() }   // drop back
+            if t >= 70 && !thrown {
+                let rcv = w.players.filter { $0.data.position == targetPos }
+                    .sorted { $0.body.position.x < $1.body.position.x }
+                let target = rcv[min(targetSide, rcv.count - 1)]
+                rt.perform(.throwTo(receiver: target.id, lob: lob))
+                thrown = true
+            }
+        } else if let c = w.carrierID, c == w.controlledID, w.phase.isLive, w.player(c).data.position != .qb {
+            // After the catch: run to daylight, juke the first close defender.
+            let me = w.player(c).body.position.ground
+            let threats = w.players.filter { $0.side == .defense && $0.status.canMakePlays }
+            let near = threats.map { ($0.body.position.ground - me).length }.min() ?? 99
+            let dodge = threats.min { ($0.body.position.ground - me).length < ($1.body.position.ground - me).length }
+            let away = dodge.map { (me - $0.body.position.ground).normalized } ?? .zero
+            touchStick((Vec2(0, 1) + away * (near < 6 ? 0.6 : 0)).normalized)
+            if near < 3.2 && !juked { rt.perform(.button(.juke)); juked = true }
+        }
+        let f = rt.advance(frameTime: 1.0 / 60)
+        if let c = f.callout, summary.last != c { summary.append(c) }
+        if record && t % 2 == 0 { out.append(composite(f, joystick: rt.touches.joystick)) }
+        if record, f.impactFrame || (f.callout != nil && stills.count < 6 && stills.last?.0 != f.callout) {
+            stills.append((f.callout ?? "IMPACT", composite(f, joystick: rt.touches.joystick)))
+        }
+        if record && t == 84 { stills.append(("in_flight", composite(f, joystick: rt.touches.joystick))) }
+        t += 1
+    }
+    releaseStick()
+    for (i, s) in stills.enumerated() {
+        let name = s.0.lowercased().filter { $0.isLetter || $0 == "_" }
+        try? writePNG(upscaled(s.1, 3), to: "\(outDir)/still_p\(startPlay)_\(i)_\(name).png")
+    }
+    return (out, summary.joined(separator: " > "))
+}
+
+func writeRaw(_ frames: [PixelBuffer], to path: String) throws {
+    var bytes: [UInt8] = []
+    bytes.reserveCapacity(frames.count * Canvas.width * Canvas.height * 3)
+    for f in frames { for v in f.pixels { let c = RGBA(argb: v); bytes += [c.r, c.g, c.b] } }
+    try Data(bytes).write(to: URL(fileURLWithPath: path))
+}
+
+let scripts: [(String, Bool, Position, Int)] = [
+    ("bullet_slant", false, .wr, 1),
+    ("lob_go", true, .wr, 0),
+    ("swing_rb", false, .rb, 0),
+]
+for (name, lob, pos, side) in scripts {
+    let (frames, summary) = playScripted(lob: lob, targetPos: pos, targetSide: side, record: true)
+    try writeRaw(frames, to: "\(outDir)/\(name).rgb")
+    print("\(name): \(frames.count) frames  [\(summary)]")
+    // Let the dead-ball pause finish so the next script starts at a fresh snap.
+    while rt.world.phase != .preSnap { _ = rt.advance(frameTime: 1.0 / 60) }
+}
+
+// Breakaway: open-field sprint to show speed lines and lead-angle pursuit.
+do {
+    rt.debugBreakaway()
+    var frames: [PixelBuffer] = []
+    var still: PixelBuffer?
+    for t in 0..<(60 * 5) {
+        touchStick(Vec2(0.25, 1).normalized)
+        let f = rt.advance(frameTime: 1.0 / 60)
+        if t % 2 == 0 { frames.append(composite(f, joystick: rt.touches.joystick)) }
+        if still == nil && f.effects.speedLines != nil && f.effects.speedLines!.intensity > 0.9 {
+            still = composite(f, joystick: rt.touches.joystick)
+        }
+        if rt.world.phase.isDead && rt.world.timeSinceWhistle > 1 { break }
+    }
+    releaseStick()
+    try writeRaw(frames, to: "\(outDir)/breakaway.rgb")
+    if let s = still { try writePNG(upscaled(s, 3), to: "\(outDir)/still_breakaway_speedlines.png") }
+    print("breakaway: \(frames.count) frames, speed lines \(still != nil ? "shown" : "NOT shown")")
+}
+
 let t0 = Date()
 var scratch = PixelBuffer(width: Canvas.width, height: Canvas.height)
-for i in 0..<240 { field.render(into: &scratch, camera: f.camera, crowdFrame: i & 1) }
+let cam = rt.advance(frameTime: 1.0 / 60).camera
+for i in 0..<240 { field.render(into: &scratch, camera: cam, crowdFrame: i & 1) }
 print(String(format: "field raster: %.3f ms/frame (release, this machine)", Date().timeIntervalSince(t0) / 240 * 1000))
-print("wrote \(frames.count * 2) PNGs to \(outDir)")

@@ -46,7 +46,48 @@ final class InputTests: XCTestCase {
         r.handle(TouchEvent(id: 2, phase: .began, location: Vec2(500, 150)))
         XCTAssertFalse(r.joystick.isActive)
         r.handle(TouchEvent(id: 2, phase: .ended, location: Vec2(500, 150)))
-        XCTAssertEqual(r.rightTapCount, 1)
+        XCTAssertTrue(r.drainCommands().isEmpty)
+    }
+
+    func testContextButtonsFireOnPressAndSwipeUpDives() {
+        var r = TouchRouter(safeArea: safe)
+        r.context = .ballCarrier
+        XCTAssertEqual(r.buttons.map(\.label), ["JUKE", "SPIN", "STIFF"])
+        let b = r.buttons[0]
+        r.handle(TouchEvent(id: 3, phase: .began, location: b.center))
+        XCTAssertEqual(r.drainCommands(), [.button(.juke)], "fires on touch-down, not release")
+        r.handle(TouchEvent(id: 3, phase: .moved, location: b.center - Vec2(0, 20)))
+        XCTAssertEqual(r.drainCommands(), [.button(.dive)])
+        r.context = .preSnap
+        XCTAssertEqual(r.buttons.map(\.label), ["SNAP", "AUDBL", "SPRT"])
+    }
+
+    func testButtonsMeet44ptAndStayInSafeArea() {
+        var r = TouchRouter(safeArea: Rect(x: 15, y: 0, width: 610, height: 290))
+        r.minTouchSize = 44
+        r.context = .ballCarrier
+        for b in r.buttons {
+            XCTAssertGreaterThanOrEqual(b.radius * 2, 44)
+            XCTAssertLessThanOrEqual(b.center.x + b.radius, 625)
+            XCTAssertLessThanOrEqual(b.center.y + b.radius, 290)
+            XCTAssertGreaterThanOrEqual(b.center.y - b.radius, 0)
+        }
+    }
+
+    func testReceiverIconTapIsBulletHoldIsLob() {
+        var r = TouchRouter(safeArea: safe)
+        r.context = .passing
+        r.icons = [ReceiverIcon(receiverID: 5, center: Vec2(300, 120), slot: 0),
+                   ReceiverIcon(receiverID: 6, center: Vec2(330, 120), slot: 1)]
+        r.now = 1.0
+        r.handle(TouchEvent(id: 1, phase: .began, location: Vec2(326, 125)))   // nearest is #6
+        r.now = 1.05
+        r.handle(TouchEvent(id: 1, phase: .ended, location: Vec2(326, 125)))
+        XCTAssertEqual(r.drainCommands(), [.throwTo(receiver: 6, lob: false)])
+        r.handle(TouchEvent(id: 2, phase: .began, location: Vec2(300, 120)))
+        r.now = 1.5
+        r.handle(TouchEvent(id: 2, phase: .ended, location: Vec2(300, 120)))
+        XCTAssertEqual(r.drainCommands(), [.throwTo(receiver: 5, lob: true)])
     }
 
     func testReleaseRecentres() {

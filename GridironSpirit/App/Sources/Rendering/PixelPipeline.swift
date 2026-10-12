@@ -27,7 +27,7 @@ final class PixelPipeline {
     private struct UpscaleUniforms {
         var origin: SIMD2<Float>
         var scale: Float
-        var _pad: Float = 0
+        var impact: Float
     }
 
     init?(view: MTKView, scene: SKScene) {
@@ -76,7 +76,7 @@ final class PixelPipeline {
     }
 
     /// Uploads the field pixels and renders + presents one frame.
-    func render(field: PixelBuffer, in view: MTKView, time: TimeInterval) {
+    func render(field: PixelBuffer, in view: MTKView, time: TimeInterval, impactFrame: Bool) {
         inFlight.wait()
         let fieldTex = fieldTextures[fieldIndex]
         fieldIndex = (fieldIndex + 1) % fieldTextures.count
@@ -121,7 +121,8 @@ final class PixelPipeline {
                                             znear: 0, zfar: 1))
                 enc.setRenderPipelineState(upscalePipeline)
                 enc.setFragmentTexture(canvas, index: 0)
-                var u = UpscaleUniforms(origin: SIMD2(Float(l.originX), Float(l.originY)), scale: Float(l.scale))
+                var u = UpscaleUniforms(origin: SIMD2(Float(l.originX), Float(l.originY)), scale: Float(l.scale),
+                                        impact: impactFrame ? 1 : 0)
                 enc.setFragmentBytes(&u, length: MemoryLayout<UpscaleUniforms>.stride, index: 0)
                 enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
                 enc.endEncoding()

@@ -86,6 +86,9 @@ public struct CameraRig: Sendable {
         }
     }
 
+    /// Advances only the shake (used during hit-stop, when everything else freezes).
+    public mutating func tickShake(dt: Double) { updateShake(dt: dt) }
+
     mutating func updateShake(dt: Double) {
         shakeTick &+= 1
         guard shakeRemaining > 0 else { shakeOffset = (0, 0); return }

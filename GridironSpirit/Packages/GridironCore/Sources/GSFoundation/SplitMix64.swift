@@ -22,6 +22,15 @@ public struct SplitMix64: RandomNumberGenerator, Sendable {
         return Int(next() % UInt64(upperBound))
     }
 
+    /// Uniform in [-1, 1).
+    public mutating func signed() -> Double { unit() * 2 - 1 }
+
+    /// Standard normal sample (Box-Muller).
+    public mutating func gaussian() -> Double {
+        let u1 = max(unit(), 1e-12), u2 = unit()
+        return (-2 * logD(u1)).squareRoot() * cosD(2 * Double.pi * u2)
+    }
+
     /// Stateless hash of a few integers, for per-pixel noise without a stream.
     public static func hash(_ a: Int, _ b: Int = 0, _ c: Int = 0) -> UInt64 {
         var r = SplitMix64(seed: UInt64(bitPattern: Int64(a)) &* 0x9E37_79B1

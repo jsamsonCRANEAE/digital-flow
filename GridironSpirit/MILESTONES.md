@@ -51,7 +51,7 @@ build to possibly need small fixes, which I'll handle when you report them.
 - [ ] Camera leads the runner and stays smooth. Run to each sideline: the camera stops short of the bench area.
 - [ ] Sprites don't jitter 1 px back and forth while running slowly next to a yard line.
 - [ ] Players further away are smaller, keep 1 px outlines, and their shadows sit under their feet.
-- [ ] Tap the right half: a short screen shake (about 3 px, 150 ms).
+- [ ] ~~Tap the right half: a short screen shake.~~ (This M1 debug tap was replaced in M2 by real shakes on tackles.)
 - [ ] Debug line (top-left, inside the safe area): FPS holds 60 (120 on
       ProMotion) and CPU stays under 6 ms. Over a 10-second sprint across the
       field there should be no drops.
@@ -64,8 +64,82 @@ build to possibly need small fixes, which I'll handle when you report them.
 3. Should the camera stay behind the human's team on defense too (it flips
    with possession), or always face the same end zone?
 
-## ⏭ M2: Ball physics, passing, catching, tackling, hit-stop
-## M3: Full 7v7 play: 6+6 plays, AI, downs and scoring
+## ✅ M2: Ball physics, passing, catching, tackling, hit-stop (+ anime layer)
+
+### Summary
+- **Ball:** drag, wind, wobbling ducks, visual spiral (laces rotate),
+  prolate-spheroid bounces and rolls, and kick physics.
+- **Passing:** tap a receiver icon for a bullet, or hold and release for a
+  lob. The throw solver leads the receiver through drag and wind; accuracy and
+  pressure add scatter and wobble. The snap is a real short toss to the QB.
+- **Catching:** resolved at closest approach. Outcomes are caught, dropped,
+  tipped (stays live) or intercepted.
+- **Tackling:** momentum- and angle-based, with clean, pushed-forward,
+  stumble, broken and whiff outcomes. Gang tackles, live fumbles and
+  recoveries all work.
+- **Carrier moves:** juke, spin, stiff arm, and dive (swipe up). Each has a
+  commitment window and a pose.
+- **AI:** routes (go, slant, swing), man and zone coverage that breaks on the
+  ball, pass rush and block, lead-angle pursuit, and 3 difficulty levels.
+- **Dead balls:** tackle, out of bounds, incomplete, touchdown, interception
+  and turnover. The next play auto-spots, with the ball clamped between the
+  hashes.
+- **Feel:** hit-stop, impact frame, 2–4 px shake, squash and stretch, turf
+  and dust particles, starbursts and catch flashes, crowd hype animation, and
+  Core Haptics.
+- **Anime:** manga speed lines in open field, laser bullet trail, dotted lob
+  trail, landing reticle, and a pass camera that tracks the ball.
+- **Context buttons:** SNAP / AUDIBLE / SPIRIT before the snap, and JUKE /
+  SPIN / STIFF with the ball. All are at least 44 pt and stay inside the safe
+  area.
+
+### Verified here
+- `swift test`: **70/70 pass**. The new tests cover drag vs. vacuum,
+  ducks/headwind/tailwind/crosswind, irregular prolate bounces, coming to
+  rest, the throw solver hitting a moving target through wind, lob vs.
+  bullet, pressure scatter, kicks, catch and tackle probabilities, intercept
+  math, snap to QB, and 60-play pass statistics. They also cover runs ending
+  in tackles, live fumbles, hit-stop freezing the sim but not frames, exactly
+  one impact frame, a full play loop, all poses keeping 1 px outlines, ball
+  sprite orientation and spin, the shadow shrinking with height, speed lines
+  leaving the runner clear, and buttons, swipe-dive and tap-vs-hold.
+- Field raster is still about 1 ms/frame. Effects add well under 0.2 ms.
+- [`docs/m2/`](docs/m2) has 4 GIFs of real scripted plays and 11 stills.
+
+### Not verified here
+The iOS layer still hasn't been compiled (no Xcode or iOS SDK here). This
+round touched `WorldRenderer`, `GameController`, `Upscale.metal`,
+`PixelPipeline` and the new `HapticsPlayer`.
+
+### Device test checklist (M2)
+- [ ] Tap **SNAP**: the ball tosses back to the QB with a little arc, and a light haptic fires.
+- [ ] Numbered icons (1, 2, 3) appear over the receivers. **Tap** one: a flat,
+      fast bullet with a laser trail. **Hold, then release**: a high lob with a
+      dotted trail. The icon grows while held.
+- [ ] A yellow ring pulses where the pass will come down. The ball's shadow
+      shrinks and fades as the ball rises, and you can judge height from it alone.
+- [ ] On a deep pass the camera travels downfield with the ball, and the catch is large on screen.
+- [ ] Catch: a brief freeze, a flash ring and a "CATCH!" callout. Control
+      switches to the receiver, and the buttons become JUKE / SPIN / STIFF.
+- [ ] Juke dodges sideways with turf kicking up. Spin twirls between front
+      and back views. Stiff arm extends the arm. Swipe up on a button to dive.
+- [ ] Tackles: a starburst, shake and haptic. Big hits freeze longer, invert
+      the screen for one frame and show "BIG HIT!". Broken tackles leave the
+      defender on the turf.
+- [ ] Defenders take pursuit angles (cutting ahead of you, not trailing behind).
+- [ ] In open field at top speed, white speed lines rush in from the edges and stop short of the runner.
+- [ ] Fumbles (rare, on big hits) bounce unpredictably, and anyone can pick them up.
+- [ ] After every whistle the next snap is set up within about 2 s.
+- [ ] Throughout: FPS holds with all 14 players, the ball and effects on screen.
+
+### Questions for you before M3
+1. Is the arcade balance right? (Open bullets are caught about 85%; blind
+   throws complete about 50%.) Do you want higher-scoring, or more
+   simulation-like?
+2. Should the landing reticle show for both throws, or only lobs, so bullets stay a "read"?
+3. Should the anime impact frame be inverted (current), or a 2-tone black/white "manga panel"?
+
+## ⏭ M3: Full 7v7 play: 6+6 plays, AI, downs and scoring
 ## M4: Art pass: 2 teams, portraits, callouts, Spirit Play cut-ins
 ## M5: HUD, menus, gear shop, audio
 ## M6: Polish, haptics, performance profiling

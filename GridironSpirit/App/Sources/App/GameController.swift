@@ -23,6 +23,7 @@ final class GameController: NSObject, MTKViewDelegate {
     static let showDiagnostics = true
     private let debug: DebugOverlay?
     private var safeArea = Canvas.bounds
+    private let haptics = HapticsPlayer()
 
     init?(view: MTKView, displayMaxFPS: Int) {
         guard let league = try? DataLoader.bundledLeague() else { return nil }
@@ -50,6 +51,8 @@ final class GameController: NSObject, MTKViewDelegate {
         safeArea = pipeline.layout.safeRect(insetTop: insets.top * s, insetLeft: insets.left * s,
                                             insetBottom: insets.bottom * s, insetRight: insets.right * s)
         runtime.setSafeArea(safeArea)
+        // 44 pt minimum touch target expressed in canvas pixels for this device.
+        runtime.setMinTouchSize(canvasPixels: 44 * s / Double(pipeline.layout.scale))
     }
 
     func touch(id: Int, phase: PixelMetalView.Phase, drawablePoint p: CGPoint) {
@@ -72,13 +75,15 @@ final class GameController: NSObject, MTKViewDelegate {
 
         let frame = runtime.advance(frameTime: frameTime)
         field.render(into: &fieldBuffer, camera: frame.camera, crowdFrame: frame.crowdFrame)
-        _ = runtime.drainHardCuts()          // turf particles + haptics hook up in M2/M6
+        // Ground-layer effects: ball shadow, trail, reticle, particles, speed lines.
+        EffectsRasterizer.render(frame.effects, camera: frame.camera, into: &fieldBuffer)
         world.apply(frame, joystick: runtime.touches.joystick)
+        haptics.play(frame.haptics)
 
         let work = CACurrentMediaTime() - now
         debug?.update(frameTime: frameTime, work: work, targetFPS: governor.targetFPS,
                      scale: pipeline.layout.scale, safeArea: safeArea, makeTexture: world.makeTexture)
-        pipeline.render(field: fieldBuffer, in: view, time: now)
+        pipeline.render(field: fieldBuffer, in: view, time: now, impactFrame: frame.impactFrame)
 
         if let fps = governor.record(frameWork: work) { view.preferredFramesPerSecond = fps }
     }

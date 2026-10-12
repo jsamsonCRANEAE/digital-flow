@@ -3,6 +3,15 @@ import GSFoundation
 /// Which side of the player faces the camera.
 public enum SpriteView: Int, Sendable, Hashable { case back = 0, front = 1 }
 
+/// Body pose. Run frames are the 4-frame cycle; the rest are held poses with
+/// exaggerated anime silhouettes (big wind-up, full extension).
+public enum SpritePose: Int, Sendable, Hashable, CaseIterable {
+    case idle, run0, run1, run2, run3, throwing, stiffArm, dive, down, stumble
+
+    public static func run(_ i: Int) -> SpritePose { SpritePose(rawValue: 1 + (i & 3))! }
+    public var runIndex: Int? { (1...4).contains(rawValue) ? rawValue - 1 : nil }
+}
+
 public struct PlayerLook: Sendable, Hashable {
     public var jersey: RGBA
     public var trim: RGBA
@@ -29,23 +38,57 @@ public enum PlaceholderSprites {
         return w + (w & 1)
     }
 
+    /// Back-compat helper: frame 0 = idle, 1...4 = run cycle.
     public static func player(height h: Int, look: PlayerLook, view: SpriteView, frame: Int) -> PixelBuffer {
-        let w = width(forHeight: h)
+        player(height: h, look: look, view: view, pose: frame == 0 ? .idle : .run(frame - 1), squash: 0)
+    }
+
+    /// - Parameter squash: -1 squashed (landing / impact), 0 normal, +1 stretched (launch).
+    ///   Drawn natively at the new size so outlines stay 1 px.
+    public static func player(height h: Int, look: PlayerLook, view: SpriteView, pose: SpritePose, squash: Int) -> PixelBuffer {
+        switch pose {
+        case .down, .dive:
+            // Lying / flying horizontally: draw the upright figure, rotate it a
+            // quarter turn (lossless in pixel art) and foreshorten vertically,
+            // because a body lying on the turf is seen at a grazing angle.
+            let upright = body(height: h, widthScale: 1, look: look, view: view,
+                               pose: pose == .dive ? .throwing : .idle, armsUp: pose == .dive)
+            var lying = upright.rotatedClockwise()
+            lying = lying.resampledVertically(to: max(6, Int(Double(lying.height) * (pose == .dive ? 0.62 : 0.5))))
+            lying.addOutline(Palette.outline)
+            return lying
+        default:
+            let (hs, ws) = squash < 0 ? (0.86, 1.18) : squash > 0 ? (1.1, 0.9) : (1.0, 1.0)
+            let hh = max(8, Int((Double(h) * hs / 2).rounded()) * 2)
+            var b = body(height: hh, widthScale: ws * (pose == .stiffArm ? 1.45 : 1), look: look, view: view,
+                         pose: pose, armsUp: false)
+            if pose == .stumble { b = b.sheared(amount: 0.14) }
+            b.addOutline(Palette.outline)
+            return b
+        }
+    }
+
+    static func body(height h: Int, widthScale sx: Double, look: PlayerLook, view: SpriteView,
+                     pose: SpritePose, armsUp: Bool) -> PixelBuffer {
+        var w = Int((Double(width(forHeight: h)) * sx).rounded())
+        w += w & 1
         var b = PixelBuffer(width: w, height: h)
         let s = Double(h - 2)          // drawable height inside the outline margin
         let top = 1.0
         let cx = Double(w) / 2
-        func px(_ u: Double) -> Double { cx + u * s }   // horizontal unit -> pixel
-        func py(_ v: Double) -> Double { top + v * s }  // vertical unit -> pixel
+        let bodyScaleX = pose == .stiffArm ? sx / 1.45 : sx
+        func px(_ u: Double) -> Double { cx + u * s * bodyScaleX }   // horizontal unit -> pixel
+        func py(_ v: Double) -> Double { top + v * s }               // vertical unit -> pixel
 
         // Run cycle: which leg is lifted and how the arms swing.
+        let frame = pose.runIndex.map { $0 + 1 } ?? 0
         let run = frame > 0
         let phase = (frame - 1) % 4
         let liftL = run && phase == 0 ? 0.075 : 0
         let liftR = run && phase == 2 ? 0.075 : 0
         let bob = run && (phase == 1 || phase == 3) ? 1.0 / s : 0
         let armSwing = !run ? 0 : (phase == 0 ? 0.045 : phase == 2 ? -0.045 : 0)
-        let crouch = run ? 0 : 0.02
+        let crouch = run || pose == .stiffArm ? 0 : (pose == .throwing ? 0.01 : 0.02)
 
         let jersey = look.jersey, trim = look.trim, pants = look.pants
         let helmet = look.helmet, skin = look.skin
@@ -70,9 +113,24 @@ public enum PlaceholderSprites {
         for side in [-1.0, 1.0] {
             let swing = side * armSwing
             let ax0 = side < 0 ? -0.255 : 0.165, ax1 = side < 0 ? -0.165 : 0.255
+            let raised = armsUp || (pose == .throwing && side > 0)
+            if raised {
+                // Exaggerated wind-up: arm cocked high above the helmet.
+                shadedRect(&b, x0: px(ax0), x1: px(ax1), y0: py(-0.02), y1: py(armTop + 0.04), base: jersey)
+                shadedEllipse(&b, cx: px((ax0 + ax1) / 2), cy: py(-0.02), rx: 0.062 * s, ry: 0.055 * s, base: trim)
+                continue
+            }
+            if pose == .stiffArm && side > 0 {
+                // Full extension: straight arm, giant palm.
+                shadedRect(&b, x0: px(0.16), x1: px(0.44), y0: py(armTop), y1: py(armTop + 0.075), base: jersey)
+                shadedEllipse(&b, cx: px(0.47), cy: py(armTop + 0.04), rx: 0.07 * s, ry: 0.065 * s, base: trim)
+                continue
+            }
+            let lean = pose == .throwing ? 0.05 : 0
             shadedRect(&b, x0: px(ax0), x1: px(ax1), y0: py(armTop), y1: py(0.41 + crouch + bob), base: jersey)
-            shadedRect(&b, x0: px(ax0 + 0.01), x1: px(ax1 - 0.01), y0: py(0.41 + crouch + bob), y1: py(0.50 + swing + crouch + bob), base: skin)
-            shadedEllipse(&b, cx: px((ax0 + ax1) / 2), cy: py(0.535 + swing + crouch + bob),
+            shadedRect(&b, x0: px(ax0 + 0.01 - lean), x1: px(ax1 - 0.01 - lean), y0: py(0.41 + crouch + bob),
+                       y1: py(0.50 + swing + crouch + bob), base: skin)
+            shadedEllipse(&b, cx: px((ax0 + ax1) / 2 - lean), cy: py(0.535 + swing + crouch + bob),
                           rx: 0.058 * s, ry: 0.05 * s, base: trim)
         }
 
@@ -105,7 +163,6 @@ public enum PlaceholderSprites {
             fillRectD(&b, x0: px(-0.11), x1: px(0.11), y0: hy + 0.10 * s, y1: hy + 0.12 * s, helmet.hueShifted(-0.6))
         }
 
-        b.addOutline(Palette.outline)
         return b
     }
 

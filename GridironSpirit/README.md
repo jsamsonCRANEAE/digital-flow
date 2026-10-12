@@ -4,11 +4,15 @@ An arcade-style, anime-flavoured American football game for iPhone, set in the
 16-bit era. Swift 5.9+, SpriteKit and Metal, iOS 17+, landscape only. All
 teams, players, sponsors and stadiums are original.
 
-**Status: Milestone 1 done** (pixel-perfect render pipeline, projected field,
-camera, one player running with the joystick). See [MILESTONES.md](MILESTONES.md)
-for the summary and the test checklist, and [DECISIONS.md](DECISIONS.md) for the reasoning.
+**Status: Milestone 2 done.** M2 adds ball physics, passing, catching,
+tackling and hit-stop, plus the anime effects layer. See [MILESTONES.md](MILESTONES.md)
+for the summaries and test checklists, and [DECISIONS.md](DECISIONS.md) for the reasoning.
 
-![M1 open field](docs/m1/03_open_field_3x.png)
+| Bullet slant | Lob go route | Open-field speed lines |
+|---|---|---|
+| ![](docs/m2/bullet_slant.gif) | ![](docs/m2/lob_go.gif) | ![](docs/m2/breakaway.gif) |
+
+These GIFs are real plays run by the game code and rendered on the CPU by `gs-preview`.
 
 ## Layout
 
@@ -21,21 +25,23 @@ GridironSpirit/
 │   │                            Upscale.metal, WorldRenderer (node sync), TextureFactory
 │   ├── Sources/Scenes/          GameScene: layers only, no logic
 │   ├── Sources/UI/              DebugOverlay (pixel-font diagnostics)
+│   ├── Sources/Haptics/         Core Haptics transient player
 │   └── Support/Info.plist
 ├── Packages/GridironCore/       Platform-independent Swift package (builds and tests on Linux too)
 │   ├── GSFoundation             Vec2/Vec3, RGBA + hue-shift shading, SplitMix64, FixedTimestep, Rect
 │   ├── GSData                   Codable team/player models + Resources/teams.json
-│   ├── GSSimulation             Field geometry, MovementProfile, PlayerBody, World, Formation
-│   ├── GSInput                  Floating VirtualJoystick, TouchRouter
-│   ├── GSRenderCore             Camera projection, CameraRig, FieldRasterizer, StadiumBackdrop,
-│   │                            PixelFont, PlaceholderSprites, CanvasLayout
-│   ├── GSGame                   GameRuntime (loop + interpolation + projection), FrameRateGovernor
+│   ├── GSSimulation             Field, MovementProfile, PlayerBody, Ball (drag/wind/prolate bounce),
+│   │                            ThrowSolver, KickPhysics, Catch/Tackle resolvers, World, Formation
+│   ├── GSInput                  Floating VirtualJoystick, TouchRouter (context buttons, receiver icons)
+│   ├── GSAI                     Lead-angle pursuit, man/zone coverage, routes, pass rush/block, Difficulty
+│   ├── GSRenderCore             Camera, CameraRig, FieldRasterizer, StadiumBackdrop, PixelFont,
+│   │                            PlaceholderSprites (poses), FXSprites, EffectsRasterizer, CanvasLayout
+│   ├── GSGame                   GameRuntime (loop, hit-stop, play lifecycle), FX events, FrameRateGovernor
 │   └── gs-preview               Dev tool: renders frames to PNG on the CPU
-└── docs/m1/                     Preview renders produced by gs-preview
+└── docs/m1, docs/m2/            Preview renders and GIFs produced by gs-preview
 ```
 
-The AI, UI (menus/HUD), Audio and haptics modules arrive in the milestones that
-need them (M3, M5 and M6), so there are no empty stub modules yet.
+The UI (menus/HUD) and Audio modules arrive in M5, so there are no empty stubs yet.
 
 ## Build and run on iPhone
 
@@ -54,8 +60,8 @@ slower unoptimized. Use **GridironSpirit (Debug)** when you need the debugger.
 
 ```sh
 cd Packages/GridironCore
-swift test                              # 43 unit tests
-swift run -c release gs-preview /tmp    # writes preview PNGs + raster timing
+swift test                              # 70 unit tests
+swift run -c release gs-preview /tmp    # plays scripted snaps, writes stills + raw frames
 ```
 
 On Linux without a toolchain: `docker run --rm -v "$PWD":/pkg -w /pkg swift:5.10-jammy swift test`.

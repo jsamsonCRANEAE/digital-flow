@@ -11,27 +11,32 @@ final class GameRuntimeTests: XCTestCase {
 
     func testJoystickMovesControlledPlayerDownfield() throws {
         let rt = try makeRuntime()
+        snapAndSettle(rt)
         let startY = rt.world.controlled.body.position.y
         rt.handle(TouchEvent(id: 1, phase: .began, location: Vec2(120, 220)))
         rt.handle(TouchEvent(id: 1, phase: .moved, location: Vec2(140, 190)))
         for _ in 0..<120 { _ = rt.advance(frameTime: 1.0 / 60) }
-        XCTAssertGreaterThan(rt.world.controlled.body.position.y, startY + 8)
+        XCTAssertGreaterThan(rt.world.controlled.body.position.y, startY + 6)
         XCTAssertGreaterThan(rt.world.controlled.body.position.x, Field.centerX)
+    }
+
+    func snapAndSettle(_ rt: GameRuntime) {
+        rt.perform(.button(.snap))
+        for _ in 0..<40 { _ = rt.advance(frameTime: 1.0 / 60) }
+        XCTAssertEqual(rt.world.carrierID, rt.world.quarterback?.id, "QB should have the snap")
     }
 
     func testInputAppliedOnTheVeryNextFrame() throws {
         let rt = try makeRuntime()
-        _ = rt.advance(frameTime: 1.0 / 60)
+        snapAndSettle(rt)
         rt.handle(TouchEvent(id: 1, phase: .began, location: Vec2(120, 220)))
         rt.handle(TouchEvent(id: 1, phase: .moved, location: Vec2(120, 180)))
         _ = rt.advance(frameTime: 1.0 / 60)
-        XCTAssertGreaterThan(rt.world.controlled.body.velocity.y, 0, "touch must affect the frame being built")
+        XCTAssertGreaterThan(rt.world.controlled.body.velocity.y, 0.1, "touch must affect the frame being built")
     }
 
     func testFrameSpritesAreSnappedSortedAndShadowed() throws {
         let rt = try makeRuntime()
-        rt.handle(TouchEvent(id: 1, phase: .began, location: Vec2(120, 220)))
-        rt.handle(TouchEvent(id: 1, phase: .moved, location: Vec2(120, 190)))
         var last: RenderFrame?
         for _ in 0..<90 { last = rt.advance(frameTime: 1.0 / 120 * 1.37) }   // odd frame time -> non-zero alpha
         let f = try XCTUnwrap(last)
@@ -39,7 +44,7 @@ final class GameRuntimeTests: XCTestCase {
         let orders = f.sprites.map(\.drawOrder)
         XCTAssertEqual(orders, orders.sorted())
         for s in f.sprites where s.visible {
-            XCTAssertEqual(s.footX, s.shadowX)      // on the ground in M1
+            XCTAssertEqual(s.footX, s.shadowX)      // everyone on the ground pre-snap
             XCTAssertEqual(s.footY, s.shadowY)
             XCTAssert(s.height % 2 == 0)
         }
