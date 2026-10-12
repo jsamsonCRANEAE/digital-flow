@@ -393,4 +393,52 @@ the existing generic `UILayout` path, so the app needed no new node types.
    more teams, or a season mode)?
 3. **The Shadow Final's +4:** should cup difficulty also step up each round (for example the final always at Legend), or stay at the level you choose?
 
-## ⏭ M6: Polish, returns, haptics, performance profiling
+## ✅ M5.1: Orchestral soundtrack and Bluetooth controllers
+
+Your answers: orchestral hype music, nothing else must go into M6 besides returns, and the cup stays at the level you pick (already the behavior).
+
+### What's new
+- **A synthesized orchestra replaces the chiptunes:**
+  - Detuned PolyBLEP-saw string, brass and choir sections, with filter envelopes for the brass blare.
+  - Pizzicato, harp and glockenspiel; timpani and taiko with pitch envelopes; and a concert-hall reverb.
+  - Four new arrangements: an epic D-minor title anthem, a warm menu theme, a
+    driving in-game loop that leaves room for the SFX, and a string-rip
+    touchdown fanfare.
+- **Bluetooth controller support** for Xbox, PlayStation, Switch Pro and MFi controllers:
+  - Full gameplay mapping, including receiver-per-button passing with tap/hold lobs.
+  - Glyphs that match your controller's brand.
+  - Every menu works with d-pad focus, and Menu pauses the game.
+  - Touch and pad can be mixed freely.
+
+### Verified here
+- **`swift test`: 131/131 pass.** The 7 new controller tests cover:
+  - The context button mapping and glyphs.
+  - Bullet vs. lob throws by hold time.
+  - Play-call, kick and replay mapping, plus the stick dead zone and brand glyphs.
+  - A real passing down played entirely with the pad: snap, drop back, throw.
+  - Every menu driven by the pad: focus, key repeat, shop preview and tabs, settings left/right, pause and resume.
+  - Disconnecting falls back to touch.
+- **Audio:**
+  - The existing audio tests still pass against the new songs (audibility, no clipping, loops aligned to whole bars).
+  - Each section was level-balanced solo.
+  - Rendering costs 2.8% of one CPU core at 48 kHz.
+  - The WAVs in [`docs/m5/`](docs/m5) are re-rendered.
+- **Controller stills:** `menu_pad_playcall.png`, `menu_pad_passing.png`, `menu_pad_pause.png` and `menu_pad_menu.png`.
+
+### Not verified here
+- **`GamepadInput.swift`** (the GameController polling) hasn't been compiled, like the rest of the iOS layer.
+- **The orchestra's musical quality.** I can measure it but not hear it. Please listen to the WAVs.
+
+### Device test checklist (M5.1)
+- [ ] Listen to the title, menu, in-game and touchdown music. Does it hit the "orchestral hype" target? Is anything too loud or too quiet, such as the drums or choir?
+- [ ] Pair a controller in iOS Settings > Bluetooth, then launch. The title says "PRESS A" (or ✕ on PlayStation).
+- [ ] Menus: the d-pad moves the gold frame. A selects and B goes back. In Settings, left/right changes volume. In the shop, LB/RB switch tabs and moving onto an item previews it.
+- [ ] Play call: the cards show X / A / B badges, and LB/RB change the page.
+- [ ] Before the snap, the on-screen buttons show glyph badges. A snaps the ball.
+- [ ] Passing: receiver icons show A/B/X/Y. Tap for a bullet, hold for a lob.
+- [ ] Running: X jukes, B spins, Y stiff-arms, A dives.
+- [ ] Menu (≡) pauses the game, and B resumes it.
+- [ ] Touch the screen mid-game: the badges disappear and touch works normally. Press a pad button and they come back.
+- [ ] A PlayStation controller shows ✕ ○ □ △ shapes. A Switch Pro shows its own letter positions.
+
+## ⏭ M6: Polish, kick/punt returns, haptics, performance profiling

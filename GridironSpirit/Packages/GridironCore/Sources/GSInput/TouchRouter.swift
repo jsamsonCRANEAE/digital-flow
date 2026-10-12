@@ -44,6 +44,8 @@ public struct ButtonSlot: Sendable, Equatable {
     public var label: String
     public var enabled: Bool
     public var pressed: Bool
+    /// Controller button that fires this slot (shown as a badge while a pad is in use).
+    public var padGlyph: PadGlyph? = nil
 }
 
 /// A receiver icon drawn above a target's head (canvas px).
@@ -76,6 +78,25 @@ public struct TouchRouter: Sendable {
     /// Spirit meter full: lights up the SPIRIT button.
     public var spiritReady = false { didSet { if spiritReady != oldValue { layoutButtons() } } }
     public static let lobHoldThreshold = 0.18
+
+    // Controller.
+    /// Non-nil while the player is using a controller (drives on-screen glyphs).
+    public private(set) var padStyle: PadStyle? { didSet { if padStyle != oldValue { layoutButtons() } } }
+    var lastPad = GamepadState()
+    var padMove = Vec2.zero
+    var padCharge: (button: PadButton, receiver: Int, time: Double)?
+    var padHeld: Set<PadButton> = []
+    /// Receiver icon slot -> face button (console-football convention).
+    public static let receiverButtons: [PadButton] = [.a, .b, .x, .y, .r1]
+    /// Context action -> button. Positions are consistent across brands.
+    public static func padButton(for a: ButtonAction) -> PadButton {
+        switch a {
+        case .snap, .diveTackle, .dive: return .a
+        case .switchPlayer, .spin: return .b
+        case .audible, .juke: return .x
+        case .spirit, .stiffArm, .jump: return .y
+        }
+    }
 
     var buttonTouches: [Int: (index: Int, start: Vec2, time: Double, swiped: Bool)] = [:]
     var iconTouch: (id: Int, receiver: Int, time: Double)?
@@ -114,8 +135,11 @@ public struct TouchRouter: Sendable {
         }
         let pressed = Set(buttonTouches.values.map(\.index))
         buttons = zip([inside(a), inside(b), inside(c)], spec).enumerated().map { i, pair in
-            ButtonSlot(center: pair.0, radius: r, action: pair.1.0, label: pair.1.1, enabled: pair.1.2,
-                       pressed: pressed.contains(i))
+            let act = pair.1.0
+            let held = act.map { padHeld.contains(Self.padButton(for: $0)) } ?? false
+            return ButtonSlot(center: pair.0, radius: r, action: act, label: pair.1.1, enabled: pair.1.2,
+                              pressed: pressed.contains(i) || held,
+                              padGlyph: act.flatMap { a in padStyle.map { $0.glyph(Self.padButton(for: a)) } })
         }
     }
 
@@ -125,6 +149,7 @@ public struct TouchRouter: Sendable {
     }
 
     public mutating func handle(_ e: TouchEvent) {
+        if e.phase == .began { padStyle = nil }          // back to touch: show touch UI
         if context == .playCall { return handleCards(e) }
         if context == .kick {
             if e.phase == .began { commands.append(.kickTap) }
@@ -202,5 +227,65 @@ public struct TouchRouter: Sendable {
 
     /// Joystick mapped to world space. The camera always sits behind the
     /// offense looking toward +y, so screen-up is downfield and screen-right is +x.
-    public var worldMove: Vec2 { joystick.value }
+    /// A controller stick/d-pad in use overrides the touch joystick.
+    public var worldMove: Vec2 { padMove.length > 0 ? padMove : joystick.value }
+
+    // MARK: Controller
+
+    /// Call once per frame with the current controller state. Press edges
+    /// become the same InputCommands touches produce, so gameplay code
+    /// doesn't know (or care) which device is in use.
+    public mutating func handle(pad: GamepadState) {
+        let prev = lastPad
+        lastPad = pad
+        guard pad.connected else {
+            padMove = .zero; padCharge = nil
+            if padStyle != nil { padStyle = nil }
+            return
+        }
+        let e = PadEdges(prev, pad)
+        padMove = pad.move
+        if !e.down.isEmpty || padMove.length > 0.3 { padStyle = pad.style }
+        if context != .passing, padCharge != nil { padCharge = nil; charging = nil }
+        let dirNow = pad.direction, dirPrev = prev.direction
+
+        switch context {
+        case .playCall:
+            if e.down.contains(.l1) || e.down.contains(.left) || (dirNow?.x == -1 && dirPrev?.x != -1) { commands.append(.page(-1)) }
+            if e.down.contains(.r1) || e.down.contains(.right) || (dirNow?.x == 1 && dirPrev?.x != 1) { commands.append(.page(1)) }
+            // Cards read left -> right as X / A / B (the face buttons' own layout).
+            for (i, b) in [PadButton.x, .a, .b].enumerated() where e.down.contains(b) && i < cardRects.count {
+                commands.append(.selectCard(i))
+            }
+        case .kick:
+            if e.down.contains(.a) { commands.append(.kickTap) }
+        case .replay:
+            if e.down.contains(.a) || e.down.contains(.b) { commands.append(.skip) }
+        case .passing:
+            if padCharge == nil {
+                for (slot, b) in Self.receiverButtons.enumerated() where e.down.contains(b) {
+                    if let icon = icons.first(where: { $0.slot == slot }) {
+                        padCharge = (b, icon.receiverID, now)
+                        charging = (icon.receiverID, now)
+                        break
+                    }
+                }
+            } else if let c = padCharge, e.up.contains(c.button) {
+                // Tap = bullet, hold = lob: same threshold as touch.
+                commands.append(.throwTo(receiver: c.receiver, lob: now - c.time >= Self.lobHoldThreshold))
+                padCharge = nil
+                charging = nil
+            }
+        default:
+            for slot in buttons where slot.enabled {
+                guard let act = slot.action else { continue }
+                if e.down.contains(Self.padButton(for: act)) { commands.append(.button(act)) }
+            }
+            if context == .ballCarrier && e.down.contains(.a) { commands.append(.button(.dive)) }
+            // Shoulder shortcut for the Spirit Play.
+            if e.down.contains(.r1), buttons.contains(where: { $0.action == .spirit && $0.enabled }) { commands.append(.button(.spirit)) }
+        }
+        let held = pad.pressed
+        if held != padHeld { padHeld = held; layoutButtons() }
+    }
 }

@@ -66,88 +66,168 @@ public struct Song: Sendable {
     }
 }
 
-/// Original compositions for Gridiron Spirit.
+/// Pattern helpers for writing orchestral parts compactly (16 steps per bar).
+enum Score {
+    /// 16th-note ostinato: `pattern` indexes each bar's chord voicing (-1 = rest).
+    static func ostinato(_ chords: [[String]], _ pattern: [Int]) -> String {
+        chords.map { c in (0..<16).map { i in let k = pattern[i % pattern.count]; return k < 0 ? "." : c[k % c.count] }
+            .joined(separator: " ") }.joined(separator: " | ")
+    }
+    /// One held note per bar.
+    static func held(_ notes: [String]) -> String {
+        notes.map { $0 == "." ? String(repeating: ". ", count: 16) : $0 + String(repeating: " -", count: 15) }.joined(separator: " | ")
+    }
+    /// Rhythm per bar: "R" = that bar's note, "O" = it an octave up, "-" hold, "." rest.
+    static func rhythm(_ notes: [String], _ pattern: String) -> String {
+        notes.map { n in
+            pattern.split(separator: " ").map { tok -> String in
+                switch tok {
+                case "R": return n
+                case "O": return up(n)
+                default: return String(tok)
+                }
+            }.joined(separator: " ")
+        }.joined(separator: " | ")
+    }
+    static func up(_ n: String) -> String {
+        guard let o = n.last?.wholeNumberValue else { return n }
+        return String(n.dropLast()) + String(o + 1)
+    }
+    static func rest(_ bars: Int) -> String { (0..<bars).map { _ in String(repeating: ". ", count: 16) }.joined(separator: " | ") }
+    static func times(_ s: String, _ n: Int) -> String { Array(repeating: s, count: n).joined(separator: " | ") }
+}
+
+/// Original orchestral compositions for Gridiron Spirit ("hype" anime-sports
+/// style: driving string ostinatos, brass melodies, choir, taiko + timpani).
 public enum Soundtrack {
-    /// "Spirit Rising": heroic title theme, D major, 150 bpm.
+    // Shared percussion voicings: pitched notes so noise sounds bright (high
+    // clock) and drums sit low.
+    static let cym = "C8", snr = "C7"
+
+    /// "Spirit Rising": title anthem, D minor, 156 bpm, 16 bars.
+    /// A (1-8): ostinato + taiko build. B (9-16): full brass melody, choir, cymbals.
     public static let title: Song = {
-        let lead = """
-        D5 - - - A4 - D5 - E5 - F#5 - - - E5 - | D5 - - - B4 - - - F#5 - - - E5 - D5 - |
-        B4 - - - D5 - G5 - - - F#5 - E5 - D5 - | E5 - - - - - A4 - C#5 - E5 - A5 - - - |
-        F#5 - - - E5 - D5 - A4 - - - D5 - E5 - | F#5 - - - A5 - - - C#6 - - - A5 - F#5 - |
-        G5 - - - F#5 - E5 - D5 - - - B4 - D5 - | E5 - - - - - - - E5 - F#5 - G5 - A5 - |
-        """
-        let bass = """
-        D2 . D3 . D2 . D3 . D2 . D3 . A2 . D3 . | B1 . B2 . B1 . B2 . B1 . B2 . F#2 . B2 . |
-        G1 . G2 . G1 . G2 . G1 . G2 . D2 . G2 . | A1 . A2 . A1 . A2 . A1 . A2 . C#2 . E2 . |
-        D2 . D3 . D2 . D3 . D2 . D3 . A2 . D3 . | F#1 . F#2 . F#1 . F#2 . F#1 . F#2 . C#2 . F#2 . |
-        G1 . G2 . G1 . G2 . G1 . G2 . D2 . G2 . | A1 . A2 . A1 . A2 . A1 - A2 . A2 . A2 . |
-        """
-        let chords = [["D4", "F#4", "A4"], ["B3", "D4", "F#4"], ["G3", "B3", "D4"], ["A3", "C#4", "E4"],
-                      ["D4", "F#4", "A4"], ["F#3", "A3", "C#4"], ["G3", "B3", "D4"], ["A3", "C#4", "E4"]]
-        let arp = Song.arp(chords, pattern: [0, 1, 2, 1], stepsPerNote: 2)
-        let (k, s, h) = Song.drums(8, kick: "x . . . . . . . x . x . . . . .", snare: ". . . . x . . . . . . . x . . x",
-                                   hat: "x . x . x . x . x . x . x . x .")
-        return Song.build("SPIRIT RISING", bpm: 150, loops: true, [
-            (.brass, lead, 1), (.bass, bass, 1), (.bell, arp, 0.8),
-            (.kick, k, 1), (.snare, s, 1), (.hat, h, 1),
-        ])
-    }()
-
-    /// "Locker Room": laid-back menu loop, F major, 108 bpm.
-    public static let menu: Song = {
-        let chords = [["F4", "A4", "C5", "E5"], ["E4", "G4", "B4", "D5"], ["D4", "F4", "A4", "C5"], ["C4", "E4", "G4", "B4"]]
-        let arp = Song.arp(chords + chords, pattern: [0, 2, 1, 3, 2, 1])
-        let bass = """
-        F2 - - - . . F2 . C3 - - - . . A2 . | E2 - - - . . E2 . B2 - - - . . G2 . |
-        D2 - - - . . D2 . A2 - - - . . F2 . | C2 - - - . . C2 . G2 - - - . . E2 . |
-        F2 - - - . . F2 . C3 - - - . . A2 . | E2 - - - . . E2 . B2 - - - . . G2 . |
-        D2 - - - . . D2 . A2 - - - . . F2 . | C2 - - - . . C2 . G2 - - - G2 . A2 B2 |
-        """
+        let prog = [["D3", "A3", "D4", "F4"], ["A#2", "F3", "A#3", "D4"], ["F3", "C4", "F4", "A4"], ["C3", "G3", "C4", "E4"],
+                    ["G2", "D3", "G3", "A#3"], ["A#2", "F3", "A#3", "D4"], ["C3", "G3", "C4", "E4"], ["A2", "E3", "A3", "C#4"]]
+        let roots1 = ["D2", "A#1", "F2", "C2", "G1", "A#1", "C2", "A1"]
+        let ost = Score.ostinato(prog, [0, 1, 2, 1, 3, 1, 2, 1, 0, 1, 2, 1, 3, 2, 3, 1])
+        let bass = Score.rhythm(roots1, "R - R . R - O . R - R . R - O .")
+        let timp = Score.rhythm(roots1, "R . . . . . . . R . . . R . R .")
         let melody = """
-        . . . . . . . . A5 - - - G5 - E5 - | G5 - - - - - . . . . . . . . . . |
-        . . . . . . . . F5 - - - E5 - C5 - | D5 - - - - - . . . . . . . . . . |
-        . . . . . . . . A5 - - - C6 - A5 - | B5 - - - G5 - - - . . . . . . . . |
-        . . . . . . . . F5 - - - E5 - D5 - | C5 - - - - - - - - - - - . . . . |
+        D5 - - - A4 - D5 - F5 - - - E5 - D5 - | F5 - - - - - G5 - F5 - - - D5 - - - |
+        C5 - - - F5 - - - A5 - - - - - G5 - | G5 - - - - - - - E5 - - - C5 - - - |
+        D5 - - - G5 - - - A#5 - - - - - A5 - | G5 - - - F5 - - - D5 - - - - - - - |
+        E5 - - - G5 - - - C6 - - - - - A#5 - | A5 - - - - - - - - - - - C#5 - E5 -
         """
-        let (k, s, h) = Song.drums(8, kick: "x . . . . . . x . . x . . . . .", snare: ". . . . x . . . . . . . x . . .",
-                                   hat: ". . x . . . x . . . x . . . x .")
-        return Song.build("LOCKER ROOM", bpm: 108, loops: true, [
-            (.bell, arp, 0.9), (.pulseBass, bass, 1), (.lead, melody, 0.7),
-            (.kick, k, 0.7), (.snare, s, 0.6), (.hat, h, 0.8),
+        let horns = """
+        A3 - - - - - - - D4 - - - F4 - - - | F4 - - - - - - - D4 - - - - - - - |
+        A3 - - - - - - - C4 - - - F4 - - - | G4 - - - - - - - E4 - - - - - - - |
+        G3 - - - - - - - A#3 - - - D4 - - - | D4 - - - - - - - F4 - - - - - - - |
+        E4 - - - - - - - G4 - - - C5 - - - | C#5 - - - - - - - - - - - E4 - - -
+        """
+        let choirA = Score.held(["D4", "D4", "C4", "C4", "D4", "D4", "E4", "E4"])
+        let choirB = Score.held(["F4", "F4", "F4", "E4", "G4", "F4", "G4", "A4"])
+        let taikoA = Score.times("x . . . x . . x . . x . x . . .", 8)
+        let taikoB = Score.times("x . x . x . . x x . x . x . x x", 7) + " | x x x x x x x x x x x x x x x x"
+        let snareB = Score.times(". . . . \(snr) . . . . . . . \(snr) . \(snr) \(snr)", 7) + " | " +
+            Array(repeating: snr, count: 16).joined(separator: " ")
+        let crash = "\(cym) " + String(repeating: ". ", count: 15) + "| " + Score.rest(7) + " | " +
+            Score.times("\(cym) " + String(repeating: ". ", count: 15), 8)
+        return Song.build("SPIRIT RISING", bpm: 156, loops: true, [
+            (.stringsStacc, ost + " | " + ost, 0.9),
+            (.contrabass, bass + " | " + bass, 1.0),
+            (.timpani, timp + " | " + timp, 0.9),
+            (.horn, horns + " | " + Score.rest(8), 0.8),
+            (.trumpet, Score.rest(8) + " | " + melody, 1.0),
+            (.brassSection, Score.rest(8) + " | " + horns, 0.75),
+            (.choir, Score.rest(8) + " | " + choirB, 1.0),
+            (.choir, choirA + " | " + choirA, 0.8),
+            (.taiko, taikoA + " | " + taikoB, 0.9),
+            (.orchSnare, Score.rest(8) + " | " + snareB, 0.8),
+            (.cymbal, crash, 0.8),
         ])
     }()
 
-    /// "Gridiron Drive": in-game loop, A minor, 140 bpm, kept sparse so SFX cut through.
+    /// "Locker Room": menu theme, F major, 116 bpm, 8 bars. Pizzicato and
+    /// harp under a warm horn tune: hype but easy to sit with in the shop.
+    public static let menu: Song = {
+        let prog = [["F3", "C4", "F4", "A4"], ["D3", "A3", "D4", "F4"], ["A#2", "F3", "A#3", "D4"], ["C3", "G3", "C4", "E4"],
+                    ["F3", "C4", "F4", "A4"], ["A2", "E3", "A3", "C4"], ["A#2", "F3", "A#3", "D4"], ["C3", "G3", "C4", "E4"]]
+        let roots = ["F2", "D2", "A#1", "C2", "F2", "A1", "A#1", "C2"]
+        let pizz = Score.ostinato(prog, [0, -1, 2, -1, 1, -1, 3, -1, 0, -1, 2, -1, 3, -1, 1, -1])
+        let harp = Score.ostinato(prog.map { $0.map(Score.up) }, [-1, 2, -1, 3, -1, 1, -1, 2, -1, 3, -1, 2, -1, 1, -1, 3])
+        let melody = """
+        A4 - - - C5 - - - F5 - - - - - - - | E5 - - - D5 - - - A4 - - - - - - - |
+        A#4 - - - D5 - - - F5 - - - - - E5 - | E5 - - - - - - - - - - - C5 - - - |
+        A4 - - - C5 - - - F5 - - - A5 - - - | G5 - - - E5 - - - C5 - - - - - - - |
+        D5 - - - F5 - - - A#5 - - - - - A5 - | G5 - - - - - - - - - - - . . . .
+        """
+        return Song.build("LOCKER ROOM", bpm: 116, loops: true, [
+            (.pizz, pizz, 1.0),
+            (.harp, harp, 0.9),
+            (.contrabass, Score.rhythm(roots, "R - - - . . R . R - - - . . O ."), 0.9),
+            (.horn, melody, 1.0),
+            (.strings, Score.held(["A3", "A3", "A#3", "G3", "A3", "A3", "A#3", "G3"]), 0.7),
+            (.strings, Score.held(["C4", "D4", "D4", "C4", "C4", "C4", "D4", "E4"]), 0.6),
+            (.taiko, Score.times("x . . . . . . . x . . . . . . .", 8), 0.5),
+            (.orchSnare, Score.times(". . . . \(snr) . . . . . . . \(snr) . . .", 8), 0.45),
+            (.glock, Score.rest(4) + " | " + Score.ostinato(Array(prog.suffix(4)).map { $0.map { Score.up(Score.up($0)) } },
+                                                         [3, -1, -1, -1, 2, -1, -1, -1, 1, -1, -1, -1, 2, -1, -1, -1]), 0.8),
+        ])
+    }()
+
+    /// "Gridiron Drive": in-game loop, E minor, 148 bpm, 16 bars. Staccato
+    /// strings and taiko drive it; the melody stays in the horns' mid range
+    /// and leaves space so hits, whistles and the crowd cut through.
     public static let game: Song = {
-        let bass = """
-        A1 . A2 . A1 A1 A2 . A1 . A2 . G1 . G2 . | F1 . F2 . F1 F1 F2 . F1 . F2 . E1 . E2 . |
-        C2 . C3 . C2 C2 C3 . C2 . C3 . B1 . B2 . | G1 . G2 . G1 G1 G2 . G1 . G2 . G#1 . G#2 . |
+        let prog = [["E3", "B3", "E4", "G4"], ["C3", "G3", "C4", "E4"], ["G2", "D3", "G3", "B3"], ["D3", "A3", "D4", "F#4"],
+                    ["E3", "B3", "E4", "G4"], ["C3", "G3", "C4", "E4"], ["A2", "E3", "A3", "C4"], ["B2", "F#3", "B3", "D#4"]]
+        let roots = ["E2", "C2", "G1", "D2", "E2", "C2", "A1", "B1"]
+        let ost = Score.ostinato(prog, [0, 1, 2, 1, 0, 1, 3, 1, 0, 1, 2, 1, 3, 1, 2, 1])
+        let bass = Score.rhythm(roots, "R . R . R . O . R . R . R . O R")
+        let stabsRoot = Score.rhythm(prog.map { $0[2] }, "R . . R . . R . . . . . R . . .")
+        let stabsThird = Score.rhythm(prog.map { $0[3] }, "R . . R . . R . . . . . R . . .")
+        let horns = """
+        B4 - - - - - - - G4 - - - - - - - | E5 - - - - - - - D5 - - - C5 - - - |
+        D5 - - - - - - - B4 - - - - - - - | A4 - - - - - - - F#4 - - - A4 - - - |
+        B4 - - - - - - - E5 - - - - - - - | G5 - - - - - - - E5 - - - C5 - - - |
+        C5 - - - - - - - E5 - - - - - - - | D#5 - - - - - - - F#5 - - - B4 - - -
         """
-        let stabs = """
-        . . A4 . . . C5 . . . E5 - . . . . | . . F4 . . . A4 . . . C5 - . . . . |
-        . . C5 . . . E5 . . . G5 - . . . . | . . B4 . . . D5 . . . G#5 - . . . . |
-        """
-        let hook = """
-        E5 - - - D5 - C5 - D5 - - - . . . . | C5 - - - B4 - A4 - B4 - - - . . . . |
-        C5 - - - D5 - E5 - G5 - - - E5 - . . | D5 - - - - - B4 - G#4 - - - - - . . |
-        """
-        let (k, s, h) = Song.drums(4, kick: "x . . . x . . . x . . . x . x .", snare: ". . . . x . . . . . . . x . . .",
-                                   hat: "x x x x x x x x x x x x x x x x")
-        return Song.build("GRIDIRON DRIVE", bpm: 140, loops: true, [
-            (.bass, bass + " " + bass, 1), (.bell, stabs + " " + stabs, 0.8), (.lead, ". . . . . . . . . . . . . . . . " + String(repeating: ". ", count: 48) + hook, 0.7),
-            (.kick, k + " " + k, 0.9), (.snare, s + " " + s, 0.8), (.hat, h + " " + h, 0.5),
+        let taiko = Score.times("x . . x . . x . x . . . x . x .", 7) + " | x . x . x . x . x x x x x x x x"
+        let snare = Score.times(". . . . \(snr) . . . . . . . \(snr) . . .", 8)
+        let crash = Score.times("\(cym) " + String(repeating: ". ", count: 15) + "| " + Score.rest(3), 4)
+        return Song.build("GRIDIRON DRIVE", bpm: 148, loops: true, [
+            (.stringsStacc, ost + " | " + ost, 0.75),
+            (.contrabass, bass + " | " + bass, 0.9),
+            (.brassStab, stabsRoot + " | " + Score.rest(8), 0.8),
+            (.brassStab, stabsThird + " | " + Score.rest(8), 0.6),
+            (.horn, Score.rest(8) + " | " + horns, 0.9),
+            (.strings, Score.rest(8) + " | " + Score.held(["G5", "G5", "B5", "A5", "G5", "G5", "E5", "F#5"]), 0.5),
+            (.timpani, Score.rhythm(roots, "R . . . . . . . . . . . . . . .") + " | " + Score.rhythm(roots, "R . . . . . . . R . . . . . . ."), 0.8),
+            (.taiko, taiko + " | " + taiko, 0.8),
+            (.orchSnare, snare + " | " + snare, 0.6),
+            (.cymbal, crash, 0.6),
         ])
     }()
 
-    /// Touchdown fanfare (one-shot, 2 bars).
+    /// Touchdown fanfare: D major, 150 bpm, 2 bars, one-shot. A string rip
+    /// up two octaves into a trumpet call and a full-orchestra hit.
     public static let touchdown: Song = {
-        let lead = "C5 . E5 . G5 . C6 - - - G5 . C6 - - - | E6 - - - - - - - - - - - . . . ."
-        let harm = "E4 . G4 . C5 . E5 - - - C5 . E5 - - - | G5 - - - - - - - - - - - . . . ."
-        let bass = "C2 . C2 . C2 . C3 - - - G2 . C3 - - - | C2 - - - - - - - - - - - . . . ."
-        let roll = "x x x x x x x x x x x x x x x x | x . . . . . . . . . . . . . . ."
-        return Song.build("TOUCHDOWN", bpm: 168, loops: false, [
-            (.brass, lead, 1.1), (.brass, harm, 0.7), (.bass, bass, 1), (.snare, roll, 0.6),
-            (.crash, ". . . . . . . . . . . . . . . . | x . . . . . . . . . . . . . . .", 1),
+        let run = "D4 E4 F#4 G4 A4 B4 C#5 D5 E5 F#5 G5 A5 B5 C#6 D6 E6"
+        let tpt1 = "D5 . D5 D5 A5 - - - F#5 - A5 - D6 - - - | D6 - - - - - - - - - - - . . . ."
+        let tpt2 = "F#4 . F#4 F#4 D5 - - - A4 - D5 - F#5 - - - | A5 - - - - - - - - - - - . . . ."
+        let hit = String(repeating: ". ", count: 16) + "| "
+        return Song.build("TOUCHDOWN", bpm: 150, loops: false, [
+            (.stringsStacc, run + " | " + "D6 . . . . . . . . . . . . . . .", 0.9),
+            (.trumpet, tpt1, 1.1),
+            (.brassSection, tpt2, 0.9),
+            (.strings, hit + "D5 - - - - - - - - - - - . . . .", 1.0),
+            (.strings, hit + "A4 - - - - - - - - - - - . . . .", 0.9),
+            (.contrabass, "D2 . D2 D2 A1 - - - D2 - A1 - D2 - - - | D2 - - - - - - - - - - - . . . .", 1.0),
+            (.choir, hit + "F#4 - - - - - - - - - - - . . . .", 1.0),
+            (.timpani, "D2 D2 D2 D2 D2 D2 D2 D2 A1 A1 A1 A1 A1 A1 A1 A1 | D2 . . . . . . . . . . . . . . .", 0.8),
+            (.taiko, ". . . . . . . . . . . . x . x x | x . . . . . . . . . . . . . . .", 0.9),
+            (.cymbal, hit + "\(cym) . . . . . . . . . . . . . . .", 1.1),
         ])
     }()
 

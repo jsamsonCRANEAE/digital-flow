@@ -1,4 +1,5 @@
 import GSFoundation
+import GSInput
 import GSRenderCore
 
 /// One positioned piece of screen UI. `key` identifies the texture (so the
@@ -65,13 +66,22 @@ public enum UILayout {
             out.append(UIItem(key: Key(kind: "hdr", a: header, n: []), x: (Canvas.width - PixelFont.width(of: header) - 8) / 2, y: 70) {
                 UIArt.panel(lines: [header], accent: pc.accent)
             })
-            for c in pc.cards {
+            for (i, c) in pc.cards.enumerated() {
                 out.append(UIItem(key: Key(kind: "card", a: c.title + c.category, n: []), x: Int(c.rect.minX), y: Int(c.rect.minY)) {
                     UIArt.playCard(title: c.title, category: c.category, diagram: c.diagram, accent: pc.accent, highlighted: false)
                 })
+                // Controller: cards read left -> right as X / A / B.
+                if let style = f.padStyle, i < 3 {
+                    let g = style.glyph([PadButton.x, .a, .b][i])
+                    out.append(UIItem(key: Key(kind: "cardpad", a: g.text, n: [Int(g.color.argb)]), x: Int(c.rect.minX) - 5, y: Int(c.rect.minY) - 5) {
+                        FXSprites.padBadge(g)
+                    })
+                }
             }
             if pc.pageCount > 1 {
-                let hint = "< SWIPE  \(pc.page + 1)/\(pc.pageCount)  SWIPE >"
+                let l = f.padStyle.map { $0.glyph(.l1).text + " <" } ?? "< SWIPE"
+                let r = f.padStyle.map { "> " + $0.glyph(.r1).text } ?? "SWIPE >"
+                let hint = "\(l)  \(pc.page + 1)/\(pc.pageCount)  \(r)"
                 out.append(UIItem(key: Key(kind: "hint", a: hint, n: []), x: (Canvas.width - PixelFont.width(of: hint)) / 2, y: 216) {
                     var b = PixelBuffer(width: PixelFont.width(of: hint) + 2, height: PixelFont.lineHeight + 1)
                     b.drawText(hint, x: 0, y: 0, RGBA(hex: 0xFFFFFF), shadow: Palette.outline)
@@ -85,6 +95,12 @@ public enum UILayout {
             out.append(UIItem(key: Key(kind: "kick", a: "", n: [p, a, k.stage]), x: (Canvas.width - 132) / 2, y: Int(s.maxY) - 44) {
                 UIArt.kickMeter(power: Double(p) / 100, aim: Double(a) / 100, stage: k.stage)
             })
+            if let style = f.padStyle {
+                let g = style.glyph(.a)
+                out.append(UIItem(key: Key(kind: "kickpad", a: g.text, n: []), x: (Canvas.width + 132) / 2 + 3, y: Int(s.maxY) - 40) {
+                    FXSprites.padBadge(g)
+                })
+            }
         }
 
         // Spirit meters under the scorebug.
@@ -153,7 +169,7 @@ public enum UILayout {
                     ArcadeArt.callout("REPLAY", scale: 2, style: .fire)
                 })
             }
-            let hint = "TAP TO SKIP"
+            let hint = f.padStyle.map { "PRESS " + $0.glyph(.a).text + " TO SKIP" } ?? "TAP TO SKIP"
             out.append(UIItem(key: Key(kind: "skiphint", a: hint, n: []), x: right - PixelFont.width(of: hint) - 4, y: Canvas.height - 15) {
                 var b = PixelBuffer(width: PixelFont.width(of: hint) + 2, height: 9)
                 b.drawText(hint, x: 0, y: 0, RGBA(hex: 0x9AD8FF))

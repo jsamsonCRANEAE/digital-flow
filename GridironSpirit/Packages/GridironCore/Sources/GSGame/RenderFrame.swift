@@ -168,6 +168,8 @@ public struct RenderFrame: Sendable {
     public var calloutLife: Double = 1
     public var haptics: [HapticPulse]
     public var sounds: [SoundCue] = []
+    /// Non-nil while a controller is in use: draw button glyphs instead of touch hints.
+    public var padStyle: PadStyle? = nil
     public var crowdFrame: Int
     public var phase: MatchPhase
     public var hud: HUDInfo?
@@ -190,4 +192,12 @@ public struct RenderFrame: Sendable {
     /// Interpolation factor used for this frame (diagnostics).
     public var alpha: Double
     public var stepsThisFrame: Int
+}
+
+extension RenderFrame {
+    /// Controller glyph for a receiver icon slot (nil when playing by touch).
+    public func receiverGlyph(slot: Int) -> PadGlyph? {
+        guard let s = padStyle, slot < TouchRouter.receiverButtons.count else { return nil }
+        return s.glyph(TouchRouter.receiverButtons[slot])
+    }
 }

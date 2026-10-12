@@ -145,6 +145,8 @@ public final class GameRuntime {
 
     public var cameraConfig: CameraConfig { rig.config }
     public func handle(_ e: TouchEvent) { touches.handle(e) }
+    /// Bluetooth controller state, once per frame (see TouchRouter.handle(pad:)).
+    public func handle(pad: GamepadState) { touches.handle(pad: pad) }
     public func setSafeArea(_ r: Rect) { touches.safeArea = r }
     public func setMinTouchSize(canvasPixels: Double) { touches.minTouchSize = canvasPixels }
     /// Scripted input for tests, the preview tool and (later) replays.
@@ -768,6 +770,7 @@ public final class GameRuntime {
                            endZones: (near, far),
                            simTime: world.time, hitStopped: fx.hitStop > 0, alpha: alpha, stepsThisFrame: steps)
         frame.sounds = fx.drainSounds()
+        frame.padStyle = touches.padStyle
         decorate(&frame)
         return frame
     }

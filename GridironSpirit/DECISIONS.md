@@ -494,3 +494,84 @@ the QB's.
   dependent module. That produced a memory-layout mismatch and a segfault in
   `GameRuntime.deinit`. A clean build fixed it. Rule: do a clean build after
   changing a struct's stored properties.
+
+## M5.1: Orchestral soundtrack and Bluetooth controllers (your answers to the M5 questions)
+- **Music style: orchestral hype.**
+  - The chiptune themes are replaced with a synthesized virtual orchestra. It's
+    still 100% code-generated and original, with no samples and no audio files.
+- **Cup difficulty: the level you pick,** for every round. That was already
+  the behavior. The Shadow Final's +4 ratings are the only step up.
+- **M6 scope: returns only,** with no other must-haves.
+
+### How the orchestra is built (`GSAudio`)
+- **PolyBLEP sawtooth with up to 4 detuned unison copies.** The saw has the
+  strings-and-brass harmonic series. PolyBLEP removes the aliasing a naive saw
+  produces, and detuned copies give the "section" chorus of many players.
+- **A 2-pole low-pass whose cutoff opens with the amplitude envelope.** Real
+  brass gets brighter the harder it's blown, so the filter reproduces the
+  "blare" on each attack. Strings use a gentle version. Contrabass is filtered dark.
+- **Exponential pitch envelopes** for timpani and taiko: the head starts sharp and settles, which is what makes a drum sound like a drum.
+- **A Freeverb-style hall** (4 damped combs into 2 allpasses) on the music bus
+  only. The orchestra gets concert-hall space, while hits and whistles stay
+  dry and punchy.
+- **Arrangements:**
+  - **"Spirit Rising"** (title): D minor, 156 bpm, 16 bars.
+    - Progression: i–VI–III–VII then iv–VI–VII–V (Dm Bb F C | Gm Bb C A).
+      The raised-7th A major at the end gives the loop its lift.
+    - A section: 16th-note staccato string ostinato, taiko and timpani, low horns.
+    - B section: trumpet melody, brass section, choir, snare, cymbal crashes, and a snare roll into the loop.
+  - **"Locker Room"** (menus): F major, 116 bpm. Pizzicato and harp
+    arpeggios, a warm horn tune, string pads and glockenspiel sparkle. It's
+    upbeat but easy to sit with while shopping.
+  - **"Gridiron Drive"** (in-game): E minor, 148 bpm, 16 bars.
+    - A section: driving ostinato, syncopated brass stabs, taiko.
+    - B section: horn melody and high strings.
+    - The lead stays in the horns' mid range, so tackles, whistles and the crowd cut through.
+  - **"Touchdown!"**: a two-octave string rip into a trumpet call over a timpani roll, ending in a full-orchestra hit and a cymbal.
+- **Mixed by measurement.** I rendered every track solo and balanced their
+  RMS levels. The first pass had percussion at about 7x the string energy,
+  which would have buried the ostinato.
+  - The final sections sit between 0.02 and 0.07 RMS each.
+  - Songs land around 0.15–0.20 RMS at full volume, about 0.13 at the default setting.
+  - Rendering costs about 3% of one CPU core at 48 kHz.
+
+### Bluetooth controllers
+- **API: Apple's GameController framework.** It supports Xbox Wireless,
+  PlayStation DualShock 4 and DualSense, Switch Pro, and MFi controllers.
+  Players pair them in iOS Settings > Bluetooth.
+  - Info.plist declares `GCSupportsControllerUserInteraction` and
+    `GCSupportedGameControllers: [ExtendedGamepad]`. These are the keys
+    Xcode's Game Controllers capability writes.
+- **One input path.** The pad is polled once per frame into a
+  platform-free `GamepadState`. `TouchRouter` turns its press edges into the
+  same `InputCommand`s touches produce, so the gameplay code doesn't know
+  which device you're using, and every touch rule (tap = bullet, hold = lob,
+  0.18 s) applies unchanged.
+- **Mapping:**
+  - **Before the snap:** A = SNAP, Y = SPIRIT (R1 also works), B = switch player (defense), X = audible.
+  - **Passing:** receiver icons become A / B / X / Y / R1, the console-football
+    convention. Tap for a bullet, hold for a lob.
+  - **Ball carrier:** X = JUKE, B = SPIN, Y = STIFF ARM, A = DIVE.
+  - **Defense:** A = DIVE TACKLE, B = SWITCH, Y = JUMP.
+  - **Play call:** X / A / B pick the left / middle / right card, matching the
+    face buttons' own layout. LB/RB or a stick flick change the page.
+  - **Kick:** A. **Replay:** A or B skips.
+  - **Menu (≡):** pause.
+- **Your controller's glyphs.**
+  - Buttons are mapped by *position*, so muscle memory carries across brands.
+  - Labels are drawn for the brand you're holding: Xbox letters in their
+    colors, PlayStation ✕ ○ □ △ shapes, and Nintendo letters (the bottom
+    button is labeled B on a Switch Pro).
+  - While you're playing with a pad, the on-screen buttons, receiver icons
+    and play-call cards show those glyphs. Touching the screen switches the
+    hints straight back to touch mode, so you can mix freely.
+- **Menus:**
+  - The d-pad or stick moves a pulsing gold focus frame between the same hit
+    regions touches use (spatial navigation, with key repeat).
+  - A selects, B goes back, LB/RB switch shop tabs.
+  - In Settings, left and right change the value directly.
+  - Moving onto a shop item previews it.
+  - An "A SELECT  B BACK" hint appears only while a pad is in use.
+- **Not done:**
+  - Controller rumble. The phone's haptics still fire.
+  - Two-player play (one pad each). It would need a second human-controlled team, so it's an M6+ idea.

@@ -17,8 +17,8 @@ final class WorldRenderer {
     private struct ShadowKey: Hashable { let width: Int }
     private struct BallKey: Hashable { let length: Int, angle: Int, spin: Int }
     private struct OverlayKey: Hashable { let kind: OverlayKind, size: Int, frame: Int }
-    private struct IconKey: Hashable { let slot: Int, charging: Bool }
-    private struct ButtonKey: Hashable { let radius: Int, slot: Int, label: String, enabled: Bool, pressed: Bool }
+    private struct IconKey: Hashable { let slot: Int, charging: Bool, glyph: PadGlyph? }
+    private struct ButtonKey: Hashable { let radius: Int, slot: Int, label: String, enabled: Bool, pressed: Bool, glyph: PadGlyph? }
     private struct TextKey: Hashable { let text: String }
 
     private let scene: GameScene
@@ -175,8 +175,9 @@ final class WorldRenderer {
         syncPool(&iconPool, count: frame.icons.count, parent: scene.overlayLayer)
         for (node, icon) in zip(iconPool, frame.icons) {
             let charging = frame.chargingReceiver == icon.receiverID
-            setTexture(node, textures.texture(IconKey(slot: icon.slot, charging: charging)) {
-                FXSprites.receiverIcon(slot: icon.slot, charging: charging)
+            let glyph = frame.receiverGlyph(slot: icon.slot)
+            setTexture(node, textures.texture(IconKey(slot: icon.slot, charging: charging, glyph: glyph)) {
+                FXSprites.receiverIcon(slot: icon.slot, charging: charging, glyph: glyph)
             })
             place(node, centerX: snapToPixel(icon.center.x), centerY: snapToPixel(icon.center.y))
         }
@@ -186,9 +187,11 @@ final class WorldRenderer {
             guard i < frame.buttons.count, frame.buttons[i].action != nil else { node.isHidden = true; continue }
             let b = frame.buttons[i]
             node.isHidden = false
-            let key = ButtonKey(radius: Int(b.radius), slot: i, label: b.label, enabled: b.enabled, pressed: b.pressed)
+            let key = ButtonKey(radius: Int(b.radius), slot: i, label: b.label, enabled: b.enabled, pressed: b.pressed,
+                                glyph: b.padGlyph)
             setTexture(node, textures.texture(key) {
-                FXSprites.button(radius: key.radius, slot: i, label: b.label, enabled: b.enabled, pressed: b.pressed)
+                FXSprites.button(radius: key.radius, slot: i, label: b.label, enabled: b.enabled, pressed: b.pressed,
+                                 glyph: b.padGlyph)
             })
             place(node, centerX: snapToPixel(b.center.x), centerY: snapToPixel(b.center.y))
         }

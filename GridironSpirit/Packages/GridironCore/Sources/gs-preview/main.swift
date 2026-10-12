@@ -36,6 +36,13 @@ if CommandLine.arguments.contains("--audio") {
         try AudioCore.wav(pcm, sampleRate: Int(sr)).write(to: URL(fileURLWithPath: "\(outDir)/\(file).wav"))
         print(String(format: "%@  %.1fs  peak %.2f  rms %.3f", song.name, song.duration, peak, rms))
     }
+    // Real-time budget check: 10 s of the densest song at the device rate.
+    let bench = AudioCore(sampleRate: 48_000)
+    bench.play(Soundtrack.title)
+    let t0 = Date()
+    _ = bench.renderSeconds(10)
+    let el = Date().timeIntervalSince(t0)
+    print(String(format: "realtime: 10 s of SPIRIT RISING @48k rendered in %.2f s (%.1f%% of one core)", el, el / 10 * 100))
     let core = AudioCore(sampleRate: sr)
     var reel: [Float] = []
     let effects: [SoundEffect] = [.whistle, .snap, .footstep(1), .footstep(0.8), .footstep(1), .throwWhoosh, .catchPop,
@@ -94,11 +101,11 @@ func composite(_ f: RenderFrame, joystick: VirtualJoystick?, runtime: GameRuntim
         canvas.blit(spr, x: o.x - spr.width / 2, y: o.y - spr.height / 2)
     }
     for icon in f.icons {
-        let spr = FXSprites.receiverIcon(slot: icon.slot, charging: f.chargingReceiver == icon.receiverID)
+        let spr = FXSprites.receiverIcon(slot: icon.slot, charging: f.chargingReceiver == icon.receiverID, glyph: f.receiverGlyph(slot: icon.slot))
         canvas.blit(spr, x: snapToPixel(icon.center.x) - spr.width / 2, y: snapToPixel(icon.center.y) - spr.height / 2)
     }
     for (i, b) in f.buttons.enumerated() where b.action != nil {
-        let spr = FXSprites.button(radius: Int(b.radius), slot: i, label: b.label, enabled: b.enabled, pressed: b.pressed)
+        let spr = FXSprites.button(radius: Int(b.radius), slot: i, label: b.label, enabled: b.enabled, pressed: b.pressed, glyph: b.padGlyph)
         canvas.blit(spr, x: snapToPixel(b.center.x) - spr.width / 2, y: snapToPixel(b.center.y) - spr.height / 2)
     }
     if let j = joystick, j.isActive {
@@ -221,6 +228,25 @@ if CommandLine.arguments.contains("--menus") {
     flow.tap("back"); flow.tap("cup"); flow.tap("play"); try shot("cup")
     flow.tap("cup.play"); try shot("game", warm: 30)
     flow.tap("pause"); try shot("pause")
+    // Controller: same flow, driven by a pad.
+    func pad(_ b: PadButton..., style: PadStyle = .xbox) -> GamepadState { GamepadState(connected: true, style: style, pressed: Set(b)) }
+    func press(_ b: PadButton, style: PadStyle = .xbox, hold: Int = 1) {
+        for _ in 0..<hold { flow.handle(pad: pad(b, style: style)); _ = flow.advance(frameTime: 1.0 / 60) }
+        flow.handle(pad: pad(style: style)); _ = flow.advance(frameTime: 1.0 / 60)
+    }
+    press(.b)                                       // resume
+    press(.l2); try shot("pad_playcall", warm: 2)   // any press switches the HUD to controller glyphs
+    press(.x)                                       // call the left card
+    for _ in 0..<80 { flow.handle(pad: pad()); _ = flow.advance(frameTime: 1.0 / 60) }
+    press(.l2); try shot("pad_presnap", warm: 2)
+    press(.a, style: .playstation)                  // snap
+    for _ in 0..<70 { flow.handle(pad: pad(style: .playstation)); _ = flow.advance(frameTime: 1.0 / 60) }
+    try shot("pad_passing", warm: 1)
+    press(.menu, style: .playstation); press(.down, style: .playstation); press(.down, style: .playstation)
+    try shot("pad_pause", warm: 1)
+    press(.a, style: .playstation)                  // QUIT TO MENU
+    press(.down, style: .playstation); press(.down, style: .playstation)
+    try shot("pad_menu", warm: 1)
     print("profile bytes \(saved?.count ?? 0)")
     exit(0)
 }

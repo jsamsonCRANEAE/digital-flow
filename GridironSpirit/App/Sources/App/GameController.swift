@@ -34,6 +34,7 @@ final class GameController: NSObject, MTKViewDelegate {
     private var insets = UIEdgeInsets.zero
     private var contentScale: CGFloat = 1
     private let haptics = HapticsPlayer()
+    private let gamepad = GamepadInput()
     private var endZones: (near: RGBA, far: RGBA) = (RGBA.clear, RGBA.clear)
     private var shownRuntime: ObjectIdentifier?
 
@@ -107,6 +108,7 @@ final class GameController: NSObject, MTKViewDelegate {
         let frameTime = lastTime.map { now - $0 } ?? (1.0 / Double(governor.targetFPS))
         lastTime = now
 
+        flow.handle(pad: gamepad.poll())                 // Bluetooth controller, if any
         let output = flow.advance(frameTime: frameTime)
         if pipeline.sharpFit != flow.sharpFit {          // settings changed the scaling mode
             pipeline.sharpFit = flow.sharpFit

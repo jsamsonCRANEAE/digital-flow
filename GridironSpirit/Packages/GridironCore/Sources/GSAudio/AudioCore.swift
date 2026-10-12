@@ -22,9 +22,13 @@ public final class AudioCore: @unchecked Sendable {
     public var musicEnabled = true
     public var sfxEnabled = true
     public private(set) var currentSong: String?
+    var reverb: Reverb
+    /// Hall send for music (the orchestra); SFX stay dry and punchy.
+    public var reverbMix = 0.18
 
     public init(sampleRate: Double = 44_100) {
         self.sampleRate = sampleRate
+        reverb = Reverb(sampleRate: sampleRate)
         crowd.lpAmount = 0.08            // dull roar
     }
 
@@ -92,11 +96,12 @@ public final class AudioCore: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         let dt = 1 / sampleRate
         for i in 0..<count {
-            var s = 0.0
+            var m = 0.0
             if musicEnabled {
-                if var m = music { s += m.sample(dt) * musicVolume; music = m }
+                if var mp = music { m += mp.sample(dt) * musicVolume; music = mp }
             }
-            if var st = stinger { s += st.sample(dt) * 0.9; stinger = st.finished ? nil : st }
+            if musicEnabled, var st = stinger { m += st.sample(dt) * 0.9 * musicVolume; stinger = st.finished ? nil : st }
+            var s = m + reverb.process(m) * reverbMix * 4
             var fx = 0.0
             var j = 0
             while j < sfx.count {

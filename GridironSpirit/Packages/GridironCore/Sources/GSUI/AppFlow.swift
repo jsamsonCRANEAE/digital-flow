@@ -60,6 +60,13 @@ public final class AppFlow {
     var pressed: String?
     var pressTouch: Int?
     var forwarded: [Int: Vec2] = [:]
+    // Controller (see PadNavigation.swift).
+    var lastPad = GamepadState()
+    var padStyle: PadStyle?
+    var focusID: String?
+    var navRepeat = 0.0
+    /// True while the player is driving the menus with a controller.
+    public var controllerActive: Bool { padStyle != nil }
     var swallowed: Set<Int> = []
 
     // Caches.
@@ -91,6 +98,7 @@ public final class AppFlow {
         screen = s
         screenTime = 0
         pressed = nil
+        focusID = nil
         switch s {
         case .title:
             startAttract()
@@ -143,18 +151,27 @@ public final class AppFlow {
         case .title: return titleFrame(dt)
         case .game: return gameFrame(dt)
         case .pause: return pauseFrame()
-        case .mainMenu: return .menu(mainMenu())
-        case .teamSelect: return .menu(teamSelect())
-        case .settings: return .menu(settings())
-        case .shop: return .menu(shop())
-        case .cupBracket: return .menu(cupBracket())
-        case .postGame: return .menu(postGame())
+        case .mainMenu: return .menu(decorated(mainMenu()))
+        case .teamSelect: return .menu(decorated(teamSelect()))
+        case .settings: return .menu(decorated(settings()))
+        case .shop: return .menu(decorated(shop()))
+        case .cupBracket: return .menu(decorated(cupBracket()))
+        case .postGame: return .menu(decorated(postGame()))
         }
+    }
+
+    func decorated(_ b: PixelBuffer) -> PixelBuffer {
+        guard padStyle != nil else { return b }
+        var b = b
+        drawFocus(&b)
+        padHint(&b)
+        return b
     }
 
     // MARK: Input
 
     public func handle(_ e: TouchEvent) {
+        if e.phase == .began { padStyle = nil }      // touch takes over: hide focus
         switch screen {
         case .game:
             if swallowed.contains(e.id) { if e.phase == .ended { swallowed.remove(e.id) }; return }
@@ -391,8 +408,8 @@ public final class AppFlow {
         let logo = logoCache[min(23, max(0, li - 24))]
         ui.append(UIItem(key: "flow.logo.\(min(23, max(0, li - 24)))", x: (Canvas.width - logo.width) / 2, y: 18) { logo })
         if Int(time * 2) % 2 == 0 {
-            let t = "TAP TO START"
-            ui.append(UIItem(key: "flow.tap", x: (Canvas.width - PixelFont.width(of: t) * 2 - 8) / 2, y: 226) {
+            let t = lastPad.connected ? "PRESS " + lastPad.style.glyph(.a).text : "TAP TO START"
+            ui.append(UIItem(key: "flow.tap.\(t)", x: (Canvas.width - PixelFont.width(of: t) * 2 - 8) / 2, y: 226) {
                 ArcadeArt.callout(t, scale: 2, style: .chrome)
             })
         }
@@ -416,6 +433,7 @@ public final class AppFlow {
             finalTimer += dt
             if finalTimer > 2 {
                 ui.append(buttonItem("continue", "CONTINUE", x: (Canvas.width - 140) / 2, y: 262, w: 140, style: .primary))
+                if let f = focusItem() { ui.append(f) }
             }
         } else if !f.replay {
             ui.append(buttonItem("pause", "II", x: left, y: top, w: 20, h: 16))
@@ -443,6 +461,7 @@ public final class AppFlow {
         ui.append(buttonItem("resume", "RESUME", x: px + 30, y: py + 48, w: pw - 60, style: .primary))
         ui.append(buttonItem("pause.settings", "SETTINGS", x: px + 30, y: py + 80, w: pw - 60))
         ui.append(buttonItem("quit", "QUIT TO MENU", x: px + 30, y: py + 112, w: pw - 60, style: .danger))
+        if let f = focusItem() { ui.append(f) }
         return .game(f, runtime: rt, extraUI: ui, accent: rt.teams[0].colors.primaryRGBA)
     }
 

@@ -41,15 +41,17 @@ public enum FXSprites {
 
     /// Receiver badge with its slot number. `charging` adds a white pulse rim
     /// while the player holds the icon for a lob.
-    public static func receiverIcon(slot: Int, charging: Bool) -> PixelBuffer {
+    /// `glyph`: with a controller, the icon shows the button to press (in its color).
+    public static func receiverIcon(slot: Int, charging: Bool, glyph: PadGlyph? = nil) -> PixelBuffer {
         let size = charging ? 17 : 13
         var b = PixelBuffer(width: size, height: size)
         let c = Double(size) / 2
-        let col = iconColors[slot % iconColors.count]
+        let col = glyph?.color ?? iconColors[slot % iconColors.count]
         if charging { b.fillEllipse(cx: c, cy: c, rx: c - 0.5, ry: c - 0.5, RGBA(hex: 0xFFFFFF)) }
         b.fillEllipse(cx: c, cy: c, rx: 5.5, ry: 5.5, col.hueShifted(-0.5))
         b.fillEllipse(cx: c - 0.5, cy: c - 0.5, rx: 4.8, ry: 4.8, col)
-        PixelFont.draw(String(slot + 1), into: &b, x: Int(c) - 2, y: Int(c) - 3, Palette.outline)
+        if let g = glyph { drawGlyphMark(g, into: &b, cx: Int(c), cy: Int(c), ink: Palette.outline) }
+        else { PixelFont.draw(String(slot + 1), into: &b, x: Int(c) - 2, y: Int(c) - 3, Palette.outline) }
         b.addOutline(Palette.outline)
         return b
     }
@@ -57,7 +59,8 @@ public enum FXSprites {
     public static let buttonColors: [RGBA] = [RGBA(hex: 0xFF7A2E), RGBA(hex: 0x3F8CFF), RGBA(hex: 0x3FCF6A)]
 
     /// Beveled round arcade button with a pixel-font label.
-    public static func button(radius r: Int, slot: Int, label: String, enabled: Bool, pressed: Bool) -> PixelBuffer {
+    public static func button(radius r: Int, slot: Int, label: String, enabled: Bool, pressed: Bool,
+                              glyph: PadGlyph? = nil) -> PixelBuffer {
         let d = r * 2 + 3
         var b = PixelBuffer(width: d, height: d)
         let base = enabled ? buttonColors[slot % buttonColors.count] : RGBA(hex: 0x6A6E80)
@@ -83,7 +86,39 @@ public enum FXSprites {
                        shadow: base.hueShifted(-0.8))
         }
         b.addOutline(Palette.outline)
+        if let g = glyph { b.blit(padBadge(g), x: 0, y: 0) }    // which controller button fires it
         return b
+    }
+
+    /// 13x13 round badge showing a controller button.
+    public static func padBadge(_ g: PadGlyph) -> PixelBuffer {
+        var b = PixelBuffer(width: 13, height: 13)
+        b.fillEllipse(cx: 6.5, cy: 6.5, rx: 6.5, ry: 6.5, Palette.outline)
+        b.fillEllipse(cx: 6.5, cy: 6.5, rx: 5.5, ry: 5.5, RGBA(hex: 0x1A1838))
+        drawGlyphMark(g, into: &b, cx: 6, cy: 6, ink: g.color)
+        return b
+    }
+
+    /// Letter(s) or a PlayStation-style shape centered on (cx, cy).
+    public static func drawGlyphMark(_ g: PadGlyph, into b: inout PixelBuffer, cx: Int, cy: Int, ink: RGBA) {
+        switch g.shape {
+        case .cross?:
+            for i in -2...2 { b.set(cx + i, cy + i, ink); b.set(cx + i, cy - i, ink) }
+        case .circle?:
+            for (dx, dy) in [(-1, -2), (0, -2), (1, -2), (-2, -1), (2, -1), (-2, 0), (2, 0), (-2, 1), (2, 1), (-1, 2), (0, 2), (1, 2)] {
+                b.set(cx + dx, cy + dy, ink)
+            }
+        case .square?:
+            for i in -2...2 { b.set(cx + i, cy - 2, ink); b.set(cx + i, cy + 2, ink); b.set(cx - 2, cy + i, ink); b.set(cx + 2, cy + i, ink) }
+        case .triangle?:
+            b.set(cx, cy - 2, ink)
+            b.set(cx - 1, cy - 1, ink); b.set(cx + 1, cy - 1, ink)
+            b.set(cx - 1, cy, ink); b.set(cx + 1, cy, ink)
+            for i in -2...2 { b.set(cx + i, cy + 1, ink) }
+        case nil:
+            let w = PixelFont.width(of: g.text)
+            PixelFont.draw(g.text, into: &b, x: cx - w / 2, y: cy - 3, ink)
+        }
     }
 
     /// Anime impact starburst: jagged spikes, white core, hot rim. Frame 0..2 grows.
