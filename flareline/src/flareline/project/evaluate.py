@@ -7,6 +7,7 @@ from typing import Mapping, Optional
 
 from ..data.store import Dataset
 from ..geometry.analysis import DevelopmentOptions, RouteAnalysis, TubeSection, analyze
+from ..geometry.interference import Contact, check_self_interference
 from ..geometry.issues import Issue, Severity
 from ..geometry.springback import SpringbackTable
 from ..geometry.validation import CheckLimits, validate
@@ -25,6 +26,8 @@ class Evaluation:
     analysis: RouteAnalysis
     issues: tuple[Issue, ...]
     cut_length_complete: bool
+    interference_checked: bool = True
+    contacts: tuple[Contact, ...] = ()
 
     @property
     def flagged(self) -> list[Resolved]:
@@ -47,14 +50,16 @@ class Evaluation:
         """A final (non-watermarked) drawing needs no errors, no flagged data
         and, for image-derived geometry, every dimension confirmed."""
         image_ok = self.project.route_origin != "image" or self.project.image_confirmed
-        return self.analysis.ok and not self.errors and not self.flagged and image_ok
+        return (self.analysis.ok and self.interference_checked and not self.errors
+                and not self.flagged and image_ok)
 
 
 def _num(r: Optional[Resolved]) -> Optional[float]:
     return None if r is None or r.missing else float(r.value)
 
 
-def evaluate(project: Project, ds: Dataset, audit=None) -> Evaluation:
+def evaluate(project: Project, ds: Dataset, audit=None,
+             check_interference: bool = True) -> Evaluation:
     res, issues = resolve(project, ds)
     od, wall = _num(res.get("od")), _num(res.get("wall"))
     fa1, fa2 = _num(res.get("end1.allowance")), _num(res.get("end2.allowance"))
@@ -90,11 +95,16 @@ def evaluate(project: Project, ds: Dataset, audit=None) -> Evaluation:
         min_end_straight_end1=_num(res.get("end1.min_straight")),
         min_end_straight_end2=_num(res.get("end2.min_straight")),
         min_end_straight_source=res["end1.min_straight"].source,
-        interference_clearance=project.settings.interference_clearance)
+        interference_clearance=project.settings.interference_clearance,
+        check_interference=check_interference)
+    inter = None
+    if check_interference and od is not None and analysis.ok:
+        inter = check_self_interference(analysis, od, project.settings.interference_clearance)
     # LIMIT_NOT_SET duplicates the MISSING_DATA warnings above, which also say why
-    issues += [i for i in validate(analysis, limits, sb) if i.code != "LIMIT_NOT_SET"]
+    issues += [i for i in validate(analysis, limits, sb, inter) if i.code != "LIMIT_NOT_SET"]
 
-    ev = Evaluation(project, ds.version, ds.sha256, res, analysis, tuple(issues), complete)
+    ev = Evaluation(project, ds.version, ds.sha256, res, analysis, tuple(issues), complete,
+                    check_interference, inter.contacts if inter else ())
     if audit is not None:
         audit.record(ev)
     return ev

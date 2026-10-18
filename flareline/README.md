@@ -14,8 +14,8 @@ FlareLine runs fully offline. It makes no network calls and has no telemetry.
 |---|---|---|
 | 1 | Geometry engine + tests | **done** |
 | 2 | Standards data files (AS4330 / AS33611 / J514) + validation wiring | **done** |
-| 3 | GUI shell, live 3D / 2D views | next |
-| 4 | Drawing export (PDF / DXF / PNG / CSV) | |
+| 3 | GUI shell, live 3D / 2D views | **done** |
+| 4 | Drawing export (PDF / DXF / PNG / CSV) | next |
 | 5 | Image trace mode | |
 | 6 | Packaging (.exe), tutorial, polish | |
 
@@ -39,6 +39,8 @@ flareline/
     store.py         loading, SHA-256 hashing, DataEditor with CHANGELOG.jsonl
     fields_report.py list of every field still to fill in
   src/flareline/project/    project file, data resolution, evaluation, audit log
+  src/flareline/app/        PySide6 desktop app (wizard, 3D, 2D, bend table, warnings)
+  src/flareline/samples/    sample projects (simple 90°, S-offset, 3D compound)
   tools/make_placeholder_data.py   regenerates the placeholder data set
   tests/             known-answer and property tests
   docs/              CONVENTIONS.md, TEST_REPORT.md, STANDARDS_DATA_FIELDS.md
@@ -61,6 +63,25 @@ value is null and marked `UNVERIFIED – REPLACE FROM STANDARD` (or `… FROM SH
 - The SHA-256 of the whole data set is recorded in the audit log, and will be printed on
   drawings, so each drawing ties to the exact data that produced it.
 
+## Running the app
+
+```
+pip install -e .[gui]
+python -m flareline.app            (or the `flareline` command)
+```
+
+![FlareLine main window](docs/screenshots/main_light.png)
+
+- **Left:** the 5-step wizard. **Centre:** live 3D view (orbit, pan, zoom, Fit, Iso, Front, Top,
+  Right, Measure, Section). **Right:** live 2D view (top / front / side). **Bottom:** the
+  bend table (XYZ / LRA / Legs), Warnings and Explain.
+- Select any number in the table, the 2D view or a warning to see its formula and its
+  full-precision inputs in **Explain**.
+- The first run copies the placeholder data set to the app-data folder
+  (`%APPDATA%/FlareLine/data` on Windows). Fill it in there.
+- Undo/redo, autosave every minute while there are unsaved changes, light / dark / system
+  theme, F1 for the How-to panel.
+
 ## Running the tests
 
 ```
@@ -69,5 +90,8 @@ python -m venv .venv
 pip install -e .[test]
 pytest --report=docs/TEST_REPORT.md
 ```
+
+GUI tests (`tests/test_gui.py`) run when PySide6 is installed, headless via Qt's offscreen
+platform. Set `FLARELINE_GUI_3D=1` (with a display) to include the 3D view.
 
 See `docs/CONVENTIONS.md` for every geometric convention the engine uses.

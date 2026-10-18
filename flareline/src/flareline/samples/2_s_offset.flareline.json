@@ -1,0 +1,59 @@
+{
+  "format": "flareline-project",
+  "schema_version": 1,
+  "meta": {
+    "part_number": "SAMPLE-2",
+    "title": "S-offset, 45° x 2",
+    "revision": "-",
+    "notes": "SAMPLE: wall and CLR are example inputs, not standards values"
+  },
+  "tube": {
+    "dash": 4,
+    "material_id": "cres304",
+    "wall": 0.035,
+    "wall_from_data": false
+  },
+  "ends": {
+    "end1": "flare37",
+    "end2": "flare37"
+  },
+  "route": {
+    "points": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        6.0,
+        0.0,
+        0.0
+      ],
+      [
+        9.0,
+        3.0,
+        0.0
+      ],
+      [
+        15.0,
+        3.0,
+        0.0
+      ]
+    ],
+    "clr": [
+      0.75,
+      0.75
+    ],
+    "origin": "manual",
+    "image_confirmed": false
+  },
+  "settings": {
+    "rotation_direction": "CW",
+    "rotation_viewpoint": "toward_end2",
+    "display_unit": "in",
+    "springback_enabled": false,
+    "interference_clearance": 0.0,
+    "audit_log": false
+  },
+  "overrides": {}
+}

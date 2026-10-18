@@ -1,7 +1,6 @@
 """Writes a human-readable test report: pytest --report=docs/TEST_REPORT.md"""
 import datetime
 import platform
-import sys
 
 import numpy
 import pytest

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from .analysis import RouteAnalysis
-from .interference import check_self_interference
+from .interference import InterferenceResult, check_self_interference
 from .issues import Issue, Severity
 from .springback import SpringbackTable
 from .units import fmt_len
@@ -27,10 +27,13 @@ class CheckLimits:
     min_end_straight_end2: Optional[float] = None
     min_end_straight_source: str = ""
     interference_clearance: float = 0.0
+    check_interference: bool = True     # the GUI defers this slower check while typing
 
 
 def validate(a: RouteAnalysis, limits: CheckLimits,
-             springback: Optional[SpringbackTable] = None) -> list[Issue]:
+             springback: Optional[SpringbackTable] = None,
+             interference: Optional[InterferenceResult] = None) -> list[Issue]:
+    """`interference` lets a caller pass a result it already computed."""
     issues = list(a.issues)
     if not a.ok:
         return issues
@@ -89,11 +92,14 @@ def validate(a: RouteAnalysis, limits: CheckLimits,
                                 f"segment {j}", key))
 
     # -- interference -----------------------------------------------------------
-    if limits.od is None:
+    if not limits.check_interference:
+        pass
+    elif limits.od is None:
         issues.append(Issue(Severity.INFO, "INTERFERENCE_NOT_CHECKED",
                             "tube OD not set; self-interference not checked"))
     else:
-        res = check_self_interference(a, limits.od, limits.interference_clearance)
+        res = interference or check_self_interference(a, limits.od,
+                                                      limits.interference_clearance)
         if not res.checked:
             issues.append(Issue(Severity.INFO, "INTERFERENCE_NOT_CHECKED",
                                 f"self-interference not checked: {res.reason}"))
