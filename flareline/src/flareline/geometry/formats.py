@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from enum import Enum
 
 import numpy as np
 
@@ -24,16 +23,39 @@ from .route import Point, TubeRoute
 from .vec import EPS_ANGLE, as_vec, rotate, signed_angle, unit
 
 
-class RotationConvention(Enum):
-    """How B is shown to the user. Internally B is always right-hand."""
-    CW_LOOKING_TOWARD_END2 = 1   # default; equals the internal convention
-    CCW_LOOKING_TOWARD_END2 = -1
+@dataclass(frozen=True)
+class RotationConvention:
+    """How B is shown to the user. The stored B is always the internal
+    right-hand convention (= CW looking toward end 2); only display changes.
+
+    Turning the viewpoint around flips how a rotation looks, so
+    "CW looking toward end 1" shows the same numbers as "CCW looking toward end 2".
+    """
+    direction: str = "CW"            # positive direction: "CW" or "CCW"
+    viewpoint: str = "toward_end2"   # "toward_end2" or "toward_end1"
+
+    def __post_init__(self) -> None:
+        if self.direction not in ("CW", "CCW"):
+            raise ValueError(f"direction must be CW or CCW, got {self.direction!r}")
+        if self.viewpoint not in ("toward_end2", "toward_end1"):
+            raise ValueError(f"viewpoint must be toward_end2 or toward_end1, "
+                             f"got {self.viewpoint!r}")
+
+    @property
+    def sign(self) -> int:
+        return ((1 if self.direction == "CW" else -1) *
+                (1 if self.viewpoint == "toward_end2" else -1))
+
+    @property
+    def label(self) -> str:
+        end = "2" if self.viewpoint == "toward_end2" else "1"
+        return f"+ = {self.direction} looking along the tube toward end {end}"
 
     def to_display(self, rotation_deg: float) -> float:
-        return self.value * rotation_deg
+        return self.sign * rotation_deg
 
     def from_display(self, rotation_deg: float) -> float:
-        return self.value * rotation_deg
+        return self.sign * rotation_deg
 
 
 @dataclass(frozen=True)

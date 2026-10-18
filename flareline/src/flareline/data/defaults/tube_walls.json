@@ -1,0 +1,1103 @@
+{
+  "schema": "flareline-table/1",
+  "table": "tube_walls",
+  "title": "Wall thickness options",
+  "standard": null,
+  "supersedes": null,
+  "key_fields": [
+    "dash",
+    "material_id"
+  ],
+  "optional_key_fields": [],
+  "fields": {
+    "walls": {
+      "kind": "numbers",
+      "unit": "in",
+      "required": true,
+      "description": "Wall thicknesses available for this size and material"
+    }
+  },
+  "meta": {},
+  "rows": [
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "cres304"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "cres316"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "in625"
+      },
+      "values": {
+        "walls": []
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    }
+  ]
+}

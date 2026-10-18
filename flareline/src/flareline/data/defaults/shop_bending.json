@@ -1,0 +1,150 @@
+{
+  "schema": "flareline-table/1",
+  "table": "shop_bending",
+  "title": "Length correction and springback (shop data)",
+  "standard": "Shop data",
+  "supersedes": null,
+  "key_fields": [
+    "material_id"
+  ],
+  "optional_key_fields": [
+    "dash"
+  ],
+  "fields": {
+    "arc_length_factor": {
+      "kind": "number",
+      "unit": "-",
+      "required": true,
+      "description": "Multiplies R·θ for each bend (1.0 = centerline)"
+    },
+    "per_bend_adjust": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Length added per bend (0.0 = none)"
+    },
+    "springback_points": {
+      "kind": "points",
+      "unit": "deg",
+      "required": false,
+      "description": "[design angle, springback] pairs, linearly interpolated"
+    }
+  },
+  "meta": {},
+  "rows": [
+    {
+      "key": {
+        "material_id": "cres304"
+      },
+      "values": {
+        "arc_length_factor": 1.0,
+        "per_bend_adjust": 0.0,
+        "springback_points": []
+      },
+      "provenance": {
+        "status": "DEFAULT",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "No correction: pure centerline development and no springback. Replace with test-bend results."
+      }
+    },
+    {
+      "key": {
+        "material_id": "cres316"
+      },
+      "values": {
+        "arc_length_factor": 1.0,
+        "per_bend_adjust": 0.0,
+        "springback_points": []
+      },
+      "provenance": {
+        "status": "DEFAULT",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "No correction: pure centerline development and no springback. Replace with test-bend results."
+      }
+    },
+    {
+      "key": {
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "arc_length_factor": 1.0,
+        "per_bend_adjust": 0.0,
+        "springback_points": []
+      },
+      "provenance": {
+        "status": "DEFAULT",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "No correction: pure centerline development and no springback. Replace with test-bend results."
+      }
+    },
+    {
+      "key": {
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "arc_length_factor": 1.0,
+        "per_bend_adjust": 0.0,
+        "springback_points": []
+      },
+      "provenance": {
+        "status": "DEFAULT",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "No correction: pure centerline development and no springback. Replace with test-bend results."
+      }
+    },
+    {
+      "key": {
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "arc_length_factor": 1.0,
+        "per_bend_adjust": 0.0,
+        "springback_points": []
+      },
+      "provenance": {
+        "status": "DEFAULT",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "No correction: pure centerline development and no springback. Replace with test-bend results."
+      }
+    },
+    {
+      "key": {
+        "material_id": "in625"
+      },
+      "values": {
+        "arc_length_factor": 1.0,
+        "per_bend_adjust": 0.0,
+        "springback_points": []
+      },
+      "provenance": {
+        "status": "DEFAULT",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "No correction: pure centerline development and no springback. Replace with test-bend results."
+      }
+    }
+  ]
+}

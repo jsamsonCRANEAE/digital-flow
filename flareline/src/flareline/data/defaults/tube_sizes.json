@@ -1,0 +1,192 @@
+{
+  "schema": "flareline-table/1",
+  "table": "tube_sizes",
+  "title": "Tube sizes",
+  "standard": null,
+  "supersedes": null,
+  "key_fields": [
+    "dash"
+  ],
+  "optional_key_fields": [],
+  "fields": {
+    "od": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Tube outside diameter"
+    }
+  },
+  "meta": {},
+  "rows": [
+    {
+      "key": {
+        "dash": 4
+      },
+      "values": {
+        "od": 0.25
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 5
+      },
+      "values": {
+        "od": 0.3125
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 6
+      },
+      "values": {
+        "od": 0.375
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 8
+      },
+      "values": {
+        "od": 0.5
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 10
+      },
+      "values": {
+        "od": 0.625
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 12
+      },
+      "values": {
+        "od": 0.75
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 16
+      },
+      "values": {
+        "od": 1.0
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 20
+      },
+      "values": {
+        "od": 1.25
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 24
+      },
+      "values": {
+        "od": 1.5
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    },
+    {
+      "key": {
+        "dash": 32
+      },
+      "values": {
+        "od": 2.0
+      },
+      "provenance": {
+        "status": "DERIVED",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": "Dash-number definition: OD = dash / 16 in"
+      }
+    }
+  ]
+}

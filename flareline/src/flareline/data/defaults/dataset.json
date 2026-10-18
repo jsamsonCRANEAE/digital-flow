@@ -1,0 +1,15 @@
+{
+  "schema": "flareline-data/1",
+  "dataset_version": "0.1.0-placeholder",
+  "description": "PLACEHOLDER data set: no standards values. Fill every UNVERIFIED row from your licensed standards and shop data.",
+  "tables": [
+    "tube_sizes",
+    "materials",
+    "tube_walls",
+    "as4330_flare",
+    "as33611_bend_radius",
+    "j514_reference",
+    "shop_limits",
+    "shop_bending"
+  ]
+}

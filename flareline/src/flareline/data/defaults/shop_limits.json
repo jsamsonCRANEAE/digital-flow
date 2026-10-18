@@ -1,0 +1,198 @@
+{
+  "schema": "flareline-table/1",
+  "table": "shop_limits",
+  "title": "Bender and end-prep limits (shop data)",
+  "standard": "Shop data",
+  "supersedes": null,
+  "key_fields": [
+    "dash"
+  ],
+  "optional_key_fields": [
+    "material_id"
+  ],
+  "fields": {
+    "min_straight_between_bends": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Shortest straight the bender can clamp between bends"
+    },
+    "min_end_straight_flare37": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Shortest end straight for the flaring tool, nut and sleeve (37° flare end)"
+    },
+    "min_end_straight_plain": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Shortest end straight for a plain / cut end"
+    },
+    "min_end_straight_flareless": {
+      "kind": "number",
+      "unit": "in",
+      "required": false,
+      "description": "Shortest end straight for a flareless end"
+    },
+    "bender_die_clrs": {
+      "kind": "numbers",
+      "unit": "in",
+      "required": false,
+      "description": "CLRs of the bend dies you have for this size"
+    }
+  },
+  "meta": {},
+  "rows": [
+    {
+      "key": {
+        "dash": 4
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM SHOP DATA",
+        "standard": "Shop data",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    }
+  ]
+}

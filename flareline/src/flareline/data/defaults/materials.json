@@ -1,0 +1,142 @@
+{
+  "schema": "flareline-table/1",
+  "table": "materials",
+  "title": "Tube materials",
+  "standard": null,
+  "supersedes": null,
+  "key_fields": [
+    "material_id"
+  ],
+  "optional_key_fields": [],
+  "fields": {
+    "name": {
+      "kind": "text",
+      "unit": "-",
+      "required": true,
+      "description": "Display name"
+    },
+    "material_spec": {
+      "kind": "text",
+      "unit": "-",
+      "required": true,
+      "description": "Tube material specification your drawings call out"
+    },
+    "condition": {
+      "kind": "text",
+      "unit": "-",
+      "required": false,
+      "description": "Temper / condition, if the spec needs one"
+    },
+    "flaring_permitted": {
+      "kind": "bool",
+      "unit": "-",
+      "required": true,
+      "description": "Whether your organization permits 37° flaring of this material"
+    }
+  },
+  "meta": {},
+  "rows": [
+    {
+      "key": {
+        "material_id": "cres304"
+      },
+      "values": {
+        "name": "304 CRES"
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "material_id": "cres316"
+      },
+      "values": {
+        "name": "316 CRES"
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "material_id": "cres21-6-9"
+      },
+      "values": {
+        "name": "21-6-9 CRES"
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "material_id": "al6061-t6"
+      },
+      "values": {
+        "name": "6061-T6 Aluminum"
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {
+        "name": "Ti-3Al-2.5V"
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "material_id": "in625"
+      },
+      "values": {
+        "name": "Inconel 625"
+      },
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": null,
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+{
+  "schema": "flareline-table/1",
+  "table": "j514_reference",
+  "title": "37° flare fitting reference geometry (reference only)",
+  "standard": "SAE J514",
+  "supersedes": null,
+  "key_fields": [
+    "dash"
+  ],
+  "optional_key_fields": [],
+  "fields": {
+    "nut_hex_across_flats": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Nut hex across flats"
+    },
+    "nut_length": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Nut overall length"
+    },
+    "sleeve_length": {
+      "kind": "number",
+      "unit": "in",
+      "required": false,
+      "description": "Sleeve overall length"
+    },
+    "envelope_od": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Largest fitting diameter, for clearance checks"
+    },
+    "envelope_length": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Fitting length behind the end point, for clearance"
+    }
+  },
+  "meta": {},
+  "rows": [
+    {
+      "key": {
+        "dash": 4
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE J514",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    }
+  ]
+}

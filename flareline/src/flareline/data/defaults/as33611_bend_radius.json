@@ -1,0 +1,997 @@
+{
+  "schema": "flareline-table/1",
+  "table": "as33611_bend_radius",
+  "title": "Tube bend radii",
+  "standard": "SAE AS33611",
+  "supersedes": "MS33611",
+  "key_fields": [
+    "dash",
+    "material_id"
+  ],
+  "optional_key_fields": [
+    "wall"
+  ],
+  "fields": {
+    "min_clr": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Minimum centerline bend radius"
+    },
+    "standard_clr": {
+      "kind": "number",
+      "unit": "in",
+      "required": false,
+      "description": "Standard / preferred CLR, if tabulated"
+    }
+  },
+  "meta": {
+    "organization_rule": {
+      "text": null,
+      "status": "UNVERIFIED – REPLACE FROM STANDARD",
+      "description": "Any organizational rule that further limits CLR (e.g. by wall/OD ratio)"
+    }
+  },
+  "rows": [
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 4,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "cres304"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "cres316"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "cres21-6-9"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "al6061-t6"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "ti-3al-2.5v"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32,
+        "material_id": "in625"
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS33611",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    }
+  ]
+}

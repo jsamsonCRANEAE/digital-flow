@@ -91,13 +91,18 @@ def test_fm07_round_trip_xyz_legs_xyz(seed):
     assert max_point_error(route, legs_to_route(route_to_legs(route))) < 1e-9
 
 
-def test_fm08_rotation_display_convention():
-    """FM-08 the CCW display option only flips the shown sign; stored value unchanged."""
-    ccw = RotationConvention.CCW_LOOKING_TOWARD_END2
-    cw = RotationConvention.CW_LOOKING_TOWARD_END2
-    assert cw.to_display(90.0) == 90.0
-    assert ccw.to_display(90.0) == -90.0
-    assert ccw.from_display(ccw.to_display(37.25)) == 37.25
+@pytest.mark.parametrize("direction, viewpoint, sign", [
+    ("CW", "toward_end2", 1), ("CCW", "toward_end2", -1),
+    ("CW", "toward_end1", -1), ("CCW", "toward_end1", 1),
+])
+def test_fm08_rotation_display_convention(direction, viewpoint, sign):
+    """FM-08 the display setting only changes the shown sign: CW toward end 2 is the
+    stored convention; reversing the viewpoint flips it; the stored value never changes."""
+    conv = RotationConvention(direction, viewpoint)
+    assert conv.to_display(90.0) == sign * 90.0
+    assert conv.from_display(conv.to_display(37.25)) == 37.25
+    with pytest.raises(ValueError):
+        RotationConvention("clockwise", viewpoint)
 
 
 def test_fm09_feed_count_validated():

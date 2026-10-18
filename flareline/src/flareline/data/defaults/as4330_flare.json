@@ -1,0 +1,211 @@
+{
+  "schema": "flareline-table/1",
+  "table": "as4330_flare",
+  "title": "37° flared tube ends",
+  "standard": "SAE AS4330",
+  "supersedes": "MS33584",
+  "key_fields": [
+    "dash"
+  ],
+  "optional_key_fields": [
+    "material_id",
+    "wall"
+  ],
+  "fields": {
+    "end_allowance": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Stock from the end reference point to the cut end that is needed to form the flare; added to the cut length. Record whether it comes from the standard or from your flaring process."
+    },
+    "flare_diameter_min": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Flare diameter, minimum, as tabulated"
+    },
+    "flare_diameter_max": {
+      "kind": "number",
+      "unit": "in",
+      "required": true,
+      "description": "Flare diameter, maximum, as tabulated"
+    },
+    "flare_angle_nominal_deg": {
+      "kind": "number",
+      "unit": "deg",
+      "required": true,
+      "description": "Flare angle, nominal, as specified"
+    },
+    "flare_angle_tol_deg": {
+      "kind": "number",
+      "unit": "deg",
+      "required": true,
+      "description": "Flare angle tolerance (±), as specified"
+    },
+    "notes": {
+      "kind": "text",
+      "unit": "-",
+      "required": false,
+      "description": "Other requirements to repeat on the flare detail"
+    }
+  },
+  "meta": {
+    "end_point_definition": {
+      "text": null,
+      "status": "UNVERIFIED – REPLACE FROM STANDARD",
+      "description": "Exactly where the tube end point (P0 / Pn) sits on the flare, per your standard or drawing practice. Printed on every drawing."
+    }
+  },
+  "rows": [
+    {
+      "key": {
+        "dash": 4
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 5
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 6
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 8
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 10
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 12
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 16
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 20
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 24
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    },
+    {
+      "key": {
+        "dash": 32
+      },
+      "values": {},
+      "provenance": {
+        "status": "UNVERIFIED – REPLACE FROM STANDARD",
+        "standard": "SAE AS4330",
+        "revision": null,
+        "table_ref": null,
+        "date_entered": null,
+        "entered_by": null,
+        "basis": null
+      }
+    }
+  ]
+}
