@@ -117,6 +117,9 @@ class MainWindow(QMainWindow):
         else:
             self.status_len.setText("Geometry error: see Warnings")
         self.status_data.setText(f"Data {ev.dataset_version} · {ev.dataset_sha256[:12]}   ")
+        self.audit_act.blockSignals(True)
+        self.audit_act.setChecked(ev.project.settings.audit_log)
+        self.audit_act.blockSignals(False)
         self.last_update_ms = (time.perf_counter() - t0) * 1000 + self.state.last_eval_ms
 
     def _explain(self, keys: list[str]) -> None:
@@ -140,7 +143,8 @@ class MainWindow(QMainWindow):
             self._act(samples, label, None, lambda _=False, p=p: self.open_sample(p))
         f.addSeparator()
         self._act(f, "&Save", QKeySequence.Save, self.save)
-        self._act(f, "Save &as…", QKeySequence.SaveAs, self.save_as)
+        # QKeySequence.SaveAs has no binding on Windows, so name the keys
+        self._act(f, "Save &as…", QKeySequence("Ctrl+Shift+S"), self.save_as)
         f.addSeparator()
         self.audit_act = self._act(f, "Write audit log", None, self._toggle_audit)
         self.audit_act.setCheckable(True)
@@ -167,6 +171,9 @@ class MainWindow(QMainWindow):
             self._act(v, name, QKeySequence(key), lambda _=False, m=mode: self.table.set_mode(m))
         v.addSeparator()
         self._act(v, "How to", QKeySequence("F1"), self.toggle_howto)
+
+        tl = mb.addMenu("&Tools")
+        self._act(tl, "Standards && shop &data…", QKeySequence("Ctrl+D"), self.edit_data)
 
         h = mb.addMenu("&Help")
         self._act(h, "How to", None, self.toggle_howto)
@@ -257,6 +264,23 @@ class MainWindow(QMainWindow):
             self.view3d.plotter.set_background(self.tokens.view_bg)
         QSettings().setValue("theme", mode)
         self.state.refresh()
+
+    def edit_data(self) -> None:
+        from ..data import default_data_dir, load_dataset
+        from .widgets.data_editor import DataEditorDialog
+        d = self.state.dataset.directory
+        if d.resolve() == default_data_dir().resolve():
+            QMessageBox.warning(self, "Read-only data", "FlareLine is running on the shipped "
+                                "placeholder data because your data set failed to load. Fix "
+                                "or restore the data folder first.")
+            return
+        dlg = DataEditorDialog(d, parent=self)
+
+        def reload():
+            self.state.dataset = load_dataset(d)
+            self.state.refresh()
+        dlg.dataChanged.connect(reload)
+        dlg.exec()
 
     def toggle_howto(self) -> None:
         self.howto.setVisible(not self.howto.isVisible())

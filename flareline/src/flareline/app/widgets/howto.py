@@ -25,13 +25,20 @@ or a data value needs attention.</p>
 <h3>Explain any number</h3>
 <p>Select a cell in the table, a dimension in the 2D view, or a warning. The Explain tab shows
 the formula and the full-precision inputs that produced it.</p>
+<h3>Standards data</h3>
+<p>Tools → Standards &amp; shop data (Ctrl+D): enter values, give a reason, then
+<b>Mark row verified</b> with the standard, revision, table and date. Every change is logged.</p>
+<h3>Bend marks</h3>
+<p>The LRA table's <b>Marks from P0</b> column gives the start and end of each bend along the
+developed tube, from the P0 end point.</p>
 <h3>Views</h3>
-<p>3D: drag to orbit, right-drag or Shift-drag to pan, wheel to zoom. <b>F</b> fit,
+<p>3D: drag to orbit, middle-drag or Shift-drag to pan, wheel or right-drag to zoom. <b>F</b> fit,
 <b>0</b> iso, <b>1</b> front, <b>2</b> top, <b>3</b> right, <b>M</b> measure,
 <b>S</b> section. 2D: wheel to zoom, drag to pan, double-click to fit.</p>
 <h3>Keys</h3>
-<p>Ctrl+N new · Ctrl+O open · Ctrl+S save · Ctrl+Z undo · Ctrl+Y redo · Ctrl+L add leg ·
-Ctrl+1…5 wizard steps · F1 this panel · Esc closes dialogs.</p>
+<p>Ctrl+N new · Ctrl+O open · Ctrl+S save · Ctrl+Shift+S save as · Ctrl+Z undo · Ctrl+Y redo ·
+Ctrl+L add leg · Ctrl+D standards data · Ctrl+1…5 wizard steps · F1 this panel ·
+Esc closes dialogs. Full guide: docs/USER_GUIDE.md.</p>
 <h3>Files</h3>
 <p>Projects are readable JSON (<code>.flareline.json</code>). Autosave runs every minute
 while there are unsaved changes. Nothing leaves this computer: FlareLine makes no network

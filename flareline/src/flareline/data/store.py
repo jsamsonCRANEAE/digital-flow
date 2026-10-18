@@ -155,6 +155,28 @@ class DataEditor:
                                       "reason": reason, "before": before, "after": r})
 
 
+    def set_meta(self, table: str, key: str, text: str, *, verified: bool, reason: str) -> None:
+        """Edit a table note (e.g. the flare end-point definition). Verifying a note
+        records who and when; an empty note cannot be verified."""
+        doc, raw = self._load(table)
+        meta = doc.setdefault("meta", {})
+        if key not in meta:
+            raise KeyError(f"{table} has no note {key!r}")
+        before = copy.deepcopy(meta[key])
+        text = text.strip() or None
+        if verified and not text:
+            raise DataError(f"{table} note {key}: an empty note cannot be verified")
+        meta[key]["text"] = text
+        if verified:
+            meta[key].update(status=Status.VERIFIED.value, entered_by=self.user,
+                             date_entered=datetime.date.today().isoformat())
+        else:
+            meta[key]["status"] = (Status.UNVERIFIED_SHOP if table.startswith("shop_")
+                                   else Status.UNVERIFIED_STD).value
+        self._write(table, doc, raw, {"action": "set_meta", "key": key, "reason": reason,
+                                      "before": before, "after": meta[key]})
+
+
 def read_changelog(directory: Path | str) -> list[dict]:
     path = Path(directory) / CHANGELOG
     if not path.exists():

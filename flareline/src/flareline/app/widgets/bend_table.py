@@ -166,7 +166,7 @@ class BendTable(QWidget):
         lra = route_to_lra(ev.analysis)
         sb = self._springback()
         self._headers(["Step", f"Y feed ({u})", "B rotate (°)", "C bend (°)", f"CLR ({u})",
-                       "C at bender (°)"])
+                       "C at bender (°)", f"Marks from P0 ({u})"])
         self.table.setRowCount(len(lra.feeds))
         for i, y in enumerate(lra.feeds):
             last = i == len(lra.steps)
@@ -174,7 +174,7 @@ class BendTable(QWidget):
             self._set(i, 1, fmt_num(to_display(y, u)), True, [f"seg{i}.straight"],
                       "Straight between tangent points before this bend")
             if last:
-                for c in (2, 3, 4, 5):
+                for c in (2, 3, 4, 5, 6):
                     self._set(i, c, "", False)
                 continue
             s = lra.steps[i]
@@ -190,6 +190,12 @@ class BendTable(QWidget):
                           False, [], "Design angle + springback (shop table)")
             else:
                 self._set(i, 5, "—", False, [], "Springback off")
+            b = ev.analysis.bend(k)
+            self._set(i, 6, f"{fmt_num(to_display(b.mark_start, u))} – "
+                            f"{fmt_num(to_display(b.mark_end, u))}", False,
+                      [f"bend{k}.mark_start", f"bend{k}.mark_end"],
+                      "Start and end of the bend, measured along the developed tube from the "
+                      "P0 end point. Add the end-1 allowance to measure from the cut end.")
 
     def _fill_legs(self) -> None:
         ev, u = self.ev, self.unit

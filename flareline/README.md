@@ -78,7 +78,9 @@ python -m flareline.app            (or the `flareline` command)
 - Select any number in the table, the 2D view or a warning to see its formula and its
   full-precision inputs in **Explain**.
 - The first run copies the placeholder data set to the app-data folder
-  (`%APPDATA%/FlareLine/data` on Windows). Fill it in there.
+  (`%APPDATA%\FlareLine\FlareLine\data` on Windows). Fill it in with
+  **Tools → Standards & shop data** (Ctrl+D).
+- **User guide:** [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md).
 - Undo/redo, autosave every minute while there are unsaved changes, light / dark / system
   theme, F1 for the How-to panel.
 

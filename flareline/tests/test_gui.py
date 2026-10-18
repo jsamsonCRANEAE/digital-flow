@@ -180,3 +180,83 @@ def test_gu12_twenty_bend_update_under_100ms(win):
                   "bench")
         times.append((time.perf_counter() - t0) * 1000)
     assert statistics.median(times) < 100, times
+
+
+# -- standards data editor ------------------------------------------------------------
+
+@pytest.fixture
+def editor(app, tmp_path):
+    import shutil
+    from flareline.app.widgets.data_editor import DataEditorDialog
+    from flareline.data import default_data_dir
+    d = tmp_path / "data"
+    shutil.copytree(default_data_dir(), d)
+    dlg = DataEditorDialog(d, user="J. Tester")
+    yield dlg
+    dlg.close()
+
+
+@pytest.mark.parametrize("kind, text, value", [
+    ("number", "0.875", 0.875), ("number", "", None),
+    ("numbers", "0.035, 0.049", [0.035, 0.049]), ("numbers", "", []),
+    ("points", "0:0; 90:3", [[0.0, 0.0], [90.0, 3.0]]),
+    ("bool", "yes", True), ("bool", "No", False), ("text", " AMS 5567 ", "AMS 5567"),
+])
+def test_de01_value_parsing(kind, text, value):
+    """DE-01 what the user types becomes the right JSON value, and formats back."""
+    from flareline.app.widgets.data_editor import format_value, parse_value
+    assert parse_value(kind, text) == value
+    assert parse_value(kind, format_value(kind, value)) == value
+
+
+def test_de02_enter_verify_and_log(editor):
+    """DE-02 entering a min CLR then verifying the row: data reloads VERIFIED, the change
+    log names the user and reason, and the grid shows the new status."""
+    editor.show_table("as33611_bend_radius")
+    editor.apply_value(0, "min_clr", "0.875", "entered from licensed copy")
+    editor.verify_row(0, standard="SAE AS33611", revision="TEST", table_ref="T-1",
+                      date_entered="2026-10-18", reason="checked")
+    row = editor.ds.table("as33611_bend_radius").rows[0]
+    assert row.values["min_clr"] == 0.875 and row.provenance.status.value == "VERIFIED"
+    from flareline.data import read_changelog
+    log = read_changelog(editor.directory)
+    assert [r["user"] for r in log] == ["J. Tester", "J. Tester"]
+    assert log[0]["reason"] == "entered from licensed copy"
+    status_col = editor.grid.columnCount() - 5
+    assert editor.grid.item(0, status_col).text() == "VERIFIED"
+
+
+def test_de03_verify_refused_when_values_missing(editor):
+    """DE-03 verifying a row with an empty required value is refused; nothing is written."""
+    from flareline.data import DataError, read_changelog
+    editor.show_table("as4330_flare")
+    with pytest.raises(DataError):
+        editor.verify_row(0, standard="SAE AS4330", revision="X", table_ref="T",
+                          date_entered="2026-10-18", reason="r")
+    assert read_changelog(editor.directory) == []
+
+
+def test_de04_note_edit_and_verify(editor):
+    """DE-04 the flare end-point note can be written and verified; an empty note cannot."""
+    from flareline.data import DataError
+    editor.show_table("as4330_flare")
+    with pytest.raises(DataError):
+        editor.set_note("end_point_definition", "  ", True, "r")
+    editor.set_note("end_point_definition", "TEST definition", True, "from drawing practice")
+    m = editor.ds.table("as4330_flare").meta["end_point_definition"]
+    assert m["text"] == "TEST definition" and m["status"] == "VERIFIED"
+    assert m["entered_by"] == "J. Tester"
+
+
+def test_de05_bad_value_rejected(editor):
+    """DE-05 text in a number field is refused before anything is written."""
+    editor.show_table("as33611_bend_radius")
+    with pytest.raises(ValueError):
+        editor.apply_value(0, "min_clr", "about one inch", "r")
+
+
+def test_gu13_lra_marks_column(win):
+    """GU-13 hand-bender marks in the LRA table, simple 90 (legs 8/6, R 0.75, T 0.75):
+    bend starts at 7.2500 and ends at 7.25 + 0.75*pi/2 = 8.4281 from P0."""
+    win.table.set_mode("LRA")
+    assert cell(win, 0, 6).text() == "7.2500 – 8.4281"

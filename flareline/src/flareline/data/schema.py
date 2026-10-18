@@ -225,6 +225,17 @@ def parse_table(doc: Mapping[str, Any], expected_name: str, sha256: str = "") ->
             raise _err(where, f"field {name} has unknown kind {fd.get('kind')!r}")
         fields[name] = FieldDef(name, fd["kind"], fd.get("unit", "-"),
                                 bool(fd.get("required", False)), fd.get("description", ""))
+    for mk, mv in doc.get("meta", {}).items():
+        if not isinstance(mv, dict):
+            raise _err(where, f"table note {mk} must be an object")
+        try:
+            st = Status(mv.get("status", Status.UNVERIFIED_STD.value))
+        except ValueError:
+            raise _err(where, f"table note {mk} has unknown status {mv.get('status')!r}") from None
+        if st not in FILE_STATUSES:
+            raise _err(where, f"table note {mk} has status {st.value!r}, not allowed in a file")
+        if st == Status.VERIFIED and not mv.get("text"):
+            raise _err(where, f"table note {mk} is VERIFIED but empty")
     rows, seen = [], set()
     for i, r in enumerate(doc.get("rows", [])):
         rw = f"{where} row {i}"
