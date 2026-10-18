@@ -18,10 +18,11 @@ FlareLine works fully offline. It makes no network calls and sends nothing anywh
 6. [Checks: errors, warnings and what to do](#6-checks-errors-warnings-and-what-to-do)
 7. [Explain: where every number comes from](#7-explain-where-every-number-comes-from)
 8. [Entering and verifying standards data](#8-entering-and-verifying-standards-data)
-9. [Files, autosave and the audit log](#9-files-autosave-and-the-audit-log)
-10. [Keyboard shortcuts](#10-keyboard-shortcuts)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Not in this version yet](#12-not-in-this-version-yet)
+9. [Exporting drawings and approved deviations](#9-exporting-drawings-and-approved-deviations)
+10. [Files, autosave and the audit log](#10-files-autosave-and-the-audit-log)
+11. [Keyboard shortcuts](#11-keyboard-shortcuts)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Not in this version yet](#13-not-in-this-version-yet)
 
 ---
 
@@ -167,7 +168,7 @@ you stop typing ("checking…").
 | FLARELESS_PLACEHOLDER | Info | Flareless ends aren't modelled yet | — |
 | INTERFERENCE_NOT_CHECKED | Info | Self-interference couldn't be checked (no OD, or errors first) | Fix the errors above it |
 
-A **release drawing** (Phase 4) needs: no errors, no missing or unverified data, the
+A **release drawing** (section 9) needs: no errors, no missing or unverified data, the
 interference check complete, and, for image-derived routes, every dimension confirmed.
 Anything else is watermarked **NOT FOR FABRICATION**.
 
@@ -227,7 +228,7 @@ Rules that protect you:
   will not load. FlareLine tells you why, and runs on the empty placeholder data until it is
   fixed.
 - Changing any data file changes the **data set fingerprint** in the status bar. It is
-  recorded in the audit log and will be printed on drawings.
+  recorded in the audit log and printed in the drawing notes.
 
 **Where the data lives:** `%APPDATA%\FlareLine\FlareLine\data`. It is copied from the
 placeholders on first run, and updates never overwrite it. Back it up and keep it under your
@@ -239,7 +240,57 @@ field. Regenerate it with `python -m flareline.data.fields_report "%APPDATA%\Fla
 **Suggested practice:** one person enters values, and a second person checks them against the
 standard and marks the row verified. Agree with your quality group who may verify.
 
-## 9. Files, autosave and the audit log
+## 9. Exporting drawings and approved deviations
+
+**Step 5 · Drawing** holds the title block (part number, title, revision, drawn / checked by),
+the notes (general tolerances, cleanliness, proof test) and the revision history, one line per
+revision: `A | Initial release | 2026-10-18 | JS`. The last four are printed. The step also shows
+whether the drawing will be releasable.
+
+**File → Export drawing…** (Ctrl+E, or the button in step 5):
+
+| Format | What you get |
+|---|---|
+| **PDF** | Sheet 1 is the drawing. Sheets 2 onward are the **calculation record**: every input with its status and source, and every calculation with its formula and full-precision inputs. |
+| **DXF** | Model space holds the **true-size 3D centerline** (lines and arcs in their own bend planes, inches) for CAD. Paper space ("SHEET") holds the drawing. |
+| **PNG** | Sheet 1 as an image, for a quick message. |
+| **CSV** | The bend table at full precision, with a header giving the part, data set fingerprint, conventions and release status. |
+
+Sheet sizes ANSI A, B or D, landscape. B is the most legible for most tubes.
+
+![Example drawing](examples/SAMPLE-3_placeholder_data.png)
+
+*Example: the 3D compound sample on the placeholder data, so it is watermarked.*
+
+What is on sheet 1:
+- Third-angle views at one standard scale: top above front, right side to the right of front.
+  An isometric is included for reference, not to scale. Coinciding points share a label
+  ("P1, P2").
+- The bend table: X, Y, Z, CLR, bend, rotation, straight to next, and bend marks (plus the
+  angle at the bender when springback is on).
+- A flare detail for each 37° end, with values from the AS4330 data and a schematic
+  half-section that is not to scale.
+- Numbered notes: material, OD × wall, developed and cut length, standards used with
+  revisions, conventions, tolerances, cleanliness, proof test, approved deviations, data set
+  fingerprint and the disclaimer.
+- The revision table and the title block. Approval boxes are left blank for signature.
+
+**Release rule.** A drawing is printed clean only when there are no errors, every data value
+used is verified (or an approved deviation), the interference check is complete, and any
+image-derived route is confirmed. Otherwise every sheet-1 view carries a **NOT FOR
+FABRICATION** watermark and a list of the reasons. The CSV header says the same. With the audit
+log on, each export is recorded with its formats, size and status.
+
+**Tools → Approved deviations…** replaces a data value for this project only, for example an
+approved deviation to the minimum CLR. Enter the value (inches), the approval reference or
+reason, and who approved it. The date defaults to today. FlareLine refuses a deviation without
+a reference and an approver. A deviation shows as **USER INPUT**, is listed in Warnings, and is
+printed in the drawing notes. Clear the value to remove it; Ctrl+Z undoes it. Use deviations
+only through your organization's approved process.
+
+**Help → Save quick-start guide (PDF)** writes the one-page quick start.
+
+## 10. Files, autosave and the audit log
 
 - **Projects** are readable JSON (`.flareline.json`) with a schema version. FlareLine refuses a
   file from a newer version rather than guess.
@@ -252,7 +303,7 @@ standard and marks the row verified. Agree with your quality group who may verif
 - **Theme:** View → System / Light / Dark.
 - **How-to panel:** F1.
 
-## 10. Keyboard shortcuts
+## 11. Keyboard shortcuts
 
 | Keys | Action |
 |---|---|
@@ -262,12 +313,13 @@ standard and marks the row verified. Agree with your quality group who may verif
 | Ctrl+L | Add leg |
 | Ctrl+Shift+X / L / G | Bend table: XYZ / LRA / Legs |
 | Ctrl+D | Standards & shop data |
+| Ctrl+E | Export drawing |
 | F1 | How-to panel |
 | F, 0, 1, 2, 3 (3D view focused) | Fit, iso, front, top, right |
 | M, S (3D view focused) | Measure, section |
 | Esc | Close a dialog |
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
@@ -278,13 +330,7 @@ standard and marks the row verified. Agree with your quality group who may verif
 | A number looks rounded | Display only: 4 decimals for lengths, 2 for angles. Explain shows the full value. |
 | Measured distance in 3D differs from a dimension | Measure picks points on the tube surface, so it is approximate. Use the bend table and Explain for exact values. |
 
-## 12. Not in this version yet
+## 13. Not in this version yet
 
-- **Drawing export** (PDF / DXF / PNG / CSV) with title block, bend table, flare detail and
-  NOT FOR FABRICATION watermark: Phase 4.
-- **Project overrides** (e.g. an approved deviation for min CLR) are supported in the file
-  format and listed in Warnings, but have no screen yet. Adding one, and printing it on
-  drawings, comes in Phase 4.
 - **Image trace** from a photo or sketch: Phase 5.
-- **Packaged `.exe`**, first-run interactive tutorial, and the one-page quick-start PDF:
-  Phase 6.
+- **Packaged `.exe`** and the first-run interactive tutorial: Phase 6.

@@ -1,11 +1,9 @@
 """Projects: file format, data resolution with provenance, banner, audit log."""
-import json
 import math
-import shutil
 
 import pytest
 
-from flareline.data import DataEditor, Status, default_data_dir, load_dataset
+from flareline.data import DataEditor, Status, load_dataset
 from flareline.geometry import TubeRoute
 from flareline.project import (AuditLog, Override, Project, ProjectError, Settings, TubeSpec,
                                evaluate, from_json, load, read_audit_log, save, to_json)
@@ -21,36 +19,6 @@ def project(**kw):
 
 def codes(ev, sev=None):
     return [i.code for i in ev.issues if sev is None or i.severity.value == sev]
-
-
-@pytest.fixture
-def filled_dir(tmp_path):
-    """Placeholder data with the -4 / 304 rows filled in and VERIFIED using
-    TEST values (not standards values) to exercise the trusted path."""
-    d = tmp_path / "data"
-    shutil.copytree(default_data_dir(), d)
-    ed = DataEditor(d, "test")
-    v = dict(standard="TEST", revision="T", table_ref="T-1", date_entered="2026-10-18",
-             reason="test")
-    ed.set_value("as33611_bend_radius", 0, "min_clr", 0.5, "test")
-    ed.mark_verified("as33611_bend_radius", 0, **v)
-    for f, val in (("end_allowance", 0.1), ("flare_diameter_min", 0.3),
-                   ("flare_diameter_max", 0.31), ("flare_angle_nominal_deg", 37.0),
-                   ("flare_angle_tol_deg", 0.5)):
-        ed.set_value("as4330_flare", 0, f, val, "test")
-    ed.mark_verified("as4330_flare", 0, **v)
-    for f, val in (("min_straight_between_bends", 0.5), ("min_end_straight_flare37", 1.0),
-                   ("min_end_straight_plain", 0.5)):
-        ed.set_value("shop_limits", 0, f, val, "test")
-    ed.mark_verified("shop_limits", 0, **v)
-    ed.set_value("materials", 0, "material_spec", "TEST-SPEC", "test")
-    ed.set_value("materials", 0, "flaring_permitted", True, "test")
-    ed.mark_verified("materials", 0, **v)
-    path = d / "as4330_flare.json"
-    doc = json.loads(path.read_text(encoding="utf-8"))
-    doc["meta"]["end_point_definition"].update(text="TEST point", status="VERIFIED")
-    path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
-    return d
 
 
 def test_pj01_save_load_round_trip_is_exact(tmp_path):

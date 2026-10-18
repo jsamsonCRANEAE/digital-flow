@@ -212,7 +212,15 @@ def analyze(route: TubeRoute,
             u, v = dirs[k - 1], dirs[k]
             normal = unit(np.cross(u, v))
             rotation = None
-            if prev_normal is not None:
+            if prev_normal is None:
+                ref = perpendicular_reference(dirs[0])
+                b1 = signed_angle(ref, normal, dirs[0])
+                tb.add(f"bend{k}.rotation_from_ref_deg", math.degrees(b1), "deg",
+                       "B1 = atan2((n_ref x n) . d0, n_ref . n) * 180 / pi",
+                       {"n_ref": _t(ref), "n": _t(normal), "d0": _t(dirs[0])},
+                       f"Bend {k} plane rotation from the reference plane (+Z projected "
+                       f"normal to the first leg; +Y if that leg is vertical)")
+            else:
                 rotation = tb.add(
                     f"bend{k}.rotation", signed_angle(prev_normal, normal, u), "rad",
                     "B = atan2((n_prev x n) . d, n_prev . n)",

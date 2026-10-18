@@ -260,3 +260,55 @@ def test_gu13_lra_marks_column(win):
     bend starts at 7.2500 and ends at 7.25 + 0.75*pi/2 = 8.4281 from P0."""
     win.table.set_mode("LRA")
     assert cell(win, 0, 6).text() == "7.2500 – 8.4281"
+
+
+# -- phase 4: export, deviations, quick start ---------------------------------------
+
+def test_gu14_export_dialog_writes_all_formats(win, tmp_path):
+    """GU-14 the export dialog writes PDF, DXF, PNG and CSV named after the part and rev,
+    and reports the NOT FOR FABRICATION status on placeholder data."""
+    from flareline.app.widgets.export_dialog import ExportDialog
+    from flareline.project import evaluate
+    ev = evaluate(win.state.project, win.state.dataset)
+    dlg = ExportDialog(ev, win.state.dataset, None, tmp_path / "audit.jsonl")
+    dlg.folder.setText(str(tmp_path))
+    files = dlg.run_export()
+    assert sorted(f.name for f in files) == sorted(
+        ["SAMPLE-1.pdf", "SAMPLE-1.dxf", "SAMPLE-1.png", "SAMPLE-1_bend_table.csv"])
+    assert all(f.stat().st_size > 0 for f in files)
+
+
+def test_gu15_deviation_needs_reason_and_approver(win):
+    """GU-15 a deviation without approval reference / approver is refused; with them it
+    becomes a USER INPUT value with its reason, and is undoable."""
+    from flareline.app.widgets.deviations import EDITABLE, DeviationsDialog
+    dlg = DeviationsDialog(win.state.evaluation)
+    r = EDITABLE.index("min_clr")
+    dlg.table.item(r, 2).setText("0.6")
+    with pytest.raises(ValueError, match="approval reference"):
+        dlg.collect()
+    dlg.table.item(r, 3).setText("ED-42")
+    dlg.table.item(r, 4).setText("J. Smith")
+    win.state.change(dlg.collect(), "dev")
+    res = win.state.evaluation.resolved["min_clr"]
+    assert res.value == 0.6 and res.status.value == "USER INPUT" and "ED-42" in res.source
+    win.state.undo.undo()
+    assert "min_clr" not in win.state.project.overrides
+
+
+def test_gu16_quickstart_pdf(tmp_path):
+    """GU-16 Help > quick-start writes a one-page PDF with the disclaimer."""
+    from pypdf import PdfReader
+    from flareline.drawing.quickstart import write_quickstart
+    write_quickstart(tmp_path / "q.pdf")
+    r = PdfReader(str(tmp_path / "q.pdf"))
+    assert len(r.pages) == 1
+    assert "Design aid only" in r.pages[0].extract_text()
+
+
+def test_gu17_revisions_saved_to_project(win):
+    """GU-17 revision lines typed on the Drawing step are stored, '|' separated."""
+    page = win.wizard.pages[4]
+    page.revisions.setPlainText("A | Initial release | 2026-10-18 | JS")
+    page._meta("revisions", "A|Initial release|2026-10-18|JS")
+    assert win.state.project.meta["revisions"] == "A|Initial release|2026-10-18|JS"

@@ -4,10 +4,10 @@ from __future__ import annotations
 import math
 from dataclasses import replace
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QGridLayout, QHBoxLayout,
-                               QLabel, QLineEdit, QListWidget, QPushButton, QScrollArea,
-                               QStackedWidget, QVBoxLayout, QWidget)
+                               QLabel, QLineEdit, QListWidget, QPlainTextEdit, QPushButton,
+                               QScrollArea, QStackedWidget, QVBoxLayout, QWidget)
 
 from ...geometry.issues import Severity
 from ...geometry.route import TubeRoute
@@ -386,8 +386,23 @@ class DrawingPage(_Page):
               ("proof_test", "Proof-test note"))
 
     def __init__(self, state):
-        super().__init__(state, "Drawing", "Title block and notes. PDF / DXF / PNG / CSV "
-                         "export arrives in Phase 4.")
+        super().__init__(state, "Drawing", "Title block, notes and revisions, then export "
+                         "PDF / DXF / PNG / CSV (Ctrl+E).")
+        f, lay = card("Export")
+        self.status = QLabel()
+        self.status.setWordWrap(True)
+        lay.addWidget(self.status)
+        row = QHBoxLayout()
+        self.export_btn = QPushButton("Export drawing…")
+        self.export_btn.setObjectName("Primary")
+        self.export_btn.setToolTip("PDF, DXF, PNG and CSV on ANSI A, B or D (Ctrl+E)")
+        self.dev_btn = QPushButton("Approved deviations…")
+        self.dev_btn.setToolTip("Replace a data value for this project with an approved "
+                                "deviation (printed on the drawing)")
+        row.addWidget(self.export_btn)
+        row.addWidget(self.dev_btn)
+        lay.addLayout(row)
+        self.lay.addWidget(f)
         f, lay = card("Title block & notes")
         form = QFormLayout()
         self.edits = {}
@@ -398,6 +413,14 @@ class DrawingPage(_Page):
             form.addRow(label, e)
             self.edits[key] = e
         lay.addLayout(form)
+        self.lay.addWidget(f)
+        f, lay = card("Revisions")
+        lay.addWidget(muted("One per line: REV | DESCRIPTION | DATE | BY (last 4 shown)"))
+        self.revisions = QPlainTextEdit()
+        self.revisions.setToolTip("Revision history, e.g. A | Initial release | 2026-10-18 | JS")
+        self.revisions.setFixedHeight(90)
+        self.revisions.installEventFilter(self)
+        lay.addWidget(self.revisions)
         self.lay.addWidget(f)
         self.lay.addWidget(muted("Design aid only. All geometry must be verified and approved "
                                  "per your organization's engineering and quality process "
@@ -411,10 +434,29 @@ class DrawingPage(_Page):
         meta[key] = text
         self.change(replace(self.p, meta=meta), f"Edit {key}")
 
+    def eventFilter(self, obj, event):  # noqa: N802 - commit revisions on focus-out
+        if obj is getattr(self, "revisions", None) and event.type() == QEvent.FocusOut:
+            text = "\n".join("|".join(c.strip() for c in ln.split("|"))
+                             for ln in self.revisions.toPlainText().splitlines() if ln.strip())
+            self._meta("revisions", text)
+        return super().eventFilter(obj, event)
+
     def refresh(self, ev: Evaluation) -> None:
         for key, e in self.edits.items():
             if not e.hasFocus():
                 e.setText(self.p.meta.get(key, ""))
+        if not self.revisions.hasFocus():
+            self.revisions.setPlainText("\n".join(
+                " | ".join(ln.split("|")) for ln in self.p.meta.get("revisions", "").splitlines()))
+        if ev.releasable:
+            self.status.setText("<b style='color:#1E7D32'>Releasable</b>: no errors and all "
+                                "data verified.")
+        elif not ev.interference_checked:
+            self.status.setText("Checking…")
+        else:
+            from ...drawing.layout import release_reasons
+            self.status.setText("<b style='color:#C62828'>Will be watermarked NOT FOR "
+                                "FABRICATION</b>: " + "; ".join(release_reasons(ev)))
 
 
 class Wizard(QWidget):

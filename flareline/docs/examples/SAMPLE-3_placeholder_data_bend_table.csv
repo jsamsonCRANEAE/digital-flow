@@ -1,0 +1,12 @@
+# FlareLine 0.1.0 bend table; exported 2026-10-18
+# part SAMPLE-3 rev -
+# data set 0.1.0-placeholder sha256 fbc06821c09ef860106c295a852941b8c72741ad637cbbc9b64811246e9dc6d4
+# units: inches, degrees; full precision (not rounded). Z up. rotation + = CW looking along the tube toward end 2; bend 1 rotation from reference plane
+# status: NOT FOR FABRICATION - 8 unverified or missing data value(s): Material specification, Minimum CLR, Minimum straight between bends, End 1 allowance …
+# developed_in 20.403216027547693; cut_in 20.403216027547693 (INCOMPLETE: end allowance missing)
+point,x_in,y_in,z_in,clr_in,bend_deg,rotation_deg,straight_to_next_in,leg_to_next_in,mark_start_in,mark_end_in
+P0,0.0,0.0,0.0,,,,4.25,5.0,,
+P1,5.0,0.0,0.0,0.75,90.0,90.0,4.7196699141100895,6.0,4.25,5.428097245096172
+P2,5.0,0.0,6.0,0.75,70.52877936550931,-135.0,4.939339828220179,6.0,10.147767159206262,11.070986722211844
+P3,9.0,4.0,8.0,0.75,70.52877936550931,180.0,3.4696699141100895,4.0,16.010326550432023,16.933546113437604
+P4,9.0,4.0,12.0,,,,,,,

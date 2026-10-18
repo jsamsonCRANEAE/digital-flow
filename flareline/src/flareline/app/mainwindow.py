@@ -95,6 +95,8 @@ class MainWindow(QMainWindow):
             src.connect(self._explain)
         self.wizard.stepChanged.connect(lambda _: state.evaluation and
                                         self.wizard.refresh(state.evaluation))
+        self.wizard.pages[4].export_btn.clicked.connect(self.export_drawing)
+        self.wizard.pages[4].dev_btn.clicked.connect(self.edit_deviations)
         self._title()
 
     # -- updates ---------------------------------------------------------------------
@@ -146,6 +148,8 @@ class MainWindow(QMainWindow):
         # QKeySequence.SaveAs has no binding on Windows, so name the keys
         self._act(f, "Save &as…", QKeySequence("Ctrl+Shift+S"), self.save_as)
         f.addSeparator()
+        self._act(f, "&Export drawing…", QKeySequence("Ctrl+E"), self.export_drawing)
+        f.addSeparator()
         self.audit_act = self._act(f, "Write audit log", None, self._toggle_audit)
         self.audit_act.setCheckable(True)
         f.addSeparator()
@@ -174,9 +178,11 @@ class MainWindow(QMainWindow):
 
         tl = mb.addMenu("&Tools")
         self._act(tl, "Standards && shop &data…", QKeySequence("Ctrl+D"), self.edit_data)
+        self._act(tl, "Approved &deviations…", None, self.edit_deviations)
 
         h = mb.addMenu("&Help")
         self._act(h, "How to", None, self.toggle_howto)
+        self._act(h, "Save &quick-start guide (PDF)…", None, self.save_quickstart)
         self._act(h, "About FlareLine", None, self.about)
 
     def _act(self, menu, text, shortcut, slot) -> QAction:
@@ -281,6 +287,26 @@ class MainWindow(QMainWindow):
             self.state.refresh()
         dlg.dataChanged.connect(reload)
         dlg.exec()
+
+    def export_drawing(self) -> None:
+        from ..project import evaluate
+        from .widgets.export_dialog import ExportDialog
+        ev = evaluate(self.state.project, self.state.dataset)  # full check, incl. interference
+        ExportDialog(ev, self.state.dataset, self.state.path, self.state.audit_path(),
+                     self).exec()
+
+    def edit_deviations(self) -> None:
+        from .widgets.deviations import DeviationsDialog
+        dlg = DeviationsDialog(self.state.evaluation, self)
+        if dlg.exec() and dlg.result_project is not None:
+            self.state.change(dlg.result_project, "Edit approved deviations")
+
+    def save_quickstart(self) -> None:
+        from ..drawing.quickstart import write_quickstart
+        path, _ = QFileDialog.getSaveFileName(self, "Save quick-start guide",
+                                              "FlareLine_quick_start.pdf", "PDF (*.pdf)")
+        if path:
+            write_quickstart(path)
 
     def toggle_howto(self) -> None:
         self.howto.setVisible(not self.howto.isVisible())

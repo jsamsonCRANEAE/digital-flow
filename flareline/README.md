@@ -15,8 +15,8 @@ FlareLine runs fully offline. It makes no network calls and has no telemetry.
 | 1 | Geometry engine + tests | **done** |
 | 2 | Standards data files (AS4330 / AS33611 / J514) + validation wiring | **done** |
 | 3 | GUI shell, live 3D / 2D views | **done** |
-| 4 | Drawing export (PDF / DXF / PNG / CSV) | next |
-| 5 | Image trace mode | |
+| 4 | Drawing export (PDF / DXF / PNG / CSV) | **done** |
+| 5 | Image trace mode | next |
 | 6 | Packaging (.exe), tutorial, polish | |
 
 ## Layout
@@ -39,11 +39,13 @@ flareline/
     store.py         loading, SHA-256 hashing, DataEditor with CHANGELOG.jsonl
     fields_report.py list of every field still to fill in
   src/flareline/project/    project file, data resolution, evaluation, audit log
+  src/flareline/drawing/    drawing model + PDF / DXF / PNG / CSV export, quick-start PDF
   src/flareline/app/        PySide6 desktop app (wizard, 3D, 2D, bend table, warnings)
   src/flareline/samples/    sample projects (simple 90°, S-offset, 3D compound)
   tools/make_placeholder_data.py   regenerates the placeholder data set
   tests/             known-answer and property tests
-  docs/              CONVENTIONS.md, TEST_REPORT.md, STANDARDS_DATA_FIELDS.md
+  docs/              USER_GUIDE.md, CONVENTIONS.md, TEST_REPORT.md,
+                     STANDARDS_DATA_FIELDS.md, FlareLine_quick_start.pdf, examples/
 ```
 
 ## Standards data
@@ -56,11 +58,11 @@ value is null and marked `UNVERIFIED – REPLACE FROM STANDARD` (or `… FROM SH
 - A row can be **VERIFIED** only when its source (standard, revision, table, date entered,
   entered by) and every required value are filled in. The loader refuses anything less.
 - Any missing or unverified value that a calculation uses raises a red banner and a
-  warning. It also blocks a release drawing, which will be watermarked from Phase 4.
+  warning, and the exported drawing is watermarked NOT FOR FABRICATION.
 - Edits made through `DataEditor` are validated, written atomically and appended to
   `CHANGELOG.jsonl` (who, when, why, before, after, file hashes). Changing a VERIFIED
   value drops the row back to UNVERIFIED.
-- The SHA-256 of the whole data set is recorded in the audit log, and will be printed on
+- The SHA-256 of the whole data set is recorded in the audit log and printed on
   drawings, so each drawing ties to the exact data that produced it.
 
 ## Running the app
@@ -80,7 +82,11 @@ python -m flareline.app            (or the `flareline` command)
 - The first run copies the placeholder data set to the app-data folder
   (`%APPDATA%\FlareLine\FlareLine\data` on Windows). Fill it in with
   **Tools → Standards & shop data** (Ctrl+D).
-- **User guide:** [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md).
+- **Export** (Ctrl+E): PDF drawing + calculation record, DXF (true-size 3D centerline + sheet),
+  PNG, CSV on ANSI A / B / D. Watermarked NOT FOR FABRICATION unless releasable. Example in
+  [`docs/examples/`](docs/examples/).
+- **User guide:** [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md); one-page
+  [quick start](docs/FlareLine_quick_start.pdf).
 - Undo/redo, autosave every minute while there are unsaved changes, light / dark / system
   theme, F1 for the How-to panel.
 

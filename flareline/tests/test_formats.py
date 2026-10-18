@@ -117,3 +117,13 @@ def test_fm10_reject_180_in_lra():
     """FM-10 a 180 deg bend has no finite tangent and is rejected."""
     with pytest.raises(ValueError):
         lra_to_route(LraData((5.0, 5.0), (BendStep(0, 180.0, 1.0),)))
+
+
+def test_fm11_first_bend_rotation_is_traced_and_matches_lra():
+    """FM-11 bend 1's B (from the reference plane) has its own trace, equal to LRA B1:
+    KA-06 bends up into +Z: n = -Y; from n_ref = +Z about +X that is +90."""
+    from flareline.geometry import analyze
+    a = analyze(TubeRoute.uniform([(0, 0, 0), (6, 0, 0), (6, 0, 6)], 1.5))
+    t = a.traces["bend1.rotation_from_ref_deg"]
+    assert t.value == pytest.approx(90.0, abs=1e-12)
+    assert route_to_lra(a).steps[0].rotation_deg == pytest.approx(t.value, abs=1e-12)
