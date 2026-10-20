@@ -60,6 +60,9 @@ class Game {
     this.setState('title');
     window.addEventListener('resize', () => this.fit());
     this.fit();
+    this.input.onPadChange = (n, added) => {
+      if (this.world) this.world.toast(added ? `CONTROLLER CONNECTED · ${n} active` : `CONTROLLER DISCONNECTED · ${n} active`, '#50f0ff');
+    };
     window.__shiftZero = this;
     requestAnimationFrame((n) => this.frame(n));
   }
@@ -207,6 +210,13 @@ class Game {
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     this.t += dt;
+    this.input.pollGamepads();
+    // Controller rumble follows screen trauma: arc flashes, hits, overclocks.
+    this.rumbleT = (this.rumbleT || 0) - dt;
+    if (this.camera.trauma > 0.25 && this.rumbleT <= 0 && this.input.pads.length) {
+      this.rumbleT = 0.1;
+      this.input.rumble(this.camera.trauma * this.camera.trauma, 120);
+    }
     this.camera.update(dt);
     if (this.camera.hitStopT > 0) {
       this.camera.hitStopT -= dt;
@@ -367,7 +377,7 @@ class Game {
     switch (this.state) {
       case 'title':
         this.backdrops.title(ctx, t, dt);
-        this.screens.title(this.meta, t);
+        this.screens.title(this.meta, t, this.input.pads.length);
         break;
       case 'intro':
         this.backdrops.intro(ctx, t, dt, this.introIndex);

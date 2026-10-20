@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node tools/serve.mjs",
     "test": "node tools/validate.mjs",
-    "test:browser": "node tools/mechanics.mjs && node tools/bot.mjs && node tools/fuzz.mjs",
+    "test:browser": "node tools/mechanics.mjs && node tools/gamepad.mjs && node tools/bot.mjs && node tools/fuzz.mjs",
     "smoke": "node tools/smoke.mjs",
     "perf": "node tools/perf.mjs"
   },

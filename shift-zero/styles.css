@@ -109,6 +109,8 @@ kbd {
 .tagline { margin-top: 10px; font-size: 12px; color: var(--dim); letter-spacing: 1px; }
 .press { margin-top: 40px; font-size: 16px; letter-spacing: 4px; color: var(--ink); text-shadow: 0 0 10px rgba(255,220,160,0.6); }
 .press.dim { opacity: 0.35; }
+.pads { margin-top: 10px; font-size: 12px; color: var(--dim); letter-spacing: 1px; }
+.pads.on { color: var(--cyan); text-shadow: 0 0 8px rgba(80,240,255,0.5); }
 .controls { display: flex; gap: 18px; margin-top: 34px; }
 .controls .col { width: 340px; background: rgba(8,10,12,0.78); border: 1px solid var(--steel); padding: 10px 14px; font-size: 12px; }
 .controls .col h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: 2px; }

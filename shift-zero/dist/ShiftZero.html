@@ -117,6 +117,8 @@ kbd {
 .tagline { margin-top: 10px; font-size: 12px; color: var(--dim); letter-spacing: 1px; }
 .press { margin-top: 40px; font-size: 16px; letter-spacing: 4px; color: var(--ink); text-shadow: 0 0 10px rgba(255,220,160,0.6); }
 .press.dim { opacity: 0.35; }
+.pads { margin-top: 10px; font-size: 12px; color: var(--dim); letter-spacing: 1px; }
+.pads.on { color: var(--cyan); text-shadow: 0 0 8px rgba(80,240,255,0.5); }
 .controls { display: flex; gap: 18px; margin-top: 34px; }
 .controls .col { width: 340px; background: rgba(8,10,12,0.78); border: 1px solid var(--steel); padding: 10px 14px; font-size: 12px; }
 .controls .col h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: 2px; }
@@ -270,27 +272,84 @@ kbd {
     P1: { up: "KeyW", down: "KeyS", left: "KeyA", right: "KeyD", interact: "Space", cycle: "KeyQ", use: "KeyE", dodge: "ShiftLeft", overclock: "KeyF" },
     P2: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", hack: "Enter", hackAlt: "NumpadEnter", materialize: "ShiftRight", overclock: "Slash" }
   };
+  var PAD_MAPS = [
+    {
+      up: "KeyW",
+      down: "KeyS",
+      left: "KeyA",
+      right: "KeyD",
+      buttons: { 0: "Space", 1: "ShiftLeft", 2: "KeyE", 3: "KeyQ", 4: "KeyQ", 5: "KeyE", 6: "ShiftLeft", 7: "KeyF", 8: "Tab", 9: "Escape" }
+    },
+    {
+      up: "ArrowUp",
+      down: "ArrowDown",
+      left: "ArrowLeft",
+      right: "ArrowRight",
+      buttons: { 0: "Enter", 1: "ShiftRight", 2: "Enter", 3: "Slash", 5: "ShiftRight", 7: "Slash", 8: "Tab", 9: "Escape" }
+    }
+  ];
+  var DEADZONE = 0.45;
   var Input = class {
     constructor(target = window) {
-      this.down = /* @__PURE__ */ new Set();
+      this.keyDown = /* @__PURE__ */ new Set();
+      this.padDown = /* @__PURE__ */ new Set();
       this.pressed = /* @__PURE__ */ new Set();
       this.released = /* @__PURE__ */ new Set();
       this.lastKey = null;
+      this.pads = [];
+      this.onPadChange = null;
       target.addEventListener("keydown", (e) => {
         if (GAME_KEYS.has(e.code)) e.preventDefault();
-        if (!this.down.has(e.code)) this.pressed.add(e.code);
-        this.down.add(e.code);
+        if (!this.isDown(e.code)) this.pressed.add(e.code);
+        this.keyDown.add(e.code);
         this.lastKey = e.code;
       });
       target.addEventListener("keyup", (e) => {
         if (GAME_KEYS.has(e.code)) e.preventDefault();
-        this.down.delete(e.code);
-        this.released.add(e.code);
+        this.keyDown.delete(e.code);
+        if (!this.padDown.has(e.code)) this.released.add(e.code);
       });
-      target.addEventListener("blur", () => this.down.clear());
+      target.addEventListener("blur", () => this.keyDown.clear());
+      target.addEventListener("gamepadconnected", () => this.onPadChange && this.onPadChange(this.connectedPads().length, true));
+      target.addEventListener("gamepaddisconnected", () => this.onPadChange && this.onPadChange(this.connectedPads().length, false));
+    }
+    connectedPads() {
+      const list = navigator.getGamepads ? navigator.getGamepads() : [];
+      return [...list].filter((p) => p && p.connected);
+    }
+    /** Called once per rendered frame: converts controller state into virtual key edges. */
+    pollGamepads() {
+      this.pads = this.connectedPads();
+      const held = /* @__PURE__ */ new Set();
+      this.pads.slice(0, 2).forEach((pad2, i) => {
+        const m = PAD_MAPS[i];
+        const btn = (n) => !!pad2.buttons[n] && (pad2.buttons[n].pressed || pad2.buttons[n].value > 0.5);
+        const ax = pad2.axes[0] || 0, ay = pad2.axes[1] || 0;
+        if (ay < -DEADZONE || btn(12)) held.add(m.up);
+        if (ay > DEADZONE || btn(13)) held.add(m.down);
+        if (ax < -DEADZONE || btn(14)) held.add(m.left);
+        if (ax > DEADZONE || btn(15)) held.add(m.right);
+        for (const [n, code] of Object.entries(m.buttons)) if (btn(Number(n))) held.add(code);
+      });
+      for (const code of held) if (!this.isDown(code)) {
+        this.pressed.add(code);
+        this.lastKey = code;
+      }
+      for (const code of this.padDown) if (!held.has(code) && !this.keyDown.has(code)) this.released.add(code);
+      this.padDown = held;
+    }
+    /** Dual-rumble every connected controller (ignored where unsupported). */
+    rumble(strength, ms = 120) {
+      for (const pad2 of this.pads) {
+        const act = pad2.vibrationActuator;
+        if (act && act.playEffect) {
+          act.playEffect("dual-rumble", { duration: ms, strongMagnitude: Math.min(1, strength), weakMagnitude: Math.min(1, strength * 0.6) }).catch(() => {
+          });
+        }
+      }
     }
     isDown(code) {
-      return this.down.has(code);
+      return this.keyDown.has(code) || this.padDown.has(code);
     }
     wasPressed(code) {
       return this.pressed.has(code);
@@ -302,7 +361,7 @@ kbd {
       return codes.some((c) => this.pressed.has(c));
     }
     anyDown(...codes) {
-      return codes.some((c) => this.down.has(c));
+      return codes.some((c) => this.isDown(c));
     }
     get anyKeyPressed() {
       return this.pressed.size > 0;
@@ -6679,7 +6738,7 @@ kbd {
         ctx.fillText("SOLO-SWAP \u25B8 WASD DRIVES VOXEL", x + 8, y + 14);
         ctx.font = `9px ${FONT}`;
         ctx.fillStyle = "#8a8478";
-        ctx.fillText("[TAB] back to Body \xB7 Body is idle", x + 8, y + 27);
+        ctx.fillText("[TAB/BACK] back to Body \xB7 Body idle", x + 8, y + 27);
       } else {
         ctx.fillStyle = AMBER;
         ctx.fillText("WASD \u25B8 BODY", x + 8, y + 14);
@@ -6687,7 +6746,7 @@ kbd {
         ctx.fillText("ARROWS \u25B8 VOXEL", x + 100, y + 14);
         ctx.font = `9px ${FONT}`;
         ctx.fillStyle = "#8a8478";
-        ctx.fillText("[TAB] Solo-Swap \xB7 [ESC] pause", x + 8, y + 27);
+        ctx.fillText("[TAB/BACK] Solo-Swap \xB7 [ESC/START] pause", x + 8, y + 27);
       }
     }
     drawScope(ctx, world, dt, t) {
@@ -6901,7 +6960,7 @@ kbd {
     hide() {
       this.set("");
     }
-    title(meta, t) {
+    title(meta, t, pads = 0) {
       const found = Object.keys(ENDINGS).filter((k) => k !== "terminated");
       const endings = found.map((k) => `<li class="${meta.endings.includes(k) ? "got" : ""}">${meta.endings.includes(k) ? esc(ENDINGS[k].title) : "\u2014 locked \u2014"}</li>`).join("");
       this.set(`
@@ -6909,7 +6968,8 @@ kbd {
         <div class="logo" data-text="SHIFT ZERO">SHIFT ZERO</div>
         <div class="subtitle">THE WEIGHT OF AMPERAGE</div>
         <div class="tagline">A 2-player asymmetric co-op roguelite \xB7 one keyboard \xB7 one man, split in two</div>
-        <div class="press ${Math.floor(t * 2) % 2 ? "dim" : ""}">PRESS SPACE OR ENTER TO CLOCK IN</div>
+        <div class="press ${Math.floor(t * 2) % 2 ? "dim" : ""}">PRESS SPACE, ENTER OR \u24B6 TO CLOCK IN</div>
+        <div class="pads ${pads ? "on" : ""}">${pads ? `\u{1F3AE} ${pads} controller${pads > 1 ? "s" : ""} connected \u2014 controller 1 = BODY${pads > 1 ? " \xB7 controller 2 = VOXEL" : " (plug in a 2nd for the VOXEL)"}` : "\u{1F3AE} Controllers supported \u2014 connect one and press any button"}</div>
         <div class="controls">
           <div class="col body">
             <h3>P1 \xB7 THE BODY</h3>
@@ -6926,6 +6986,8 @@ kbd {
             <p><kbd>/</kbd> OVERCLOCK \u2014 burn a memory</p>
           </div>
           <div class="col solo">
+            <h3>CONTROLLERS</h3>
+            <p>Stick/D-pad move \xB7 \u24B6 interact/hack \xB7 \u24B7 dodge/materialize \xB7 \u24CD use tool \xB7 \u24CE cycle tool (P2: overclock) \xB7 RT overclock \xB7 BACK solo-swap \xB7 START pause</p>
             <h3>PLAYING ALONE?</h3>
             <p><kbd>TAB</kbd> Solo-Swap: WASD/SPACE/SHIFT drive the Voxel, <kbd>F</kbd> overclock</p>
             <p><kbd>ESC</kbd> pause \xB7 <kbd>M</kbd> mute</p>
@@ -7018,7 +7080,7 @@ kbd {
       <div class="screen pause-screen">
         <div class="end-title">PAUSED</div>
         <div class="end-sub">The grid doesn't pause. You do.</div>
-        <div class="hint">ESC resume \xB7 M mute \xB7 R abandon shift</div>
+        <div class="hint">ESC / START resume \xB7 M mute \xB7 R abandon shift</div>
       </div>`);
     }
   };
@@ -7449,6 +7511,9 @@ kbd {
       this.setState("title");
       window.addEventListener("resize", () => this.fit());
       this.fit();
+      this.input.onPadChange = (n, added) => {
+        if (this.world) this.world.toast(added ? `CONTROLLER CONNECTED \xB7 ${n} active` : `CONTROLLER DISCONNECTED \xB7 ${n} active`, "#50f0ff");
+      };
       window.__shiftZero = this;
       requestAnimationFrame((n) => this.frame(n));
     }
@@ -7634,6 +7699,12 @@ kbd {
       const dt = Math.min(0.1, (now - this.last) / 1e3);
       this.last = now;
       this.t += dt;
+      this.input.pollGamepads();
+      this.rumbleT = (this.rumbleT || 0) - dt;
+      if (this.camera.trauma > 0.25 && this.rumbleT <= 0 && this.input.pads.length) {
+        this.rumbleT = 0.1;
+        this.input.rumble(this.camera.trauma * this.camera.trauma, 120);
+      }
       this.camera.update(dt);
       if (this.camera.hitStopT > 0) {
         this.camera.hitStopT -= dt;
@@ -7833,7 +7904,7 @@ kbd {
       switch (this.state) {
         case "title":
           this.backdrops.title(ctx, t, dt);
-          this.screens.title(this.meta, t);
+          this.screens.title(this.meta, t, this.input.pads.length);
           break;
         case "intro":
           this.backdrops.intro(ctx, t, dt, this.introIndex);

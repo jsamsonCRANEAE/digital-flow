@@ -338,12 +338,12 @@ export class HUD {
       ctx.fillStyle = Math.sin(t * 4) > 0 ? CYAN : '#2a9cb8';
       ctx.fillText('SOLO-SWAP ▸ WASD DRIVES VOXEL', x + 8, y + 14);
       ctx.font = `9px ${FONT}`; ctx.fillStyle = '#8a8478';
-      ctx.fillText('[TAB] back to Body · Body is idle', x + 8, y + 27);
+      ctx.fillText('[TAB/BACK] back to Body · Body idle', x + 8, y + 27);
     } else {
       ctx.fillStyle = AMBER; ctx.fillText('WASD ▸ BODY', x + 8, y + 14);
       ctx.fillStyle = CYAN; ctx.fillText('ARROWS ▸ VOXEL', x + 100, y + 14);
       ctx.font = `9px ${FONT}`; ctx.fillStyle = '#8a8478';
-      ctx.fillText('[TAB] Solo-Swap · [ESC] pause', x + 8, y + 27);
+      ctx.fillText('[TAB/BACK] Solo-Swap · [ESC/START] pause', x + 8, y + 27);
     }
   }
 

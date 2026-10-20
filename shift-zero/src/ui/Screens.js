@@ -21,7 +21,7 @@ export class Screens {
 
   hide() { this.set(''); }
 
-  title(meta, t) {
+  title(meta, t, pads = 0) {
     const found = Object.keys(ENDINGS).filter((k) => k !== 'terminated');
     const endings = found.map((k) => `<li class="${meta.endings.includes(k) ? 'got' : ''}">${meta.endings.includes(k) ? esc(ENDINGS[k].title) : '— locked —'}</li>`).join('');
     this.set(`
@@ -29,7 +29,8 @@ export class Screens {
         <div class="logo" data-text="SHIFT ZERO">SHIFT ZERO</div>
         <div class="subtitle">THE WEIGHT OF AMPERAGE</div>
         <div class="tagline">A 2-player asymmetric co-op roguelite · one keyboard · one man, split in two</div>
-        <div class="press ${Math.floor(t * 2) % 2 ? 'dim' : ''}">PRESS SPACE OR ENTER TO CLOCK IN</div>
+        <div class="press ${Math.floor(t * 2) % 2 ? 'dim' : ''}">PRESS SPACE, ENTER OR Ⓐ TO CLOCK IN</div>
+        <div class="pads ${pads ? 'on' : ''}">${pads ? `🎮 ${pads} controller${pads > 1 ? 's' : ''} connected — controller 1 = BODY${pads > 1 ? ' · controller 2 = VOXEL' : ' (plug in a 2nd for the VOXEL)'}` : '🎮 Controllers supported — connect one and press any button'}</div>
         <div class="controls">
           <div class="col body">
             <h3>P1 · THE BODY</h3>
@@ -46,6 +47,8 @@ export class Screens {
             <p><kbd>/</kbd> OVERCLOCK — burn a memory</p>
           </div>
           <div class="col solo">
+            <h3>CONTROLLERS</h3>
+            <p>Stick/D-pad move · Ⓐ interact/hack · Ⓑ dodge/materialize · Ⓧ use tool · Ⓨ cycle tool (P2: overclock) · RT overclock · BACK solo-swap · START pause</p>
             <h3>PLAYING ALONE?</h3>
             <p><kbd>TAB</kbd> Solo-Swap: WASD/SPACE/SHIFT drive the Voxel, <kbd>F</kbd> overclock</p>
             <p><kbd>ESC</kbd> pause · <kbd>M</kbd> mute</p>
@@ -143,7 +146,7 @@ export class Screens {
       <div class="screen pause-screen">
         <div class="end-title">PAUSED</div>
         <div class="end-sub">The grid doesn't pause. You do.</div>
-        <div class="hint">ESC resume · M mute · R abandon shift</div>
+        <div class="hint">ESC / START resume · M mute · R abandon shift</div>
       </div>`);
   }
 }

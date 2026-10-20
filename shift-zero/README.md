@@ -36,6 +36,12 @@ Append `?seed=1234` to the URL for a reproducible run.
 | `L-SHIFT` | heavy dodge (i-frames) | `R-SHIFT` | materialize insulated pad / holographic decoy |
 | | | `/` | **OVERCLOCK** — burn a memory |
 
+**Controllers (USB or Bluetooth — Xbox, PlayStation, Switch Pro, 8BitDo…):** pair it with your
+computer, open the game, press any button. Controller 1 = Body, controller 2 = Voxel (keyboard
+keeps working alongside). Stick/D-pad move · Ⓐ interact / hack (hold = jumper) · Ⓑ dodge /
+materialize · Ⓧ use tool · Ⓨ cycle tool (P2: overclock) · RT overclock · BACK/SELECT Solo-Swap ·
+START pause. Controllers rumble on arc flashes and hits.
+
 **Solo:** `TAB` Solo-Swap hands P1's keys to the Voxel (`SPACE` hack, `L-SHIFT` materialize,
 `F` overclock). Hold a jumper and tap `TAB` to **latch** it — the Voxel holds the line alone at
 1.5× drain while you walk the Body through. `ESC` pause · `M` mute.
