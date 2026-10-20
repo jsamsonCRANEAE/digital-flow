@@ -1,0 +1,15 @@
+{
+  "name": "shift-zero",
+  "version": "1.0.0",
+  "description": "SHIFT ZERO: The Weight of Amperage — a 2-player local asymmetric co-op action-RPG roguelite. Zero external assets.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "test": "node tools/validate.mjs",
+    "test:browser": "node tools/mechanics.mjs && node tools/bot.mjs && node tools/fuzz.mjs",
+    "smoke": "node tools/smoke.mjs",
+    "perf": "node tools/perf.mjs"
+  },
+  "license": "UNLICENSED"
+}

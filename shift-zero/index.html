@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Shift Zero: The Weight of Amperage</title>
+  <meta name="description" content="A 2-player local asymmetric co-op action-RPG roguelite. Every pixel and every sound is synthesized at runtime." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="stage" aria-label="Shift Zero game">
+    <!-- World layer: tiles, lighting, particles (Canvas 2D) -->
+    <canvas id="game" width="1280" height="720"></canvas>
+    <!-- HUD layer: portrait, gauges, oscilloscope, watch -->
+    <canvas id="ui" width="1280" height="720"></canvas>
+    <!-- Diegetic DOM layer, authored at 1280×720 and scaled as one unit -->
+    <div id="dom-layer">
+      <div id="pager" class="idle" style="display:none" aria-live="polite">
+        <div class="pager-body">
+          <div class="pager-brand">GRIDCORP · ALPHA-7</div>
+          <div class="pager-screen">
+            <div id="pager-from">GRIDCORP PAGER</div>
+            <div id="pager-text">NO NEW MESSAGES</div>
+          </div>
+          <div class="pager-buttons"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+      <div id="overlay"></div>
+    </div>
+    <!-- Post: CRT scanlines, film grain, vignette, phosphor flicker -->
+    <div id="crt" aria-hidden="true"><div class="grain"></div><div class="scan"></div><div class="vignette"></div></div>
+  </main>
+  <noscript>Shift Zero needs JavaScript (ES modules) to run.</noscript>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
