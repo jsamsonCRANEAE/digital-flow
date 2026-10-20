@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hayate Rally</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="gl"></canvas>
+  <canvas id="speedlines"></canvas>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="timerbox">
+      <div id="timer">0:00.000</div>
+      <div id="gatelbl">GATE 0 OF 20</div>
+    </div>
+    <canvas id="minimap" width="220" height="120"></canvas>
+    <div id="split"></div>
+    <div id="codriver">
+      <div id="portrait"></div>
+      <div id="bubble"><div id="note">Ready?</div><div id="notejp">いくよ！</div></div>
+    </div>
+    <div id="drift"><div class="pts">0</div><div class="mult">x1</div></div>
+    <div id="inputs">
+      <div class="row"><span>STEER</span><div class="bar steer"><i></i></div></div>
+      <div class="row"><span>THROT</span><div class="bar thr"><i></i></div></div>
+      <div class="row"><span>BRAKE</span><div class="bar brk"><i></i></div></div>
+      <div class="hb">HANDBRAKE</div>
+    </div>
+    <div id="speedo">
+      <svg viewBox="0 0 200 200" id="tach">
+        <path d="M30 150 A 80 80 0 1 1 170 150" class="track" />
+        <path d="M30 150 A 80 80 0 1 1 170 150" class="fill" id="tachfill" />
+      </svg>
+      <div id="gear">N</div>
+      <div id="spd">0</div>
+      <div id="units">MPH</div>
+    </div>
+    <div id="msg"></div>
+    <div id="countdown"></div>
+    <div id="hint"></div>
+  </div>
+
+  <!-- Menus -->
+  <div id="ui">
+    <div id="title" class="screen">
+      <div class="logo">
+        <div class="kanji">疾風</div>
+        <div class="name">HAYATE<span>RALLY</span></div>
+        <div class="tag">anime rally · real-feel physics · your everyday cars</div>
+      </div>
+      <div class="press">Press <b>A</b> / <b>Enter</b> to start</div>
+      <div id="padstatus" class="padstatus"></div>
+    </div>
+    <div id="panel" class="screen hidden">
+      <div class="phead"><span id="ptitle">MENU</span><span id="pjp"></span></div>
+      <div id="items"></div>
+      <div id="pfoot"></div>
+    </div>
+    <div id="side" class="hidden"></div>
+  </div>
+  <div id="popups"></div>
+  <div id="loading" class="hidden"><div class="spin"></div><div>Building stage…</div></div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/cars.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
