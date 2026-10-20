@@ -11,6 +11,11 @@ runtime (Canvas 2D + Web Audio API). No build step, no dependencies.
 
 ## Run it
 
+**Easiest:** open `dist/ShiftZero.html` — a single self-contained file. Double-click it; no install,
+no server. (Rebuild it with `node tools/build-single.mjs` after changing the source.)
+
+From source:
+
 ES modules don't load from `file://`, so serve the folder:
 
 ```bash
