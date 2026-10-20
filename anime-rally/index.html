@@ -20,13 +20,24 @@
       <div id="timer">0:00.000</div>
       <div id="gatelbl">GATE 0 OF 20</div>
     </div>
-    <canvas id="minimap" width="220" height="120"></canvas>
+    <canvas id="minimap" width="300" height="168"></canvas>
     <div id="split"></div>
     <div id="codriver">
       <div id="portrait"></div>
       <div id="bubble"><div id="note">Ready?</div><div id="notejp">いくよ！</div></div>
     </div>
     <div id="drift"><div class="pts">0</div><div class="mult">x1</div></div>
+    <div id="damage">
+      <svg viewBox="0 0 60 100" aria-label="Car damage">
+        <rect x="8" y="4" width="44" height="92" rx="14" class="shell" />
+        <rect x="12" y="8" width="36" height="22" rx="8" class="z" id="dz-front" />
+        <rect x="12" y="70" width="36" height="22" rx="8" class="z" id="dz-rear" />
+        <rect x="11" y="32" width="12" height="36" rx="5" class="z" id="dz-left" />
+        <rect x="37" y="32" width="12" height="36" rx="5" class="z" id="dz-right" />
+        <circle cx="30" cy="50" r="6" class="z" id="dz-engine" />
+      </svg>
+      <div class="dl"><span>DAMAGE</span><b id="dmgpct">0%</b></div>
+    </div>
     <div id="inputs">
       <div class="row"><span>STEER</span><div class="bar steer"><i></i></div></div>
       <div class="row"><span>THROT</span><div class="bar thr"><i></i></div></div>
@@ -57,6 +68,7 @@
       </div>
       <div class="press">Press <b>A</b> / <b>Enter</b> to start</div>
       <div id="padstatus" class="padstatus"></div>
+      <button id="fsbtn" class="fsbtn" type="button">⛶ Fullscreen (F)</button>
     </div>
     <div id="panel" class="screen hidden">
       <div class="phead"><span id="ptitle">MENU</span><span id="pjp"></span></div>
@@ -76,6 +88,7 @@
   <script src="js/input.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/fx.js"></script>
+  <script src="js/damage.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>

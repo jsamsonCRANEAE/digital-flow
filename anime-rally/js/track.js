@@ -345,8 +345,14 @@
       placed.pine.concat(placed.round).forEach((t) => {
         const k = tkey(Math.floor(t[0] / TCELL), Math.floor(t[2] / TCELL));
         if (!treeColliders.has(k)) treeColliders.set(k, []);
-        treeColliders.get(k).push({ x: t[0], z: t[2], r: 0.35 * t[3] + 0.1 });
+        treeColliders.get(k).push({ x: t[0], z: t[2], r: 0.35 * t[3] + 0.1, kind: 'tree' });
       });
+    }
+    // rigid rocks and knock-down props share the tree grid
+    function addCollider(c) {
+      const k = tkey(Math.floor(c.x / TCELL), Math.floor(c.z / TCELL));
+      if (!treeColliders.has(k)) treeColliders.set(k, []);
+      treeColliders.get(k).push(c);
     }
     function treesNear(x, z, out) {
       out.length = 0;
@@ -367,7 +373,9 @@
         const i = Math.floor(rnd() * N), side = rnd() < 0.5 ? -1 : 1;
         const d = halfRoad + 4 + rnd() * 30;
         const x = P[i].x + Nr[i].x * d * side, z = P[i].z + Nr[i].z * d * side;
-        list.push([x, groundRaw(x, z).h, z, 0.4 + rnd() * 1.1, rnd() * 6]);
+        const s = 0.4 + rnd() * 1.1;
+        list.push([x, groundRaw(x, z).h, z, s, rnd() * 6]);
+        if (s > 0.6) addCollider({ x, z, r: s * 0.8, kind: 'rock' });
       }
       const im = new THREE.InstancedMesh(rg, AR.toonMat(stage.id === 'yuki' ? 0x9aa6b8 : 0x8f8a80), list.length);
       AR.ensureOutlineNormals(rg);
@@ -405,6 +413,7 @@
           g.position.set(x, groundRaw(x, z).h, z);
           g.lookAt(P[i].x - T[i].x * 30, g.position.y, P[i].z - T[i].z * 30);
           group.add(g);
+          addCollider({ x, z, r: 0.35, kind: 'prop', obj: g, broken: false });
         }
         if (i % 21 === 0) {
           [-1, 1].forEach((side) => {
@@ -415,6 +424,7 @@
             AR.inked(new THREE.BoxGeometry(0.17, 0.3, 0.17), markerTop, 0, g).position.y = 0.95;
             g.position.set(x, groundRaw(x, z).h, z);
             group.add(g);
+            addCollider({ x, z, r: 0.15, kind: 'prop', obj: g, broken: false });
           });
         }
       }

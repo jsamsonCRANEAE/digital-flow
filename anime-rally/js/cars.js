@@ -156,6 +156,12 @@
     );
   };
 
+  // Real-car finishing touches per model: window trim finish, fog lamps, tow hooks.
+  const CAR_ACCENTS = {
+    rv4: { trim: 'black', fog: true }, sienna03: { trim: 'chrome', fog: true }, raijin: { trim: 'black', tow: true },
+    hikari: { trim: 'black' }, sakura: { trim: 'chrome', fog: true }, kuma: { trim: 'black', fog: true, tow: true },
+    denki: { trim: 'black' }, mochi: { trim: 'chrome' },
+  };
   const BEVEL = 0.06; // body edge rounding
   const CAB_BEVEL = 0.05; // greenhouse edge rounding
 
@@ -489,7 +495,7 @@
       const pos = bodyGeo.attributes.position;
       for (let i = 0; i < pos.count; i++) pos.setX(i, pos.getX(i) * planScale(pos.getZ(i)));
     }
-    add(bodyGeo, ghost ? ghostMat : [capMat, wallMat], ink * 1.2);
+    add(bodyGeo, ghost ? ghostMat : [capMat, wallMat], ink * 1.2).userData.deform = true;
 
     // --- lower cladding (crossovers / trucks) ---
     if (def.cladding > 0) {
@@ -497,7 +503,7 @@
       const g = extrudeProfile(clip, def.W + 0.03, 0.04, 3);
       const pos = g.attributes.position;
       for (let i = 0; i < pos.count; i++) pos.setX(i, pos.getX(i) * planScale(pos.getZ(i)));
-      add(g, M(0x2b2d33, { rim: 0.2 }), ink);
+      add(g, M(0x2b2d33, { rim: 0.2 }), ink).userData.deform = true;
     }
     // --- arch flares ---
     if (def.flares) {
@@ -527,7 +533,7 @@
         pos.setX(i, pos.getX(i) * cabTaper(pos.getY(i)) * planScale(pos.getZ(i)));
       }
     }
-    add(cabGeo, M(roofColor, { rim: 0.55, spec: 0.5 }), ink * 1.2);
+    add(cabGeo, M(roofColor, { rim: 0.55, spec: 0.5 }), ink * 1.2).userData.deform = true;
 
     // --- glass ---
     const gMat = ghost ? ghostMat : AR.toonMat(0xffffff, { map: glassTex(cfg.tint), rim: 0.35, spec: 0.8, side: THREE.DoubleSide, hatch: false });
@@ -550,10 +556,11 @@
         g.computeVertexNormals();
         bboxUV(g, 'z', 'y');
         const m = new THREE.Mesh(g, gMat);
+        m.userData.glass = true;
         root.add(m);
       });
     });
-    function edgeGlass(A, B, t0, t1, out) {
+    function edgeGlass(A, B, t0, t1, out, mat) {
       const dz = B[0] - A[0], dy = B[1] - A[1];
       const l = Math.hypot(dz, dy);
       const nz = (-dy / l) * out, ny = (dz / l) * out;
@@ -569,7 +576,8 @@
       g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 1, 1], 2));
       g.setIndex([0, 1, 2, 1, 3, 2]);
       g.computeVertexNormals();
-      const m = new THREE.Mesh(g, gMat);
+      const m = new THREE.Mesh(g, mat || gMat);
+      if (!mat) m.userData.glass = true;
       root.add(m);
       return m;
     }
@@ -590,6 +598,9 @@
     const headMat = ghost ? ghostMat : AR.toonMat(0xfff6dd, { emissive: 0xfff1c8, rim: 0.2, hatch: false });
     if (!ghost) headMat.emissiveIntensity = 0.65;
     const housingMat = M(0x1d1e24);
+    const chromeMat = M(0xdfe3ea, { spec: 1, rim: 0.6 });
+    const amberMat = ghost ? ghostMat : AR.toonMat(0xffa31a, { emissive: 0xff8a00, hatch: false });
+    if (!ghost) amberMat.emissiveIntensity = 0.45;
     const tailMat = ghost ? ghostMat : AR.toonMat(0xd0142b, { emissive: 0xff1030, hatch: false });
     if (!ghost) tailMat.emissiveIntensity = 0.25;
     const placeOnFace = (mesh, y, isFront, h) => {
@@ -627,14 +638,23 @@
           const g = extrudeShape2D(pts, 0.03);
           const m = add(g, mat, 0, grp);
           m.position.z = 0.012;
+          m.userData.lamp = true;
           if (ghost) m.castShadow = false;
         });
+        // projector lenses behind the headlight lens
+        if (isFront && !ghost && style !== 'round') {
+          [-0.08, 0.06].forEach((lx) => {
+            const pl = add(new THREE.CylinderGeometry(0.032, 0.032, 0.02, 14).rotateX(Math.PI / 2), chromeMat, 0, grp);
+            pl.position.set(lx * s, style === 'hammer' ? -0.03 : 0, 0.03);
+          });
+        }
         root.add(grp);
         placeOnFace(grp, y, isFront, h);
       });
       if (style === 'bar' && !isFront) {
         const g = extrudeShape2D(roundRect(rearHalf * 2 - 0.3, 0.035, 0.015), 0.025);
         const m = add(g, mat, 0);
+        m.userData.lamp = true;
         m.position.x = 0;
         placeOnFace(m, y + 0.01, false, 0.04);
       }
@@ -660,6 +680,14 @@
       const gm = ghost ? ghostMat : AR.toonMat(0xffffff, { map: grilleTex(def.grille), hatch: false });
       const m = add(g, gm, ink * 0.6);
       placeOnFace(m, gy, true, gh);
+      if (def.grille !== 'slot') {
+        const framePts = def.grille === 'hex'
+          ? [[-gw / 2 - 0.04, gh / 2 + 0.035], [gw / 2 + 0.04, gh / 2 + 0.035], [gw / 2 - 0.1, -gh / 2 - 0.035], [-gw / 2 + 0.1, -gh / 2 - 0.035]]
+          : roundRect(gw + 0.07, gh + 0.07, 0.06);
+        const fr = add(extrudeShape2D(framePts, 0.02), CAR_ACCENTS[def.id] && CAR_ACCENTS[def.id].trim === 'chrome' ? chromeMat : M(0x111216, { spec: 0.9 }), ink * 0.5);
+        placeOnFace(fr, gy, true, gh);
+        fr.position.z += 0.012;
+      }
       // emblem
       const e = add(new THREE.CylinderGeometry(0.055, 0.055, 0.02, 16).rotateX(Math.PI / 2), M(0xd9dde6, { spec: 1, rim: 0.4 }), 0.01);
       placeOnFace(e, def.grille === 'hex' ? def.headY : gy, true, 0.1);
@@ -677,6 +705,7 @@
         const g = extrudeShape2D(roundRect(0.52, 0.13, 0.015), 0.012);
         bboxUV(g, 'x', 'y');
         const m = add(g, pm, 0.01);
+        m.userData.breakable = 9;
         if (isFront) m.rotation.y = Math.PI;
         placeOnFace(m, isFront ? 0.42 : 0.56, isFront, 0.13);
         if (isFront) m.position.z -= 0.025; else m.position.z += 0.02;
@@ -686,6 +715,7 @@
     [true, false].forEach((isFront) => {
       const g = extrudeShape2D(roundRect((isFront ? frontHalf : rearHalf) * 2 + 0.02, 0.07, 0.03), 0.04);
       const m = add(g, M(0x24262c), ink * 0.6);
+      m.userData.breakable = 13;
       placeOnFace(m, isFront ? 0.33 : 0.36, isFront, 0.07);
     });
     // exhaust
@@ -693,6 +723,7 @@
       const g = new THREE.CylinderGeometry(0.045, 0.05, 0.16, 12).rotateX(Math.PI / 2);
       const m = add(g, M(0xb9bec8, { spec: 1 }), 0.012);
       m.position.set(-halfW * 0.55, 0.27, zMax - 0.02);
+      m.userData.breakable = 14;
       if (def.ev) m.visible = false;
     }
 
@@ -701,10 +732,20 @@
     [-1, 1].forEach((s) => {
       // mirror
       const mz = cb.bf + 0.32;
-      const mir = add(box(0.2, 0.11, 0.08), M(roofColor === accent ? accent : paint, { rim: 0.5, spec: 0.5 }), ink * 0.6);
+      const mg = new THREE.Group();
+      mg.userData.breakable = 6;
+      root.add(mg);
+      const mir = add(box(0.2, 0.11, 0.08), M(roofColor === accent ? accent : paint, { rim: 0.5, spec: 0.5 }), ink * 0.6, mg);
       mir.position.set(s * (sideX(mz) + 0.12), cb.belt + 0.09, mz);
-      const stalk = add(box(0.1, 0.03, 0.04), M(0x1d1e24), 0);
+      const stalk = add(box(0.1, 0.03, 0.04), M(0x1d1e24), 0, mg);
       stalk.position.set(s * (sideX(mz) + 0.04), cb.belt + 0.06, mz);
+      if (!ghost) {
+        const sig = add(box(0.12, 0.018, 0.01), amberMat, 0, mg);
+        sig.position.set(s * (sideX(mz) + 0.14), cb.belt + 0.07, mz - 0.042);
+        sig.userData.lamp = true;
+        const glassM = add(box(0.16, 0.08, 0.008), AR.toonMat(0x9fb8d8, { spec: 1, hatch: false }), 0, mg);
+        glassM.position.set(s * (sideX(mz) + 0.12), cb.belt + 0.09, mz + 0.042);
+      }
       // seams as ink lines
       def.seams.forEach((z) => {
         const ytop = Math.min(cb.belt, topYAt(bodyPoly, z)) - 0.02;
@@ -727,11 +768,14 @@
       }
       if (def.rails) {
         const len = (cb.rr - cb.rf) * 0.95;
-        const rail = add(box(0.05, 0.05, len), M(0x1d1e24, { spec: 0.6 }), 0.01);
+        const rg = new THREE.Group();
+        rg.userData.breakable = 11;
+        root.add(rg);
+        const rail = add(box(0.05, 0.05, len), M(0x1d1e24, { spec: 0.6 }), 0.01, rg);
         const z = (cb.rr + cb.rf) / 2;
         rail.position.set(s * (cabHalf(cb.roof, z) - 0.12), cb.roof + 0.06, z);
         [cb.rf + 0.1, cb.rr - 0.1].forEach((lz) => {
-          const leg = add(box(0.05, 0.07, 0.1), M(0x1d1e24), 0.008);
+          const leg = add(box(0.05, 0.07, 0.1), M(0x1d1e24), 0.008, rg);
           leg.position.set(s * (cabHalf(cb.roof, lz) - 0.12), cb.roof + 0.03, lz);
         });
       }
@@ -750,6 +794,7 @@
       [-0.3, 0.3].forEach((x) => {
         const z = (cb.bf + zMin) / 2;
         const v = add(box(0.26, 0.04, 0.3), M(0x15161a), 0.01);
+        v.userData.breakable = 15;
         v.position.set(x, topYAt(bodyPoly, z) + BEVEL + 0.012, z);
         v.rotation.x = -0.08;
       });
@@ -774,27 +819,179 @@
       h.position.set(0, 0.45, zMax + 0.12);
     }
 
+    // --- real-car finishing: trims, pillars, creases, markers, badges, antenna, fog lamps ---
+    if (!ghost) {
+      const acc = CAR_ACCENTS[def.id] || {};
+      const inkMat = new THREE.MeshBasicMaterial({ color: AR.styleUniforms.uInk.value });
+      const trimMat = acc.trim === 'chrome' ? chromeMat : AR.toonMat(0x111216, { spec: 0.9, rim: 0.3, hatch: false });
+      const line = (a, b, w, mat, parent) => {
+        const A = new THREE.Vector3().fromArray(a), B = new THREE.Vector3().fromArray(b);
+        const m = new THREE.Mesh(box(w, w, A.distanceTo(B)), mat || inkMat);
+        m.position.copy(A).add(B).multiplyScalar(0.5);
+        (parent || root).add(m);
+        m.lookAt(B);
+        return m;
+      };
+      const tilt = Math.atan(((cabW / 2) * cb.taper) / (cb.roof - cb.belt));
+      const wins = cb.windows;
+      const pc = new THREE.Color(paint);
+      const lum = pc.r * 0.3 + pc.g * 0.59 + pc.b * 0.11;
+      const creaseMat = new THREE.MeshBasicMaterial({ color: lum > 0.7 ? pc.clone().multiplyScalar(0.78) : pc.clone().lerp(new THREE.Color(0xffffff), 0.5) });
+      [-1, 1].forEach((s) => {
+        // beltline trim under each side window
+        wins.forEach((w) => {
+          const zc = (w[0] + w[1]) / 2;
+          const t = add(box(0.022, 0.028, w[1] - w[0] + 0.06), trimMat, 0);
+          t.position.set(s * (cabHalf(cb.belt + 0.03, zc) + 0.012), cb.belt + 0.035, zc);
+          t.userData.trim = true;
+        });
+        // gloss-black pillar appliques between the windows
+        if (acc.trim === 'black') {
+          for (let i = 0; i < wins.length - 1; i++) {
+            const z0 = wins[i][1], z1 = wins[i + 1][0];
+            const ylo = cb.belt + 0.05, yhi = cb.roof - 0.13;
+            const zc = (z0 + z1) / 2, yc = (ylo + yhi) / 2;
+            const ap = add(box(0.012, (yhi - ylo) / Math.cos(tilt), z1 - z0 + 0.05), trimMat, 0);
+            ap.position.set(s * (cabHalf(yc, zc) + 0.01), yc, zc);
+            ap.rotation.z = s * tilt;
+          }
+        }
+        // shoulder crease highlight that follows the plan-view curve
+        const zA = zMin + 0.4, zB = zMax - 0.45, yC = Math.min(cb.belt - 0.1, (def.sill + cb.belt) / 2 + 0.2);
+        for (let k = 0; k < 6; k++) {
+          const za = zA + ((zB - zA) * k) / 6, zb = zA + ((zB - zA) * (k + 1)) / 6;
+          line([s * (sideX(za) + 0.004), yC, za], [s * (sideX(zb) + 0.004), yC, zb], 0.012, creaseMat);
+        }
+        // rocker panel / side skirt
+        if (!def.cladding) {
+          const z0 = axF + def.archR + 0.04, z1 = axR - def.archR - 0.04;
+          const sk = add(box(0.03, 0.08, z1 - z0), M(0x1c1d22, { spec: 0.4 }), ink * 0.5);
+          sk.position.set(s * (halfW + 0.004), def.sill + 0.05, (z0 + z1) / 2);
+          sk.userData.breakable = 16;
+        }
+        // side marker lamps
+        const fzm = zMin + 0.3, rzm = zMax - 0.28;
+        const fm = add(box(0.012, 0.035, 0.1), amberMat, 0);
+        fm.position.set(s * (sideX(fzm) + 0.004), def.headY - 0.04, fzm);
+        fm.userData.lamp = true;
+        const rm = add(box(0.012, 0.035, 0.1), tailMat, 0);
+        rm.position.set(s * (sideX(rzm) + 0.004), def.tailY - 0.02, rzm);
+        rm.userData.lamp = true;
+      });
+      // fuel filler door (right rear quarter)
+      {
+        const fz = axR, fy = Math.max(cb.belt - 0.15, def.wheelR + def.archR + 0.12);
+        const x = sideX(fz) + 0.004, hs = 0.08;
+        line([x, fy - hs, fz - hs], [x, fy - hs, fz + hs], 0.008);
+        line([x, fy + hs, fz - hs], [x, fy + hs, fz + hs], 0.008);
+        line([x, fy - hs, fz - hs], [x, fy + hs, fz - hs], 0.008);
+        line([x, fy - hs, fz + hs], [x, fy + hs, fz + hs], 0.008);
+      }
+      // hood shut lines
+      if (!def.bed || true) {
+        const z0 = cb.bf - 0.12, z1 = zMin + 0.25;
+        [-1, 1].forEach((s) => {
+          const x = s * halfW * 0.74;
+          line([x, topYAt(bodyPoly, z0) + BEVEL + 0.004, z0], [x, topYAt(bodyPoly, z1) + BEVEL + 0.004, z1], 0.01);
+        });
+      }
+      // third brake light at the top of the rear glass
+      {
+        const t3 = add(box(0.34, 0.035, 0.03), tailMat, 0);
+        t3.position.set(0, cb.roof + CAB_BEVEL * 0.4, cb.rr + 0.03);
+        t3.userData.lamp = true;
+      }
+      // shark-fin antenna
+      if (cfg.lights !== 'roof' && !def.glassRoof) {
+        const fz = cb.rr - 0.3;
+        const fin = add(extrudeProfile([[fz - 0.1, 0], [fz + 0.1, 0], [fz + 0.06, 0.06], [fz + 0.0, 0.075]].map((p) => [p[0], p[1] + cb.roof + CAB_BEVEL - 0.01]), 0.06, 0.01, 2), M(def.ev ? paint : 0x15161a, { spec: 0.8 }), 0.01);
+        fin.userData.breakable = 6;
+      }
+      // fog lamps and rear reflectors
+      if (acc.fog) {
+        [-1, 1].forEach((s) => {
+          const fg = new THREE.Group();
+          fg.position.x = s * (frontHalf - 0.16);
+          const ring = add(new THREE.CylinderGeometry(0.07, 0.07, 0.025, 18).rotateX(Math.PI / 2), M(0x15161a), 0.008, fg);
+          const lens = add(new THREE.CylinderGeometry(0.048, 0.048, 0.02, 18).rotateX(Math.PI / 2), headMat, 0, fg);
+          lens.position.z = 0.012;
+          lens.userData.lamp = true;
+          root.add(fg);
+          placeOnFace(fg, 0.44, true, 0.1);
+        });
+      }
+      [-1, 1].forEach((s) => {
+        const rf = add(extrudeShape2D(roundRect(0.14, 0.04, 0.015), 0.015), AR.toonMat(0xb01020, { spec: 0.8, hatch: false }), 0);
+        rf.position.x = s * (rearHalf - 0.12);
+        placeOnFace(rf, 0.44, false, 0.04);
+      });
+      // rear emblem + model badge
+      {
+        const em = add(new THREE.CylinderGeometry(0.05, 0.05, 0.015, 16).rotateX(Math.PI / 2), chromeMat, 0.006);
+        placeOnFace(em, 0.74, false, 0.1);
+        const bc = AR.canvas(256, 48), g2 = bc.getContext('2d');
+        g2.font = 'italic bold 30px "Arial Black", Impact, sans-serif';
+        g2.textAlign = 'center';
+        g2.textBaseline = 'middle';
+        g2.lineWidth = 5;
+        g2.strokeStyle = '#1b1530';
+        g2.strokeText(def.name.split(' ')[0].toUpperCase(), 128, 26);
+        g2.fillStyle = '#e8ecf2';
+        g2.fillText(def.name.split(' ')[0].toUpperCase(), 128, 26);
+        const bm = new THREE.MeshBasicMaterial({ map: AR.canvasTex(bc), transparent: true });
+        const bp = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.064), bm);
+        bp.position.x = rearHalf * 0.55;
+        root.add(bp);
+        placeOnFace(bp, 0.6, false, 0.06);
+      }
+      // tow hooks / straps
+      if (acc.tow) {
+        const th = add(box(0.05, 0.12, 0.03), AR.toonMat(0xd8262f, { hatch: false }), 0.006);
+        th.position.x = frontHalf * 0.6;
+        placeOnFace(th, 0.28, true, 0.12);
+        th.userData.breakable = 10;
+      }
+      // windshield sun-strip banner on rally-style liveries
+      if (cfg.livery === 'rally' || cfg.livery === 'itasha' || cfg.livery === 'stripes') {
+        const sc = AR.canvas(512, 64), g3 = sc.getContext('2d');
+        g3.fillStyle = '#16161a';
+        g3.fillRect(0, 0, 512, 64);
+        g3.fillStyle = '#ffd83a';
+        g3.font = 'bold 40px Bangers, Impact, sans-serif';
+        g3.textAlign = 'center';
+        g3.textBaseline = 'middle';
+        g3.fillText('HAYATE RALLY  疾風', 256, 34);
+        const smat = new THREE.MeshBasicMaterial({ map: AR.canvasTex(sc), side: THREE.DoubleSide });
+        edgeGlass([cb.bf, cb.belt], [cb.rf, cb.roof], 0.72, 0.86, CAB_BEVEL + 0.016, smat);
+      }
+    }
+
     // --- customization parts ---
     const roofZ = (cb.rf + cb.rr) / 2;
     if (cfg.spoiler === 'wing') {
       const deckZ = def.bed ? def.bed[1] - 0.2 : Math.min(zMax - 0.25, cb.br + 0.15);
       const deckY = topYAt(bodyPoly, deckZ) + BEVEL;
       const wingW = def.W - 0.12;
-      const wing = add(extrudeProfile([[0.0, 0.0], [-0.1, 0.05], [-0.28, 0.035], [-0.3, 0.0]].map((p) => [p[0] + deckZ + 0.15, p[1] + deckY + 0.24]), wingW, 0.01, 2), M(cfg.livery === 'none' ? paint : accent, { rim: 0.5, spec: 0.6 }), ink);
+      const wgp = new THREE.Group();
+      wgp.userData.breakable = 9;
+      root.add(wgp);
+      const wing = add(extrudeProfile([[0.0, 0.0], [-0.1, 0.05], [-0.28, 0.035], [-0.3, 0.0]].map((p) => [p[0] + deckZ + 0.15, p[1] + deckY + 0.24]), wingW, 0.01, 2), M(cfg.livery === 'none' ? paint : accent, { rim: 0.5, spec: 0.6 }), ink, wgp);
       [-1, 1].forEach((s) => {
-        const st = add(box(0.04, 0.24, 0.14), M(0x1d1e24), 0.01);
+        const st = add(box(0.04, 0.24, 0.14), M(0x1d1e24), 0.01, wgp);
         st.position.set(s * (wingW / 2 - 0.25), deckY + 0.12, deckZ);
-        const ep = add(box(0.02, 0.14, 0.34), M(0x1d1e24), 0.01);
+        const ep = add(box(0.02, 0.14, 0.34), M(0x1d1e24), 0.01, wgp);
         ep.position.set(s * (wingW / 2 + 0.01), deckY + 0.27, deckZ + 0.02);
       });
       wing.userData.part = 'wing';
     } else if (cfg.spoiler === 'lip') {
       const l = add(box(cabW * (1 - cb.taper) - 0.1, 0.05, 0.22), M(roofColor, { rim: 0.5 }), ink * 0.8);
+      l.userData.breakable = 12;
       l.position.set(0, cb.roof + 0.0, cb.rr + 0.05);
       l.rotation.x = 0.18;
     } else if (cfg.spoiler === 'duck') {
       const deckZ = Math.min(zMax - 0.12, cb.br + 0.3);
       const l = add(box(def.W - 0.3, 0.06, 0.12), M(paint, { rim: 0.5 }), ink * 0.8);
+      l.userData.breakable = 12;
       l.position.set(0, topYAt(bodyPoly, deckZ) + BEVEL + 0.02, deckZ);
       l.rotation.x = 0.35;
     }
@@ -802,24 +999,28 @@
       const onRoof = cfg.lights === 'roof';
       const z = onRoof ? cb.rf + 0.15 : zMin + 0.18;
       const y = onRoof ? cb.roof + 0.14 : topYAt(bodyPoly, zMin + 0.35) + 0.12;
-      const bar = add(box(onRoof ? cabW * 0.8 : def.W * 0.75, 0.04, 0.05), M(0x15161a), 0.01);
+      const pg = new THREE.Group();
+      pg.userData.breakable = 7;
+      root.add(pg);
+      const bar = add(box(onRoof ? cabW * 0.8 : def.W * 0.75, 0.04, 0.05), M(0x15161a), 0.01, pg);
       bar.position.set(0, y - 0.09, z + 0.03);
       const n = 4;
       for (let i = 0; i < n; i++) {
         const x = ((i + 0.5) / n - 0.5) * (onRoof ? cabW * 0.75 : def.W * 0.68);
-        const pod = add(new THREE.CylinderGeometry(0.1, 0.1, 0.1, 18).rotateX(Math.PI / 2), M(0x15161a), 0.012);
+        const pod = add(new THREE.CylinderGeometry(0.1, 0.1, 0.1, 18).rotateX(Math.PI / 2), M(0x15161a), 0.012, pg);
         pod.position.set(x, y, z);
-        const lens = add(new THREE.CylinderGeometry(0.085, 0.085, 0.02, 18).rotateX(Math.PI / 2), headMat, 0);
+        const lens = add(new THREE.CylinderGeometry(0.085, 0.085, 0.02, 18).rotateX(Math.PI / 2), headMat, 0, pg);
+        lens.userData.lamp = true;
         lens.position.set(x, y, z - 0.055);
         // classic yellow "X" covers on the inner pods
         if (!ghost && (i === 1 || i === 2)) {
-          const c = add(new THREE.CylinderGeometry(0.088, 0.088, 0.02, 18).rotateX(Math.PI / 2), AR.toonMat(0xf2c230, { hatch: false }), 0.006);
+          const c = add(new THREE.CylinderGeometry(0.088, 0.088, 0.02, 18).rotateX(Math.PI / 2), AR.toonMat(0xf2c230, { hatch: false }), 0.006, pg);
           c.position.set(x, y, z - 0.066);
         }
       }
       if (onRoof) {
         [-1, 1].forEach((s) => {
-          const b = add(box(0.04, 0.12, 0.04), M(0x15161a), 0);
+          const b = add(box(0.04, 0.12, 0.04), M(0x15161a), 0, pg);
           b.position.set(s * cabW * 0.35, cb.roof + 0.05, z + 0.02);
         });
       }
@@ -916,6 +1117,21 @@
           h.position.set(0.006, Math.cos(a) * rad, Math.sin(a) * rad);
         }
       }
+      if (!ghost) {
+        // lug nuts, centre cap and a sidewall ring for a rounder tyre profile
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2 + 0.3;
+          const lug = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.03, 6).rotateZ(Math.PI / 2), darkMat);
+          lug.position.set(0.03, Math.cos(a) * rr * 0.15, Math.sin(a) * rr * 0.15);
+          rim.add(lug);
+        }
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(rr * 0.08, rr * 0.08, 0.012, 14).rotateZ(Math.PI / 2), M(accent === cfg.rimColor ? 0x15161a : accent, { spec: 1 }));
+        cap.position.x = 0.04;
+        rim.add(cap);
+        const wall = new THREE.Mesh(new THREE.TorusGeometry(R * 0.86, 0.022, 6, 30).rotateY(Math.PI / 2), M(0x3a3a42));
+        wall.position.x = TW / 2 - 0.005;
+        side.add(wall);
+      }
       // brake caliper (does not spin)
       const cal = add(box(0.06, 0.12, 0.16), caliperMat, 0.008, pivot);
       cal.position.set((p[0] < 0 ? -1 : 1) * (TW / 2 - 0.09), R * 0.32, (idx < 2 ? 1 : -1) * R * 0.25);
@@ -924,6 +1140,7 @@
       if (cfg.mudflaps && !ghost) {
         const mf = add(box(TW + 0.04, 0.22, 0.02), M(accent === 0x15161a ? 0xd8262f : accent), 0.008);
         mf.position.set(p[0], def.sill - 0.08, p[1] + def.archR + 0.04);
+        mf.userData.breakable = 8;
       }
       root.add(pivot);
       wheels.push({ pivot, spin, x: p[0], z: p[1], restY: R });
@@ -932,8 +1149,16 @@
     root.traverse((o) => {
       if (o.isMesh && ghost) { o.castShadow = false; o.receiveShadow = false; }
     });
+    // collision bookkeeping for the damage system
+    const deformables = [], glass = [], lamps = [];
+    root.traverse((o) => {
+      if (o.userData.deform) deformables.push(o);
+      if (o.userData.glass) glass.push(o);
+      if (o.userData.lamp) lamps.push(o);
+    });
+    const breakables = root.children.filter((o) => o.userData.breakable);
     return {
-      root, wheels, tailMat, headMat,
+      root, wheels, tailMat, headMat, deformables, glass, lamps, breakables,
       meta: { zMin, zMax, halfW, roof: cb.roof, wheelR: def.wheelR, bf: cb.bf, hoodY: topYAt(bodyPoly, cb.bf - 0.3) },
     };
   };

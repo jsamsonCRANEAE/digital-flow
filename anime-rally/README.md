@@ -32,6 +32,7 @@ No install, server or internet is needed. Fonts fall back to Impact when you're 
 | Look back | B / ○ (hold) | B |
 | Reset to road | View / Share | R |
 | Pause | Menu / Options | Esc |
+| Fullscreen | Fullscreen item in the main, pause and settings menus | F |
 
 You can rebind any action under **Controls**. Bindings are saved per controller, so pads with an unusual
 layout (8BitDo, generic Bluetooth pads) work too. The Controls screen also shows live axis and button
@@ -67,6 +68,19 @@ readings, and has a rumble test.
     on a controller.
 * **3 stages** of about 2.3 km with 20 gates and banked corners: Pine Hollow (dirt), Sunset Cape
   (coastal tarmac) and Yuki Pass (snow, with falling snow).
+* **Crash physics and damage**:
+  * Trees and rocks are solid, and signposts and marker poles snap off and fly.
+  * Impacts land at bumper height, so a big hit can spin, pitch or roll the car.
+  * The body crumples where you hit. Glass cracks, lamps smash, and mirrors, wings, bumpers, plates,
+    light pods and roof rails tear off as tumbling debris.
+  * In the default **Looks + handling** mode, a front-end hit costs engine power and makes the engine
+    smoke, and a hit near a front wheel bends the steering so the car pulls to one side.
+  * Big impacts trigger an anime slow-motion "WRECKED!!" moment.
+  * Under **Settings → Car damage** you can choose looks only or off. Restart the stage to repair.
+* **Real-car detailing**: beltline trims, gloss-black pillar trims, shoulder-crease highlights, side
+  marker lamps, a third brake light, a shark-fin antenna, fog lamps, rear reflectors, a fuel door,
+  hood shut lines, projector headlights, grille surrounds, model badges, wheel lug nuts and centre caps,
+  tow straps, and a windshield banner on rally liveries.
 * **Ghost car** of your best run, split times at every gate, a drift score, and saved records.
 * **Rumble**: surface texture, wheelspin, landings and crashes.
 * Audio is fully synthesised: engine and EV whine, turbo and blow-off, gravel, wind and impacts.
@@ -82,6 +96,7 @@ readings, and has a rumble test.
 | `js/input.js` | Gamepad + keyboard, rebinding, rumble |
 | `js/audio.js` | WebAudio synth |
 | `js/fx.js` | Dust, tyre tracks, snow, speed lines, pop-ups |
+| `js/damage.js` | Crumple deformation, glass and lamp breakage, flying debris, mechanical damage |
 | `js/ui.js` | Menus, HUD, minimap, co-driver |
 | `js/main.js` | Game flow, garage, race loop, camera |
 

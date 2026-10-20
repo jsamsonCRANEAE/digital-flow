@@ -9,6 +9,7 @@
   const DEFAULTS = {
     units: 'mph', manual: false, assist: 'medium', tc: true, abs: true, speedLines: true, hatch: true,
     shadows: true, res: 'balanced', volume: 0.7, vibration: true, voice: true, ghost: true, shake: true,
+    damage: 'full', slowmo: true,
     curve: 1.35, deadzone: 0.1,
   };
   AR.settings = Object.assign({}, DEFAULTS, AR.store.get('settings', {}));
@@ -174,7 +175,7 @@
       { label: 'CONTROLS', action: controlsMenu },
       { label: 'SETTINGS', action: settingsMenu },
       { label: 'HOW TO PLAY', action: howTo },
-      { label: 'FULLSCREEN', action: () => { const d = document.documentElement; if (!document.fullscreenElement && d.requestFullscreen) d.requestFullscreen().catch(() => {}); else if (document.exitFullscreen) document.exitFullscreen(); } },
+      fullscreenItem(),
     ], { sel, onBack: titleScreen });
   }
 
@@ -253,6 +254,26 @@
     showCarSide();
   }
 
+  // ---------- fullscreen ----------
+  function toggleFullscreen() {
+    const d = document.documentElement;
+    try {
+      if (!document.fullscreenElement) {
+        const p = d.requestFullscreen ? d.requestFullscreen({ navigationUI: 'hide' }) : null;
+        if (p && p.catch) p.catch(() => FX.popup('CLICK FOR FULLSCREEN', { cls: 'small', y: 82, color: '#fff', sub: 'or press F / F11' }));
+      } else if (document.exitFullscreen) document.exitFullscreen();
+    } catch (e) {
+      FX.popup('PRESS F11 FOR FULLSCREEN', { cls: 'small', y: 82, color: '#fff' });
+    }
+  }
+  function fullscreenItem() {
+    return { label: 'FULLSCREEN', display: () => (document.fullscreenElement ? 'ON' : 'OFF'), action: toggleFullscreen };
+  }
+  document.addEventListener('fullscreenchange', () => { if (Menu.items.length) Menu.render(); setTimeout(resize, 50); });
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyF' && !(e.target && e.target.tagName === 'INPUT')) toggleFullscreen();
+  });
+
   function settingsMenu() {
     state = 'menu';
     AR.side(null);
@@ -272,6 +293,9 @@
       opt('CO-DRIVER VOICE', 'voice', [true, false]),
       opt('GHOST CAR', 'ghost', [true, false]),
       opt('CAMERA SHAKE', 'shake', [true, false]),
+      opt('CAR DAMAGE', 'damage', ['full', 'visual', 'off'], (v) => ({ full: 'LOOKS + HANDLING', visual: 'LOOKS ONLY', off: 'OFF' })[v]),
+      opt('CRASH SLOW-MO', 'slowmo', [true, false]),
+      fullscreenItem(),
       { label: 'BACK', action: () => (race ? pauseMenu() : mainMenu(3)) },
     ], { onBack: () => (race ? pauseMenu() : mainMenu(3)) });
   }
@@ -327,6 +351,7 @@
       { label: 'RESUME', action: resume },
       { label: 'RESTART', action: () => { Menu.close(); startRace(); } },
       { label: 'SETTINGS', action: settingsMenu },
+      fullscreenItem(),
       { label: 'QUIT TO GARAGE', action: () => { endRace(); garageMenu(); } },
       { label: 'MAIN MENU', action: () => { endRace(); mainMenu(0); } },
     ], { onBack: resume });
@@ -400,7 +425,8 @@
       drift: { on: false, pts: 0, t: 0, off: 0, mult: 1, total: 0 },
       resets: 0, topSpeed: 0, wrongT: 0, flipT: 0, stuckT: 0, rumbleT: 0, finishT: 0,
       rec: [], recT: 0, camMode: AR.store.get('cam', 0), camPos: null, camLook: new THREE.Vector3(), fov: 62, shake: 0,
-      emit: [0, 0, 0, 0],
+      emit: [0, 0, 0, 0], slowT: 0,
+      damage: new AR.Damage(car, carRoot, vehicle, scene, stage, dust, S.damage),
     };
     resize();
     Audio.init();
@@ -408,6 +434,8 @@
     AR.CoDriver.reset();
     AR.CoDriver.say('READY? ' + st.name.toUpperCase(), 'いくよ！ ' + st.jp, null);
     highlightGate();
+    HUD.damage({ front: 0, rear: 0, left: 0, right: 0 }, 0, 0);
+    $('damage').classList.toggle('hidden', S.damage === 'off');
     $('loading').classList.add('hidden');
     HUD.show(true);
     HUD.msg('');
@@ -423,6 +451,7 @@
     race.skids.dispose(race.scene);
     if (race.snow) race.snow.dispose(race.scene);
     if (race.ghost) disposeObj(race.ghost.root);
+    race.damage.dispose();
     race = null;
     HUD.show(false);
     FX.SpeedLines.draw(0, 0.5, 0.5);
@@ -473,8 +502,10 @@
       v.tm.rpm = v.rpm;
       v.tm.throttle = inp.throttle;
     } else if (R.phase === 'running') {
-      R.time += dt;
-      v.update(dt, vin);
+      // anime impact slow-motion after a big hit
+      if (R.slowT > 0) { R.slowT -= dt; simDt = dt * 0.3; }
+      R.time += simDt;
+      v.update(simDt, vin);
     } else if (R.phase === 'finished') {
       simDt = dt * 0.45;
       vin.throttle = 0; vin.brake = 0.35; vin.handbrake = 0;
@@ -484,15 +515,17 @@
     }
 
     // ---- events ----
+    let hit = null;
     v.events.forEach((e) => {
       if (e.type === 'shift') Audio.shift();
-      else if (e.type === 'crash') {
-        if (e.v > 2) { Audio.crash(e.v); Input.rumble(Math.min(1, e.v / 10), Math.min(1, e.v / 8), 220); R.shake = Math.max(R.shake, Math.min(1, e.v / 12)); }
-        if (e.v > 7 && R.phase === 'running') {
-          FX.flash('crash');
-          FX.popup('CRASH!', { jp: 'ドカーン！', color: '#ff5d8f', y: 38 });
-          if (R.drift.on) { R.drift.on = false; R.drift.pts = 0; HUD.drift(false); FX.popup('DRIFT LOST', { cls: 'small', y: 55, color: '#999' }); }
-        }
+      else if (e.type === 'crash' || e.type === 'scrape') {
+        const sv = e.type === 'scrape' ? e.v * 1.3 : e.v;
+        if (!hit || sv > hit.v) hit = { v: sv, at: e.at, n: e.n, scrape: e.type === 'scrape' };
+      } else if (e.type === 'prop') {
+        R.damage.knock(e.obj, v.vel);
+        Audio.burst(900, 0.15, 0.15);
+        Input.rumble(0.3, 0.5, 90);
+        if (e.v > 3) R.damage.impact(v.pos.clone().addScaledVector(e.n, -1).setY(v.pos.y - v.p.cgH * 0.4), e.n.clone().negate(), Math.min(e.v * 0.35, 9));
       } else if (e.type === 'land') {
         Audio.land(e.t);
         Input.rumble(Math.min(1, e.t), 0.4, 200);
@@ -504,6 +537,26 @@
         }
       }
     });
+    // one damage hit per frame (contacts repeat every physics sub-step)
+    if (hit && hit.scrape && hit.v < 5) hit = null; // body brushing the ground on landings
+    if (hit && hit.v > 2 && (R.damage.cool <= 0 || hit.v > R.damage.lastV * 1.3)) {
+      R.damage.cool = hit.scrape ? 0.3 : 0.12;
+      R.damage.lastV = hit.v;
+      Audio.crash(hit.v);
+      Input.rumble(Math.min(1, hit.v / 10), Math.min(1, hit.v / 8), 220);
+      R.shake = Math.max(R.shake, Math.min(1, hit.v / 12));
+      const amt = R.damage.impact(hit.at, hit.n, hit.v);
+      for (let k = 0; k < Math.min(30, hit.v * 1.5); k++) {
+        R.dust.emit(hit.at.x, hit.at.y + 0.3, hit.at.z, hit.n.x * 3 + (Math.random() - 0.5) * 4, 1 + Math.random() * 2, hit.n.z * 3 + (Math.random() - 0.5) * 4, 1 + Math.random(), 1.2, surfDust[tm.surf] || surfDust[1], 0.7);
+      }
+      if (hit.v > 7 && R.phase === 'running') {
+        FX.flash('crash');
+        FX.popup(hit.v > 16 ? 'WRECKED!!' : 'CRASH!', { jp: hit.v > 16 ? 'ぶっこわれ！' : 'ドカーン！', color: '#ff5d8f', y: 38, cls: hit.v > 16 ? 'burst' : '' });
+        if (hit.v > 13 && S.slowmo) R.slowT = 0.55;
+        if (R.drift.on) { R.drift.on = false; R.drift.pts = 0; HUD.drift(false); FX.popup('DRIFT LOST', { cls: 'small', y: 55, color: '#999' }); }
+      }
+      if (amt) HUD.damage(R.damage.zones, v.dmg.engine, R.damage.total);
+    }
 
     // ---- progress & gates ----
     const pr = stage.project(v.pos.x, v.pos.z);
@@ -617,6 +670,7 @@
         );
       }
     });
+    R.damage.update(simDt);
     R.dust.update(simDt);
     if (R.snow) R.snow.update(dt, camera);
 
@@ -835,6 +889,7 @@
     }
   }
 
+  $('fsbtn').addEventListener('click', (e) => { e.stopPropagation(); Audio.init(); toggleFullscreen(); });
   applySettings();
   rebuildGarageCar();
   titleScreen();

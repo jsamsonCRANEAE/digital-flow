@@ -39,9 +39,10 @@ canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: blo
 }
 #timer { font-family: var(--head); font-size: 54px; letter-spacing: 2px; line-height: 1; color: #f4f2ea; font-variant-numeric: tabular-nums; }
 #gatelbl { font-family: var(--head); font-size: 20px; letter-spacing: 1.5px; color: #e9e6dc; }
-#minimap { position: absolute; top: 118px; left: 50%; transform: translateX(-50%); width: 220px; height: 120px; background: rgba(90, 92, 100, 0.85); border: 3px solid var(--ink); }
+/* small map tucked into the top-right corner, clear of the road */
+#minimap { position: absolute; top: 14px; right: 18px; width: 150px; height: 84px; background: rgba(90, 92, 100, 0.72); border: 3px solid var(--ink); border-radius: 6px; box-shadow: 3px 3px 0 var(--ink); }
 #split {
-  position: absolute; top: 250px; left: 50%; transform: translateX(-50%); font-family: var(--head); font-size: 34px;
+  position: absolute; top: 132px; left: 50%; transform: translateX(-50%); font-family: var(--head); font-size: 34px;
   padding: 2px 16px; border: 3px solid var(--ink); opacity: 0; transition: opacity 0.2s; background: var(--paper); color: var(--ink);
 }
 #split.show { opacity: 1; }
@@ -67,7 +68,7 @@ canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: blo
 #note { font-family: var(--head); font-size: 26px; letter-spacing: 1px; line-height: 1; }
 #notejp { font-size: 13px; font-weight: 800; opacity: 0.7; }
 
-#drift { position: absolute; top: 160px; right: 28px; text-align: right; opacity: 0; transition: opacity 0.2s; transform: rotate(-4deg); }
+#drift { position: absolute; top: 118px; right: 28px; text-align: right; opacity: 0; transition: opacity 0.2s; transform: rotate(-4deg); }
 #drift.on { opacity: 1; }
 #drift .pts { font-family: var(--head); font-size: 46px; color: var(--yellow); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
 #drift .mult { font-family: var(--head); font-size: 28px; color: var(--pink); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
@@ -196,4 +197,20 @@ canvas#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: blo
   #inputs { display: none; }
   .logo .name { font-size: 64px; }
   .logo .kanji { font-size: 80px; }
+}
+
+/* damage widget (top-down car) */
+#damage { position: absolute; left: 18px; bottom: 132px; width: 64px; background: rgba(31, 31, 36, 0.86); border-left: 4px solid #ff7a2f; padding: 6px 6px 4px; }
+#damage svg { width: 52px; height: 86px; display: block; margin: 0 auto; }
+#damage .shell { fill: #2c2d34; stroke: #0d0b18; stroke-width: 2; }
+#damage .z { fill: #57e389; stroke: #0d0b18; stroke-width: 1.5; transition: fill 0.3s; }
+#damage .dl { font-family: var(--head); font-size: 11px; color: #bbb; display: flex; flex-direction: column; align-items: center; letter-spacing: 1px; }
+#damage .dl b { font-size: 16px; color: #fff; }
+#damage.hit { animation: dmghit 0.4s; }
+@keyframes dmghit { 0%, 100% { transform: none; } 25% { transform: translateX(-4px) rotate(-3deg); } 60% { transform: translateX(3px) rotate(2deg); } }
+.fsbtn { font-family: var(--head); font-size: 20px; letter-spacing: 1px; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 6px 16px; cursor: pointer; transform: skewX(-10deg); }
+.fsbtn:hover, .fsbtn:focus-visible { background: var(--yellow); outline: none; }
+@media (max-width: 900px) {
+  #minimap { width: 110px; height: 62px; }
+  #damage { bottom: 18px; }
 }

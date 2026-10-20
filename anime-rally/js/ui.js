@@ -258,9 +258,10 @@
       document.querySelector('#inputs .hb').classList.toggle('on', ip.handbrake > 0.3);
     },
     minimap(stage, pos, heading, ghostPos) {
-      const c = this.mm, W = 220, H = 120;
+      const c = this.mm, W = c.canvas.width, H = c.canvas.height;
       c.clearRect(0, 0, W, H);
-      const scale = 0.55;
+      const scale = 0.55 * (W / 220);
+      const lw = W / 220;
       c.save();
       c.translate(W / 2, H * 0.72);
       c.rotate(-heading);
@@ -273,19 +274,19 @@
         pts.push([(p.x - pos.x) * scale, (p.z - pos.z) * scale]);
       }
       const path = () => { c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); };
-      path(); c.strokeStyle = '#1b1530'; c.lineWidth = 10; c.stroke();
-      path(); c.strokeStyle = '#e9e6dc'; c.lineWidth = 5; c.stroke();
+      path(); c.strokeStyle = '#1b1530'; c.lineWidth = 10 * lw; c.stroke();
+      path(); c.strokeStyle = '#e9e6dc'; c.lineWidth = 5 * lw; c.stroke();
       if (ghostPos) {
         c.fillStyle = '#7fe9ff';
-        c.beginPath(); c.arc((ghostPos.x - pos.x) * scale, (ghostPos.z - pos.z) * scale, 4, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc((ghostPos.x - pos.x) * scale, (ghostPos.z - pos.z) * scale, 4 * lw, 0, Math.PI * 2); c.fill();
       }
       c.restore();
       // player arrow
       c.fillStyle = '#ff7a2f';
       c.strokeStyle = '#1b1530';
-      c.lineWidth = 2;
+      c.lineWidth = 2 * lw;
       c.beginPath();
-      c.moveTo(W / 2, H * 0.72 - 9); c.lineTo(W / 2 + 6, H * 0.72 + 6); c.lineTo(W / 2 - 6, H * 0.72 + 6); c.closePath();
+      c.moveTo(W / 2, H * 0.72 - 9 * lw); c.lineTo(W / 2 + 6 * lw, H * 0.72 + 6 * lw); c.lineTo(W / 2 - 6 * lw, H * 0.72 + 6 * lw); c.closePath();
       c.fill(); c.stroke();
     },
     split(text, good) {
@@ -296,6 +297,16 @@
       this._st = setTimeout(() => (s.className = ''), 1800);
     },
     msg(text) { $('msg').innerHTML = text || ''; },
+    damage(z, engine, total) {
+      const col = (v) => (v < 0.05 ? '#57e389' : v < 0.4 ? '#ffd83a' : v < 0.75 ? '#ff8a2f' : '#ff3048');
+      ['front', 'rear', 'left', 'right'].forEach((k) => $('dz-' + k).style.fill = col(z[k]));
+      $('dz-engine').style.fill = col(engine);
+      $('dmgpct').textContent = Math.round(total * 100) + '%';
+      const d = $('damage');
+      d.classList.remove('hit');
+      void d.offsetWidth;
+      d.classList.add('hit');
+    },
     hint(text) { $('hint').innerHTML = text || ''; },
     countdown(text, go) {
       const c = $('countdown');

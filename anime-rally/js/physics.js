@@ -64,6 +64,7 @@
       this.acc = 0;
       this.airT = 0;
       this.events = [];
+      this.dmg = { engine: 0, align: 0 };
       this.tm = { speed: 0, fwd: 0, drift: 0, airborne: false, surf: 1, slipAvg: 0, rumble: 0 };
       // scratch
       this._R = new V3(); this._U = new V3(); this._F = new V3();
@@ -122,7 +123,8 @@
       const rate = Math.abs(target) > Math.abs(this.steerIn) ? 4.2 : 6.5;
       this.steerIn += AR.clamp(target - this.steerIn, -rate * dt, rate * dt);
       const maxSteer = ((p.steer * Math.PI) / 180) / (1 + Math.max(0, Math.abs(vF) - 4) / 26);
-      let steer = this.steerIn * maxSteer;
+      // bent steering arms pull the car to one side
+      let steer = this.steerIn * maxSteer + this.dmg.align;
       const beta = Math.abs(vF) > 4 ? Math.atan2(vR, Math.abs(vF)) : 0;
       const assist = this.settings.steerAssist == null ? 0.45 : this.settings.steerAssist;
       if (vF > 4) steer += AR.clamp(beta * assist, -0.35, 0.35);
@@ -164,7 +166,7 @@
         }
       }
       const x = rpm / p.redline;
-      let engT = p.torque * torqueCurve(x, p.ev) * throttle;
+      let engT = p.torque * torqueCurve(x, p.ev) * throttle * (1 - 0.55 * this.dmg.engine);
       if (rpm >= p.redline) engT = 0; // limiter
       if (this.gear === -1 && vF > 8.5) engT = 0; // reverse is capped around 30 km/h
       if (this.shiftT > 0) engT *= 0.1;
@@ -310,7 +312,7 @@
           if (vtl > 0.01) f.addScaledVector(vt, (-0.6 * fn) / vtl);
           force.add(f);
           torque.add(new V3().crossVectors(rel, f));
-          if (vn < -3) this.events.push({ type: 'scrape', v: -vn });
+          if (vn < -3) this.events.push({ type: 'scrape', v: -vn, at: pw.clone(), n: g.n.clone() });
         }
       }
 
@@ -327,7 +329,7 @@
       this.q.x += 0.5 * wq.x * dt; this.q.y += 0.5 * wq.y * dt; this.q.z += 0.5 * wq.z * dt; this.q.w += 0.5 * wq.w * dt;
       this.q.normalize();
 
-      this.collideTrees();
+      this.collideObstacles();
       this.contacts = contacts;
       if (contacts === 0) this.airT += dt;
       else {
@@ -336,36 +338,50 @@
       }
     }
 
-    collideTrees() {
+    // Trees and rocks are rigid; signposts snap off. Impacts land at bumper height, so a big hit
+    // can spin, pitch or roll the car instead of just stopping it.
+    collideObstacles() {
       const p = this.p;
       const F = this._F.set(0, 0, -1).applyQuaternion(this.q);
-      const trees = this.stage.treesNear(this.pos.x, this.pos.z, this._trees);
-      if (!trees.length) return;
+      const U = this._U.set(0, 1, 0).applyQuaternion(this.q);
+      const obs = this.stage.treesNear(this.pos.x, this.pos.z, this._trees);
+      if (!obs.length) return;
       const r = p.W * 0.5;
-      const n = new V3(), c = new V3(), rel = new V3(), vp = new V3();
+      const n = new V3(), c = new V3(), rel = new V3(), vp = new V3(), cp = new V3();
+      const bumperY = -p.cgH + 0.5;
       for (let k = -1; k <= 1; k++) {
         c.copy(this.pos).addScaledVector(F, (k * p.L) / 3);
-        for (let i = 0; i < trees.length; i++) {
-          const t = trees[i];
+        for (let i = 0; i < obs.length; i++) {
+          const t = obs[i];
+          if (t.broken) continue;
           const dx = c.x - t.x, dz = c.z - t.z;
           const d = Math.hypot(dx, dz);
           const min = r + t.r;
-          if (d < min && d > 1e-4) {
-            n.set(dx / d, 0, dz / d);
-            this.pos.addScaledVector(n, (min - d) * 0.9);
-            rel.copy(c).sub(this.pos).addScaledVector(n, -r);
-            vp.crossVectors(this.w, rel).add(this.vel);
-            const vn = vp.dot(n);
-            if (vn < 0) {
-              const rn = new V3().crossVectors(rel, n);
-              const k2 = 1 / this.m + this.applyInvI(rn.clone()).cross(rel).dot(n);
-              const j = (-(1 + 0.25) * vn) / k2;
-              this.vel.addScaledVector(n, j / this.m);
-              this.w.add(this.applyInvI(rn.multiplyScalar(j)));
-              // scrub some tangential speed
-              this.vel.multiplyScalar(0.985);
-              this.events.push({ type: 'crash', v: -vn, at: c.clone() });
-            }
+          if (d >= min || d < 1e-4) continue;
+          n.set(dx / d, 0, dz / d);
+          if (t.kind === 'prop') {
+            t.broken = true;
+            const sp = this.vel.length();
+            this.vel.multiplyScalar(0.97);
+            this.events.push({ type: 'prop', obj: t.obj, v: sp, n: n.clone().negate() });
+            continue;
+          }
+          this.pos.addScaledVector(n, (min - d) * 0.9);
+          // contact on the car's skin, at bumper height
+          cp.copy(c).addScaledVector(n, -r).addScaledVector(U, bumperY);
+          rel.copy(cp).sub(this.pos);
+          vp.crossVectors(this.w, rel).add(this.vel);
+          const vn = vp.dot(n);
+          if (vn < 0) {
+            const rn = new V3().crossVectors(rel, n);
+            const k2 = 1 / this.m + this.applyInvI(rn.clone()).cross(rel).dot(n);
+            const j = (-(1 + 0.2) * vn) / k2;
+            this.vel.addScaledVector(n, j / this.m);
+            this.w.add(this.applyInvI(rn.multiplyScalar(j)));
+            // friction along the obstacle face
+            const vt = vp.clone().addScaledVector(n, -vn);
+            this.vel.addScaledVector(vt, -0.25);
+            this.events.push({ type: 'crash', v: -vn, at: cp.clone(), n: n.clone(), kind: t.kind });
           }
         }
       }
