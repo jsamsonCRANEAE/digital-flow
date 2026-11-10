@@ -50,7 +50,7 @@ const brushed = canvasTex(1024, 256, (g, w, h) => {
   }
 });
 const grille = canvasTex(512, 512, (g, w, h) => {
-  g.fillStyle = '#24252a';
+  g.fillStyle = '#4a4540';
   g.fillRect(0, 0, w, h);
   for (let y = 0; y < h; y += 8)
     for (let x = ((y / 8) % 2) * 4; x < w; x += 8) {
@@ -102,7 +102,7 @@ export const M = {
   shell: new THREE.MeshPhysicalMaterial({color: PAL.shell, roughness: 0.58, metalness: 0.3, roughnessMap: speckle, clearcoat: 0.12, clearcoatRoughness: 0.6}),
   shellIn: new THREE.MeshStandardMaterial({color: 0x2a2b2e, roughness: 0.8, metalness: 0.3, side: THREE.DoubleSide}),
   dark: new THREE.MeshStandardMaterial({color: 0x232427, roughness: 0.6, metalness: 0.3}),
-  alu: new THREE.MeshStandardMaterial({color: 0xcfc9bf, map: brushed, roughness: 0.34, metalness: 1.0}),
+  alu: new THREE.MeshStandardMaterial({color: 0xe2d9cb, map: brushed, roughness: 0.42, metalness: 0.55}),
   chrome: new THREE.MeshStandardMaterial({color: 0xe6e6e6, roughness: 0.14, metalness: 1.0}),
   satin: new THREE.MeshStandardMaterial({color: 0xbcbcbc, roughness: 0.35, metalness: 1.0, map: brushed}),
   rubber: new THREE.MeshStandardMaterial({color: 0x1d1e21, roughness: 0.78}),

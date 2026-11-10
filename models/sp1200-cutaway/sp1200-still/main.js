@@ -102,12 +102,40 @@ runSim({duration: TL.duration, fps: 60, theme: 'dark', hud: {enabled: false, tit
     f.sy = cy - (Math.max(...ys2) + Math.min(...ys2)) / 2 / innerHeight;
     return f;
   };
-  window.__TOOLS = {fit, frameIt, landmarks: () => projectAll(cam), setCam: (c) => (cam = {...cam, ...c}), getCam: () => cam, dev};
+  // ---------- live page only: drag to orbit, wheel to zoom, a button that opens the object ----------
+  const live = {explode: 0, target: 0};
+  if (!capture) {
+    let drag = null;
+    canvas.style.cursor = 'grab';
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointerdown', (e) => { drag = [e.clientX, e.clientY, cam.az, cam.el]; canvas.setPointerCapture(e.pointerId); });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      cam.az = drag[2] - (e.clientX - drag[0]) * 0.006;
+      cam.el = Math.min(1.45, Math.max(0.08, drag[3] + (e.clientY - drag[1]) * 0.005));
+    });
+    addEventListener('pointerup', () => (drag = null));
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); cam.fov = Math.min(12, Math.max(1.2, cam.fov * (1 + Math.sign(e.deltaY) * 0.08))); }, {passive: false});
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed;left:0;right:0;bottom:18px;display:flex;gap:8px;justify-content:center;font:600 13px Inter,system-ui,sans-serif;z-index:5';
+    const mk = (label, fn) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.style.cssText = 'border:1px solid rgba(255,255,255,.18);background:rgba(20,18,16,.8);color:#f2ece4;border-radius:999px;padding:9px 16px;font:inherit;cursor:pointer;backdrop-filter:blur(8px)';
+      b.onclick = () => fn(b);
+      bar.appendChild(b);
+    };
+    mk('Take apart', (b) => { live.target = live.target ? 0 : 1; b.textContent = live.target ? 'Reassemble' : 'Take apart'; });
+    mk('Reference view', () => (cam = {...TL.cam}));
+    document.body.appendChild(bar);
+  }
+  window.__TOOLS = {fit, frameIt, landmarks: () => projectAll(cam), setCam: (c) => (cam = {...cam, ...c}), getCam: () => cam, dev, live};
 
   return {
     resize,
     render(t) {
-      dev.pose(stateAt(t));
+      live.explode += (live.target - live.explode) * 0.08; // live page only; capture leaves both at 0 unless a tool sets them
+      dev.pose({...stateAt(t), explode: capture ? live.target : live.explode});
       st.frame(cam);
       return {};
     },

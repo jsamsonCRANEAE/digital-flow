@@ -72,11 +72,11 @@ export function buildDevice() {
     const g = part(name, root, [sx * 1.2, 0, 0], sx > 0 ? W / 2 - 0.005 : -W / 2 - 0.055);
     const outer = profile(0.1, 0.05);
     const hole = new THREE.Path();
-    const zf = D / 2 - 0.62, zb = -D / 2 + 0.5;
-    hole.moveTo(-zf, 0.2);
-    hole.lineTo(-zf, hF - 0.26);
-    hole.lineTo(-zb, hB - 0.3);
-    hole.lineTo(-zb, 0.2);
+    const zf = D / 2 - 0.7, zb = -D / 2 + 0.55;
+    hole.moveTo(-zf, 0.22);
+    hole.lineTo(-zf, hF - 0.3);
+    hole.lineTo(-zb, hB - 0.38);
+    hole.lineTo(-zb, 0.22);
     hole.closePath();
     outer.holes.push(hole);
     const pg = new THREE.ExtrudeGeometry(outer, {depth: 0.06, bevelEnabled: true, bevelSize: 0.022, bevelThickness: 0.022, bevelOffset: -0.022, bevelSegments: 3});
@@ -84,7 +84,7 @@ export function buildDevice() {
     mesh(pg, M.alu, 0, 0, 0, g);
     const gg = new THREE.ExtrudeGeometry(new THREE.Shape(hole.getPoints()), {depth: 0.02, bevelEnabled: false});
     gg.rotateY(Math.PI / 2);
-    mesh(gg, M.grille, sx > 0 ? 0.0 : 0.04, 0, 0, g);
+    mesh(gg, M.grille, sx > 0 ? 0.036 : 0.004, 0, 0, g);
     for (const [z, y] of [[D / 2 - 0.27, 0.13], [-D / 2 + 0.24, 0.13], [-D / 2 + 0.24, hB - 0.2], [D / 2 - 0.27, hF - 0.14]]) {
       const sc = mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.02, 20), M.chrome, sx > 0 ? 0.065 : -0.005, y, z, g);
       sc.rotation.z = Math.PI / 2;
@@ -130,7 +130,7 @@ export function buildDevice() {
     // pads: edge glow + travel
     ctl.pads.forEach((pd, i) => {
       const h = s.padHits?.[i] ?? 0;
-      pd.glow.emissiveIntensity = 0.9 + h * 2.2;
+      pd.glow.emissiveIntensity = 0.75 + h * 1.3;
       pd.pad.position.y = 0.075 - h * 0.022;
     });
     // fader caps + LED ladders
@@ -215,11 +215,10 @@ function printTexture() {
     line(0.95, -0.66, 2.12, -0.66);
     line(0.08, -0.6, 0.6, -0.6);
     line(0.25, -0.1, 0.62, -0.1);
-    txt(1.52, -0.72 + 0.12, '12-bit / 26kHz', 0.075, PAL.ink, 'center', 600);
+    txt(1.55, -0.76, '12-bit / 26kHz', 0.07, PAL.ink, 'center', 600);
     txt(1.05, -1.42 + 0.2 - 0.25, '', 0.05);
     txt(1.4, 1.36 + 0.0, '', 0.05);
-    txt(1.48, -0.18, 'PAD BANK / KIT', 0.06, PAL.ink);
-    txt(1.5, 1.5, 'SEQUENCE · BANK · TRACK', 0.05, PAL.orange);
+    txt(0.72, -0.24, 'PAD BANK / KIT', 0.045, PAL.dim, 'left');
     // labels
     txt(Lt.runStop.x, Lt.runStop.z - 0.17, 'RUN/STOP', 0.065);
     for (let i = 0; i < 8; i++) {
@@ -372,7 +371,7 @@ function buildPads(part, deck) {
   const P = LAYOUT.pads;
   const pads = [];
   const padGeo = rbox(P.size, 0.1, P.size, 0.04, 4);
-  const glowGeo = rbox(P.size + 0.018, 0.06, P.size + 0.018, 0.04, 4);
+  const glowGeo = rbox(P.size + 0.024, 0.045, P.size + 0.024, 0.04, 4);
   for (let r = 0; r < 3; r++)
     for (let c = 0; c < 3; c++) {
       const i = r * 3 + c;
@@ -392,9 +391,9 @@ function buildScreen(part, deck) {
   const g = part('screen', deck, [0, 1.8, 0], S.x, T, S.z);
   mesh(rbox(S.w + 0.14, 0.05, S.h + 0.14, 0.03), M.gloss, 0, 0.02, 0, g);
   const tex = canvasTex(1290, 750, () => {});
-  const disp = mesh(new THREE.PlaneGeometry(S.w, S.h), new THREE.MeshBasicMaterial({map: tex, toneMapped: false}), 0, 0.047, 0, g);
+  const disp = mesh(new THREE.PlaneGeometry(S.w, S.h), new THREE.MeshBasicMaterial({map: tex, color: new THREE.Color(1.7, 1.7, 1.7), toneMapped: false}), 0, 0.047, 0, g);
   disp.rotation.x = -Math.PI / 2;
-  const glass = mesh(new THREE.PlaneGeometry(S.w + 0.1, S.h + 0.1), new THREE.MeshPhysicalMaterial({color: 0xffffff, roughness: 0.05, transparent: true, opacity: 0.05, clearcoat: 1}), 0, 0.05, 0, g);
+  const glass = mesh(new THREE.PlaneGeometry(S.w + 0.1, S.h + 0.1), new THREE.MeshPhysicalMaterial({color: 0xffffff, roughness: 0.05, transparent: true, opacity: 0.02, clearcoat: 1}), 0, 0.05, 0, g);
   glass.rotation.x = -Math.PI / 2;
   // module behind the glass: metal tray, driver board, flex
   mesh(new THREE.BoxGeometry(S.w + 0.05, 0.06, S.h + 0.05), M.heatsink, 0, -0.06, 0, g);
@@ -450,10 +449,11 @@ function buildInternals(part, root) {
 function buildFront(part, root) {
   const lab = canvasTex(2048, 200, (g, w, h) => {
     g.fillStyle = '#cfc9bf';
-    g.font = '600 30px Inter, Arial';
+    g.font = '600 20px Inter, Arial';
     g.textAlign = 'center';
-    g.fillText('REC LVL', 1640, 170);
-    g.fillText('PHONES', 1770, 170);
+    g.font = '600 17px Inter, Arial';
+    g.fillText('REC', 1722, 188);
+    g.fillText('PHONES', 1800, 188);
   });
   const lp = mesh(new THREE.PlaneGeometry(W - 0.2, ((W - 0.2) * 200) / 2048), new THREE.MeshStandardMaterial({map: lab, transparent: true, roughness: 0.6}), 0, hF * 0.42, D / 2 + 0.002, root);
   // floppy: bezel + mechanism behind it
@@ -492,9 +492,9 @@ function buildFront(part, root) {
 function buildRear(part, root) {
   const g = part('rear', root, [0, 0, 0]);
   const plugs = [
-    {x: -1.5, y: 0.8, mat: M.cable}, {x: -1.15, y: 0.8, mat: M.cableRed}, {x: -0.8, y: 0.8, mat: M.cable},
-    {x: 0.2, y: 0.6, mat: M.cable, xlr: true}, {x: 0.65, y: 0.6, mat: M.cable, xlr: true},
-    {x: 1.25, y: 0.72, mat: M.braid}, {x: 1.75, y: 0.72, mat: M.braid},
+    {x: -1.5, y: 0.95, mat: M.cable}, {x: -1.15, y: 0.95, mat: M.cableRed}, {x: -0.8, y: 0.95, mat: M.cable},
+    {x: 0.2, y: 0.92, mat: M.cable, xlr: true}, {x: 0.65, y: 0.92, mat: M.cable, xlr: true},
+    {x: 1.25, y: 0.95, mat: M.braid}, {x: 1.75, y: 0.95, mat: M.braid},
   ];
   for (const p of plugs) {
     const z0 = -D / 2;
@@ -504,8 +504,8 @@ function buildRear(part, root) {
     mesh(new THREE.CylinderGeometry(0.04, p.xlr ? 0.065 : 0.045, 0.2, 18), M.black, 0, 0, -0.36, pl).rotation.x = Math.PI / 2;
     g.add(pl);
     const pts = [
-      [p.x, p.y, z0 - 0.45], [p.x * 1.02, p.y - 0.1, z0 - 1.0], [p.x * 1.05 + 0.1, 0.2, z0 - 1.7],
-      [p.x * 1.1 + 0.2, 0.0, z0 - 2.4], [p.x * 1.15 + 0.4, 0.0, z0 - 5.5],
+      [p.x, p.y, z0 - 0.45], [p.x * 1.02, p.y + 0.32, z0 - 1.0], [p.x * 1.05 + 0.1, p.y + 0.1, z0 - 1.8],
+      [p.x * 1.1 + 0.2, 0.0, z0 - 2.9], [p.x * 1.15 + 0.4, 0.0, z0 - 6.0],
     ].map((v) => new THREE.Vector3(...v));
     const tube = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, p.xlr ? 0.045 : 0.035, 10), p.mat, 0, 0, 0, g);
     tube.position.y = -FEET + 0.035;

@@ -11,7 +11,7 @@ import {M, R, canvasTex, instances, mesh, rbox} from './parts.js';
 export function createStage({canvas}) {
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance'});
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.85;
+  renderer.toneMappingExposure = 0.94;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const scene = new THREE.Scene();
@@ -19,27 +19,32 @@ export function createStage({canvas}) {
   scene.fog = new THREE.Fog(0x15110e, 78, 100);
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.5;
+  scene.environmentIntensity = 0.7;
   const camera = new THREE.PerspectiveCamera(30, 16 / 9, 1, 260);
 
-  scene.add(new THREE.HemisphereLight(0xfff1e0, 0x2a1d14, 0.2));
-  const key = new THREE.DirectionalLight(0xffe2c0, 1.35);
+  scene.add(new THREE.HemisphereLight(0xfff1e0, 0x2a1d14, 0.3));
+  const key = new THREE.DirectionalLight(0xffe2c0, 1.6);
   key.position.set(-5, 10, 4);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
-  Object.assign(key.shadow.camera, {left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 30});
+  key.shadow.mapSize.set(4096, 4096);
+  Object.assign(key.shadow.camera, {left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 30});
+  key.shadow.radius = 5;
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.02;
   scene.add(key);
   const rim = new THREE.DirectionalLight(0xa9c8ff, 0.7);
   rim.position.set(8, 5, -6);
   scene.add(rim);
+  // warm bounce from the right so the aluminium cheek reads as brushed metal
+  const side = new THREE.DirectionalLight(0xffd9b0, 1.1);
+  side.position.set(9, 3.2, 4.5);
+  scene.add(side);
 
   buildDesk(scene);
 
-  const composer = new EffectComposer(renderer);
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, {type: THREE.HalfFloatType, samples: 4}));
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(4, 4), 0.3, 0.3, 0.95);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(4, 4), 0.22, 0.2, 0.95);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
@@ -80,7 +85,7 @@ function buildDesk(scene) {
     const planks = 5, ph = h / planks;
     for (let p = 0; p < planks; p++) {
       const y0 = p * ph;
-      g.fillStyle = `hsl(${22 + R() * 6},48%,${17 + R() * 7}%)`;
+      g.fillStyle = `hsl(${24 + R() * 6},38%,${22 + R() * 6}%)`;
       g.fillRect(0, y0, w, ph);
       for (let i = 0; i < 260; i++) {
         const y = y0 + R() * ph, a = 0.04 + R() * 0.1, amp = 2 + R() * 8, f = 0.002 + R() * 0.006, p0 = R() * 6;
@@ -104,8 +109,9 @@ function buildDesk(scene) {
       g.fillRect(R() * w, y0, 3, ph);
     }
   });
-  const desk = mesh(new THREE.BoxGeometry(18, 0.4, 12), new THREE.MeshStandardMaterial({map: wood, roughness: 0.62}), 0, -0.2, 0, scene);
+  const desk = mesh(new THREE.BoxGeometry(30, 0.4, 20), new THREE.MeshStandardMaterial({map: wood, roughness: 0.62}), 0, -0.2, 0, scene);
   desk.castShadow = false;
+  desk.rotation.y = 0.5; // grain runs across the frame, as in the reference
   mesh(new THREE.PlaneGeometry(40, 16), new THREE.MeshStandardMaterial({color: 0x211915, roughness: 0.95}), 0, 5, -9, scene);
 
   // notebook + coffee (front-right in the reference)
@@ -130,8 +136,8 @@ function buildDesk(scene) {
   const rings = [];
   for (let i = 0; i < 22; i++) rings.push([-1.18, 0.06, -1.35 + i * 0.13]);
   nb.add(instances(new THREE.TorusGeometry(0.06, 0.008, 6, 16).rotateY(Math.PI / 2), M.chrome, rings));
-  nb.position.set(4.3, 0, 2.0);
-  nb.rotation.y = 0.35;
+  nb.position.set(4.35, 0, 0.3);
+  nb.rotation.y = 0.3;
   scene.add(nb);
   const cup = new THREE.Group();
   const cupMat = new THREE.MeshPhysicalMaterial({color: 0xd8d4cc, roughness: 0.2, clearcoat: 1});
@@ -148,7 +154,7 @@ function buildDesk(scene) {
     g.fillRect(0, 0, 256, 256);
   });
   mesh(new THREE.CircleGeometry(0.4, 48), new THREE.MeshStandardMaterial({map: coffee, roughness: 0.25}), 0, 0.52, 0, cup).rotation.x = -Math.PI / 2;
-  cup.position.set(4.6, 0.06, 2.5);
+  cup.position.set(4.9, 0.06, 0.3);
   scene.add(cup);
 
   // keyboard synth (back-left)
@@ -164,8 +170,8 @@ function buildDesk(scene) {
   }
   kb.add(instances(new THREE.BoxGeometry(0.155, 0.1, 0.95), new THREE.MeshStandardMaterial({color: 0xb9b5ad, roughness: 0.45}), wk));
   kb.add(instances(new THREE.BoxGeometry(0.09, 0.12, 0.58), new THREE.MeshStandardMaterial({color: 0x111111, roughness: 0.3}), bk));
-  kb.position.set(-5.6, 0, -1.4);
-  kb.rotation.y = 0.62;
+  kb.position.set(-6.0, 0, -2.4);
+  kb.rotation.y = Math.PI / 2 - 0.12;
   scene.add(kb);
 
   // studio monitor (behind, left of centre)
@@ -173,7 +179,7 @@ function buildDesk(scene) {
   mesh(rbox(1.7, 2.4, 1.6, 0.08), M.dark, 0, 1.2, 0, mon);
   mesh(new THREE.CylinderGeometry(0.55, 0.3, 0.12, 48), M.black, 0, 0.8, 0.82, mon).rotation.x = Math.PI / 2;
   mesh(new THREE.TorusGeometry(0.58, 0.05, 12, 48), M.rubber, 0, 0.8, 0.82, mon);
-  mon.position.set(-3.6, 0, -3.9);
+  mon.position.set(-2.2, 0, -5.2);
   mon.rotation.y = 0.5;
   scene.add(mon);
 
@@ -184,7 +190,7 @@ function buildDesk(scene) {
     mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.22, 36), M.knob, s * 0.75, 0.2, 0.05, hp);
     mesh(new THREE.TorusGeometry(0.28, 0.08, 12, 32), M.rubber, s * 0.75, 0.33, 0.05, hp).rotation.x = Math.PI / 2;
   }
-  hp.position.set(-3.5, 0, 2.9);
+  hp.position.set(-3.4, 0, 2.7);
   hp.rotation.y = 1.0;
   scene.add(hp);
   const patch = (col, pts) => {
@@ -192,7 +198,7 @@ function buildDesk(scene) {
     mesh(new THREE.TubeGeometry(curve, 80, 0.022, 8), new THREE.MeshStandardMaterial({color: col, roughness: 0.45}), 0, 0, 0, scene);
     for (const e of [0, 1]) {
       const pt = curve.getPoint(e), tan = curve.getTangent(e).multiplyScalar(e ? 1 : -1);
-      const j = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.22, 16), M.chrome, 0, 0, 0, scene);
+      const j = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.22, 16), M.satin, 0, 0, 0, scene);
       j.position.copy(pt).addScaledVector(tan, 0.1);
       j.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tan);
       const tip = mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.16, 12), M.gold, 0, 0, 0, scene);
@@ -200,16 +206,16 @@ function buildDesk(scene) {
       tip.quaternion.copy(j.quaternion);
     }
   };
-  patch(0xe0b23a, [[-3.9, 0.03, 0.2], [-3.2, 0.03, 0.7], [-3.5, 0.03, 1.3], [-2.9, 0.03, 1.8], [-3.3, 0.03, 2.3]]);
-  patch(0x3456c8, [[-3.0, 0.03, 0.0], [-3.5, 0.03, 0.8], [-2.9, 0.03, 1.4], [-3.2, 0.03, 2.0], [-4.0, 0.03, 2.2]]);
+  patch(0xe0b23a, [[-3.9, 0.03, -0.8], [-3.2, 0.03, -0.3], [-3.5, 0.03, 0.3], [-2.9, 0.03, 0.8], [-3.3, 0.03, 1.3]]);
+  patch(0x3456c8, [[-3.0, 0.03, -1.0], [-3.5, 0.03, -0.2], [-2.9, 0.03, 0.4], [-3.2, 0.03, 1.0], [-4.0, 0.03, 1.2]]);
 
   // a coiled braided cable and a small box at the right edge
   const coil = [];
   for (let i = 0; i <= 400; i++) {
     const a = (i / 400) * Math.PI * 2 * 4;
     const rr = 0.7 + 0.05 * Math.sin(i * 0.4);
-    coil.push(new THREE.Vector3(4.4 + Math.cos(a) * rr, 0.05 + (i / 400) * 0.2, -0.9 + Math.sin(a) * rr * 0.8));
+    coil.push(new THREE.Vector3(4.27 + Math.cos(a) * rr * 0.9, 0.05 + (i / 400) * 0.2, -2.6 + Math.sin(a) * rr * 0.75));
   }
   mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(coil), 600, 0.045, 8), M.braid, 0, 0, 0, scene);
-  mesh(rbox(1.2, 0.8, 1.4, 0.05), M.dark, 3.6, 0.4, -3.0, scene);
+  mesh(rbox(0.9, 0.5, 1.1, 0.05), M.dark, 3.35, 0.25, -4.3, scene);
 }
