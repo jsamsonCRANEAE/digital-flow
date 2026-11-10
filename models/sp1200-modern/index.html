@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SP-1200 Modern Model</title>
+<style>
+  :root {
+    --bg: #14110f;
+    --panel: rgba(24, 22, 20, 0.82);
+    --text: #f2ece4;
+    --muted: #b3a89a;
+    --accent: #ff7a2e;
+    --line: rgba(255, 255, 255, 0.12);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  canvas#gl { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .hud { position: fixed; left: 16px; top: 16px; max-width: min(360px, calc(100vw - 32px));
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+    backdrop-filter: blur(8px); }
+  .hud h1 { margin: 0 0 4px; font-size: 15px; letter-spacing: .04em; }
+  .hud h1 span { color: var(--accent); }
+  .hud p { margin: 0; color: var(--muted); font-size: 12px; }
+  .bar { position: fixed; left: 16px; right: 16px; bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .bar button { appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+    border-radius: 999px; padding: 9px 14px; font: inherit; font-size: 13px; cursor: pointer; backdrop-filter: blur(8px); }
+  .bar button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
+  @media (max-width: 520px) { .hud p.keys { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="loading">Building model…</div>
+<div class="hud">
+  <h1>SP-1200 <span>Modern</span> — 3D model</h1>
+  <p>Drag to orbit · scroll to zoom · tap pads to play 12-bit / 26.04 kHz drums · drag faders and knobs.</p>
+  <p class="keys">Keys: Z X C / A S D / Q W E = pads · Space = run/stop</p>
+</div>
+<div class="bar">
+  <button id="bPlay" aria-pressed="false">▶ Run pattern</button>
+  <button id="bExplode" aria-pressed="false">Exploded view</button>
+  <button id="bRotate" aria-pressed="false">Auto-rotate</button>
+  <button id="bLight" aria-pressed="false">Night session</button>
+  <button id="bReset">Reset camera</button>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ============================================================
+   Renderer / scene
+   ============================================================ */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1512);
+scene.fog = new THREE.Fog(0x1a1512, 14, 30);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(36, innerWidth / innerHeight, 0.05, 80);
+const HOME_POS = new THREE.Vector3(-4.2, 6.4, 7.4);
+const HOME_TGT = new THREE.Vector3(0.25, 0.55, 0.2);
+camera.position.copy(HOME_POS);
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.copy(HOME_TGT);
+controls.enableDamping = true;
+controls.minDistance = 2.2;
+controls.maxDistance = 18;
+controls.maxPolarAngle = Math.PI * 0.47;
+controls.autoRotateSpeed = 0.6;
+
+/* Lighting: warm window key, cool fill, rim */
+const hemi = new THREE.HemisphereLight(0xfff1e0, 0x2a1d14, 0.35); scene.add(hemi);
+const key = new THREE.DirectionalLight(0xffe2c0, 1.9);
+key.position.set(-6, 9, 5); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, near: 1, far: 30 });
+key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x9fc4ff, 0.8); rim.position.set(7, 5, -6); scene.add(rim);
+const lamp = new THREE.PointLight(0xff9a4a, 0, 12, 1.6); lamp.position.set(3.5, 4, 1.5); scene.add(lamp);
+
+/* ============================================================
+   Procedural textures
+   ============================================================ */
+const rand = (() => { let s = 1337; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+function canvasTex(w, h, draw, { srgb = true, repeat = null } = {}) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); }
+  t.userData.canvas = c; t.userData.ctx = g;
+  return t;
+}
+
+const woodTex = canvasTex(2048, 1024, (g, w, h) => {
+  const planks = 5, ph = h / planks;
+  for (let p = 0; p < planks; p++) {
+    const y0 = p * ph, hue = 22 + rand() * 6, l = 26 + rand() * 8;
+    g.fillStyle = `hsl(${hue},45%,${l}%)`; g.fillRect(0, y0, w, ph);
+    for (let i = 0; i < 260; i++) {             // grain
+      const y = y0 + rand() * ph, a = 0.04 + rand() * 0.10, amp = 2 + rand() * 8, f = 0.002 + rand() * 0.006, ph0 = rand() * 6;
+      g.strokeStyle = rand() > 0.5 ? `rgba(20,10,4,${a})` : `rgba(255,210,160,${a * 0.6})`;
+      g.lineWidth = 0.6 + rand() * 1.8; g.beginPath();
+      for (let x = 0; x <= w; x += 16) g.lineTo(x, y + Math.sin(x * f + ph0) * amp);
+      g.stroke();
+    }
+    for (let k = 0; k < 2; k++) {               // knots
+      const kx = rand() * w, ky = y0 + ph * (0.3 + rand() * 0.4);
+      for (let r = 26; r > 2; r -= 3) { g.strokeStyle = `rgba(30,14,5,${0.12})`; g.beginPath(); g.ellipse(kx, ky, r * 2.4, r * 0.7, 0, 0, Math.PI * 2); g.stroke(); }
+    }
+    for (let i = 0; i < 40; i++) {              // scratches / wear
+      g.strokeStyle = `rgba(255,230,200,${0.03 + rand() * 0.05})`; g.lineWidth = 1;
+      const x = rand() * w, y = y0 + rand() * ph; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 40 + rand() * 160, y + (rand() - 0.5) * 20); g.stroke();
+    }
+    g.fillStyle = 'rgba(8,4,2,0.85)'; g.fillRect(0, y0, w, 3);  // plank gap
+    const jx = rand() * w; g.fillRect(jx, y0, 3, ph);           // butt joint
+  }
+});
+
+const brushedTex = canvasTex(1024, 256, (g, w, h) => {
+  g.fillStyle = '#9a9894'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 2600; i++) {
+    const y = rand() * h, v = 120 + rand() * 110 | 0;
+    g.strokeStyle = `rgba(${v},${v},${v - 4},${0.08 + rand() * 0.18})`; g.lineWidth = rand() * 1.4;
+    g.beginPath(); g.moveTo(rand() * w * 0.3 - 100, y); g.lineTo(w + 100, y + (rand() - 0.5) * 2); g.stroke();
+  }
+});
+
+const meshGrillTex = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#1b1c1e'; g.fillRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 8) for (let x = (y / 8 % 2) * 4; x < w; x += 8) {
+    g.fillStyle = '#050505'; g.beginPath(); g.arc(x, y, 2.4, 0, Math.PI * 2); g.fill();
+  }
+}, { repeat: [3, 2] });
+
+const chassisNoise = canvasTex(512, 512, (g, w, h) => {
+  const d = g.createImageData(w, h);
+  for (let i = 0; i < d.data.length; i += 4) { const v = 150 + rand() * 60; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  g.putImageData(d, 0, 0);
+}, { srgb: false, repeat: [4, 4] });
+
+/* ============================================================
+   Materials
+   ============================================================ */
+const M = {
+  chassis: new THREE.MeshPhysicalMaterial({ color: 0x3a3c40, roughness: 0.55, metalness: 0.35, roughnessMap: chassisNoise, clearcoat: 0.15, clearcoatRoughness: 0.6 }),
+  chassisDark: new THREE.MeshStandardMaterial({ color: 0x232427, roughness: 0.6, metalness: 0.3 }),
+  alu: new THREE.MeshStandardMaterial({ color: 0xd8d6d2, map: brushedTex, roughness: 0.32, metalness: 1.0 }),
+  chrome: new THREE.MeshStandardMaterial({ color: 0xe6e6e6, roughness: 0.14, metalness: 1.0 }),
+  satin: new THREE.MeshStandardMaterial({ color: 0xbfbfbf, roughness: 0.35, metalness: 1.0, map: brushedTex }),
+  rubber: new THREE.MeshStandardMaterial({ color: 0x1c1d20, roughness: 0.82, metalness: 0.0 }),
+  padRubber: new THREE.MeshPhysicalMaterial({ color: 0x17181b, roughness: 0.7, sheen: 0.4, sheenColor: 0x444444 }),
+  black: new THREE.MeshStandardMaterial({ color: 0x08080a, roughness: 0.5, metalness: 0.2 }),
+  gloss: new THREE.MeshPhysicalMaterial({ color: 0x050506, roughness: 0.08, metalness: 0.0, clearcoat: 1 }),
+  knob: new THREE.MeshStandardMaterial({ color: 0x1a1a1c, roughness: 0.45, metalness: 0.4 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.4 }),
+  grill: new THREE.MeshStandardMaterial({ color: 0xffffff, map: meshGrillTex, roughness: 0.7, metalness: 0.4 }),
+  cable: new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.55 }),
+  cableRed: new THREE.MeshStandardMaterial({ color: 0x5a1416, roughness: 0.5 }),
+  braid: new THREE.MeshStandardMaterial({ color: 0x2a2a2c, roughness: 0.9 }),
+  wood: new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.62, metalness: 0.0 }),
+  usbBlue: new THREE.MeshStandardMaterial({ color: 0x1e64ff, roughness: 0.4, emissive: 0x0a2aff, emissiveIntensity: 0.25 }),
+};
+const ledMat = (hex, i = 2.5) => new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: i, roughness: 0.3, toneMapped: false });
+
+/* ============================================================
+   Chassis geometry  (Y up, front = +Z)
+   ============================================================ */
+const W = 4.6, D = 4.0, hF = 0.62, hB = 1.12, FEET = 0.04;
+const slope = Math.atan2(hB - hF, D);
+const L = Math.hypot(D, hB - hF);
+
+const device = new THREE.Group(); device.position.y = FEET; scene.add(device);
+
+function profileShape(inset = 0, yMin = 0) {
+  // shape coords: u = -z, v = y   (so extruding & rotating gives the correct handedness)
+  const s = new THREE.Shape();
+  const zf = D / 2 - inset, zb = -D / 2 + inset;
+  const yf = hF - inset * 1.0, yb = hB - inset * 1.0;
+  s.moveTo(-zf, yMin + inset);
+  s.lineTo(-zf, yf);
+  s.lineTo(-zb, yb);
+  s.lineTo(-zb, yMin + inset);
+  s.closePath();
+  return s;
+}
+function extrudeX(shape, depth, bevel = 0.03) {
+  const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelOffset: -bevel, bevelSegments: 4, curveSegments: 8 });
+  g.rotateY(Math.PI / 2); // depth -> +x, u -> -z
+  return g;
+}
+// body
+const body = new THREE.Mesh(extrudeX(profileShape(0), W - 0.16, 0.06), M.chassis);
+body.position.x = -(W - 0.16) / 2; body.castShadow = body.receiveShadow = true;
+device.add(body);
+
+// brushed aluminium side cheeks with mesh grille window
+const cheeks = [];
+for (const side of [-1, 1]) {
+  const sh = profileShape(-0.05, -0.04);
+  const hole = new THREE.Path();
+  const zf = D / 2 - 0.42, zb = -D / 2 + 0.32;
+  hole.moveTo(-zf, 0.16); hole.lineTo(-zf, hF - 0.16); hole.lineTo(-zb, hB - 0.2); hole.lineTo(-zb, 0.16); hole.closePath();
+  sh.holes.push(hole);
+  const cheek = new THREE.Group();
+  const plate = new THREE.Mesh(extrudeX(sh, 0.1, 0.025), M.alu); plate.castShadow = true;
+  cheek.add(plate);
+  const grillShape = new THREE.Shape(hole.getPoints());
+  const grill = new THREE.Mesh(extrudeX(grillShape, 0.02, 0), M.grill);
+  grill.position.x = side > 0 ? 0.03 : 0.05; cheek.add(grill);
+  // countersunk screws
+  for (const [z, y] of [[D / 2 - 0.18, 0.12], [-D / 2 + 0.16, 0.12], [-D / 2 + 0.16, hB - 0.12], [D / 2 - 0.18, hF - 0.1]]) {
+    const sc = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.02, 20), M.chrome);
+    sc.rotation.z = Math.PI / 2; sc.position.set(side > 0 ? 0.1 : 0, y, z); cheek.add(sc);
+  }
+  cheek.position.x = side > 0 ? W / 2 - 0.08 : -W / 2 - 0.02;
+  cheek.userData.explodeX = side * 0.9;
+  device.add(cheek); cheeks.push(cheek);
+}
+// rubber feet
+for (const x of [-1.9, 1.9]) for (const z of [-1.6, 1.6]) {
+  const f = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, FEET, 24), M.rubber);
+  f.position.set(x, -FEET / 2, z); device.add(f);
+}
+
+/* ============================================================
+   Deck (sloped top) — local coords: x across, z back(-)→front(+), y = up from surface
+   ============================================================ */
+const deck = new THREE.Group();
+deck.position.set(0, (hF + hB) / 2, 0);
+deck.rotation.x = slope;
+device.add(deck);
+const PW = W - 0.3, PL = L - 0.22;
+
+// Layout (shared by geometry and silk-screen printing)
+const LAYOUT = {
+  screen: { x: -0.32, z: -1.12, w: 1.95, h: 1.22 },
+  runStop: { x: -1.95, z: -1.05 },
+  numRow: { z: -0.3, x0: -1.5, dx: 0.3, n: 8 },
+  faders: { x0: -1.55, dx: 0.29, n: 7, z0: -0.02, z1: 1.0 },
+  leftBtns: [{ x: -2.0, z: 0.05 }, { x: -2.0, z: 0.85 }],
+  botRow: { z: 1.42, x0: -1.62, dx: 0.3, n: 8 },
+  knobs: [{ x: 0.98 }, { x: 1.38 }, { x: 1.78 }, { x: 2.14 }].map((k, i) => ({ ...k, z: -1.3 + i * 0.07 })),
+  repeat: { x: 0.95, z: -0.33 }, roll: { x: 1.27, z: -0.33 }, tap: { x: 0.62, z: 0.22 },
+  toggle: { x: 1.9, z: -0.42 }, smallBtns: [{ x: 1.72, z: -0.05 }, { x: 2.06, z: -0.05 }],
+  pads: { x0: 0.95, dx: 0.47, z0: 0.36, dz: 0.47, size: 0.41 },
+  ledRow: [0.38, 0.7, 1.02, 1.34, 1.72].map((x, i) => ({ x, z: 1.82 - (i === 4 ? 0.02 : 0) })),
+};
+
+/* ---- silk-screen printing texture for the top plate ---- */
+const CW = 2048, CH = Math.round(2048 * PL / PW);
+const toC = (x, z) => [(x + PW / 2) / PW * CW, (z + PL / 2) / PL * CH];
+const S = CW / PW; // px per unit
+const plateTex = canvasTex(CW, CH, (g) => {
+  g.fillStyle = '#2d2f33'; g.fillRect(0, 0, CW, CH);
+  // subtle powder-coat speckle
+  for (let i = 0; i < 26000; i++) { g.fillStyle = `rgba(255,255,255,${rand() * 0.035})`; g.fillRect(rand() * CW, rand() * CH, 1.5, 1.5); }
+  const ORANGE = '#e8732c', INK = '#d9d4cc', DIM = '#8d8a85';
+  const txt = (x, z, s, size = 0.07, col = INK, align = 'center', weight = 600) => {
+    const [cx, cy] = toC(x, z); g.fillStyle = col; g.textAlign = align; g.textBaseline = 'middle';
+    g.font = `${weight} ${size * S}px "Helvetica Neue", Arial, sans-serif`; g.fillText(s, cx, cy);
+  };
+  const line = (x1, z1, x2, z2, col = ORANGE, w = 0.008) => {
+    const [a, b] = toC(x1, z1), [c, d] = toC(x2, z2); g.strokeStyle = col; g.lineWidth = w * S; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke();
+  };
+  // inset frame
+  g.strokeStyle = '#45484d'; g.lineWidth = 4; g.strokeRect(0.08 * S, 0.08 * S, CW - 0.16 * S, CH - 0.16 * S);
+  // brand
+  txt(-2.05, -1.78, 'SP-1200', 0.2, '#4a4c50', 'left', 800);
+  txt(-1.02, -1.75, 'Modern', 0.15, '#4a4c50', 'left', 500);
+  txt(1.25, -0.72, 'E-mu', 0.17, '#cfcac2', 'left', 800);
+  txt(1.78, -0.72, 'Modern', 0.17, ORANGE, 'left', 700);
+  // section lines
+  line(-2.12, -0.55, 0.62, -0.55); line(-2.12, 1.2, 0.5, 1.2); line(0.75, 0.05, 2.15, 0.05);
+  line(0.85, -1.62, 2.2, -1.62); line(0.2, 1.62, 1.95, 1.62); line(0.75, -0.55, 1.45, -0.55);
+  txt(1.5, -1.68, 'VOICE / FILTER', 0.055, ORANGE);
+  txt(1.05, 1.57, 'SEQUENCE · BANK · TRACK', 0.05, ORANGE, 'left');
+  // labels
+  txt(LAYOUT.runStop.x, LAYOUT.runStop.z - 0.2, 'RUN/STOP', 0.065);
+  for (let i = 0; i < 8; i++) {
+    const x = LAYOUT.numRow.x0 + i * LAYOUT.numRow.dx;
+    txt(x, LAYOUT.numRow.z - 0.18, String(i + 1), 0.07);
+    txt(LAYOUT.botRow.x0 + i * LAYOUT.botRow.dx, LAYOUT.botRow.z + 0.17, ['MUTE', 'SOLO', 'TUNE', 'DECAY', 'MIX', 'PAN', 'SWING', 'STEP'][i], 0.045, DIM);
+  }
+  ['HPF CUTOFF', 'RESONANCE', 'DRIVE', 'MASTER'].forEach((s, i) => txt(LAYOUT.knobs[i].x, LAYOUT.knobs[i].z + 0.27, s, 0.045));
+  txt(LAYOUT.repeat.x, LAYOUT.repeat.z - 0.17, 'REPEAT', 0.05); txt(LAYOUT.roll.x, LAYOUT.roll.z - 0.17, 'ROLL', 0.05);
+  txt(LAYOUT.repeat.x, LAYOUT.repeat.z + 0.17, 'NOTE RPT', 0.04, DIM); txt(LAYOUT.roll.x, LAYOUT.roll.z + 0.17, '1/16 · 1/32', 0.04, DIM);
+  txt(LAYOUT.tap.x, LAYOUT.tap.z - 0.17, 'TAP/REPEAT', 0.05); txt(LAYOUT.tap.x, LAYOUT.tap.z + 0.17, 'TEMPO', 0.045, ORANGE);
+  txt(LAYOUT.toggle.x + 0.12, LAYOUT.toggle.z - 0.17, '12-bit / 26kHz', 0.06);
+  txt(LAYOUT.toggle.x - 0.16, LAYOUT.toggle.z + 0.14, 'VINTAGE · CLEAN', 0.035, DIM);
+  txt(LAYOUT.smallBtns[0].x, LAYOUT.smallBtns[0].z + 0.15, 'PADS', 0.04, DIM); txt(LAYOUT.smallBtns[1].x, LAYOUT.smallBtns[1].z + 0.15, 'FILTER', 0.04, DIM);
+  txt(1.42, 0.1, 'PAD BANK / KIT', 0.05);
+  ['REC/STOP', 'A', 'B', 'C', 'ERASE'].forEach((s, i) => txt(LAYOUT.ledRow[i].x, LAYOUT.ledRow[i].z - 0.18, s, 0.04, DIM));
+  LAYOUT.leftBtns.forEach((b, i) => txt(b.x, b.z - 0.17, ['PAGE', 'SHIFT'][i], 0.045, DIM));
+  // fader scales
+  const F = LAYOUT.faders;
+  for (let i = 0; i < F.n; i++) {
+    const x = F.x0 + i * F.dx;
+    for (let t = 0; t <= 10; t++) { const z = F.z0 + (F.z1 - F.z0) * t / 10; line(x - 0.075, z, x - (t % 5 ? 0.04 : 0.065), z, '#6f6c68', 0.005); }
+    txt(x, F.z1 + 0.09, `CH${i + 1}`, 0.04, DIM);
+  }
+});
+plateTex.userData.ctx = null;
+const plateMat = new THREE.MeshPhysicalMaterial({ map: plateTex, roughness: 0.6, metalness: 0.25, clearcoat: 0.1 });
+const plate = new THREE.Mesh(new THREE.PlaneGeometry(PW, PL), plateMat);
+plate.rotation.x = -Math.PI / 2; plate.position.y = 0.002; plate.receiveShadow = true;
+deck.add(plate);
+
+/* ---- helpers for placing components on the deck ---- */
+const explodables = [];
+function onDeck(obj, x, z, y = 0, layer = 1) {
+  obj.position.set(x, y, z); obj.userData.baseY = y; obj.userData.layer = layer;
+  obj.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  deck.add(obj); explodables.push(obj); return obj;
+}
+const interactive = [];
+function makeInteractive(group, handler) {
+  group.traverse(o => { if (o.isMesh) { o.userData.handler = handler; interactive.push(o); } });
+}
+
+const btnGeo = new RoundedBoxGeometry(0.2, 0.09, 0.2, 3, 0.035);
+const btnWell = new RoundedBoxGeometry(0.24, 0.02, 0.24, 2, 0.01);
+const pressAnims = new Set();
+function makeButton(x, z, { led = null, w = 1, layer = 1.1, onPress = null } = {}) {
+  const g = new THREE.Group();
+  const well = new THREE.Mesh(btnWell, M.black); well.position.y = 0.0; well.scale.set(w, 1, 1); g.add(well);
+  const cap = new THREE.Mesh(btnGeo, M.rubber); cap.position.y = 0.05; cap.scale.set(w, 1, 1); g.add(cap);
+  g.userData.cap = cap;
+  if (led) {
+    const lm = ledMat(led, 0.4); const l = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 8), lm);
+    l.position.set(0, 0.093, -0.06); l.scale.y = 0.4; g.add(l); g.userData.led = lm;
+  }
+  onDeck(g, x, z, 0, layer);
+  makeInteractive(g, () => { cap.userData.t = 1; pressAnims.add(cap); onPress && onPress(g); });
+  return g;
+}
+
+/* ---- touchscreen ---- */
+const SC = LAYOUT.screen;
+const screenTex = canvasTex(1280, 800, () => {});
+const screenGroup = new THREE.Group();
+{
+  const bezel = new THREE.Mesh(new RoundedBoxGeometry(SC.w + 0.16, 0.05, SC.h + 0.16, 3, 0.02), M.gloss);
+  bezel.position.y = 0.02; screenGroup.add(bezel);
+  const disp = new THREE.Mesh(new THREE.PlaneGeometry(SC.w, SC.h), new THREE.MeshBasicMaterial({ map: screenTex, color: 0x9a9a9a, toneMapped: false }));
+  disp.rotation.x = -Math.PI / 2; disp.position.y = 0.047; screenGroup.add(disp);
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(SC.w + 0.12, SC.h + 0.12),
+    new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.06, clearcoat: 1, envMapIntensity: 0.8 }));
+  glass.rotation.x = -Math.PI / 2; glass.position.y = 0.05; screenGroup.add(glass);
+}
+onDeck(screenGroup, SC.x, SC.z, 0, 1.8);
+
+/* ---- buttons ---- */
+const runStopBtn = makeButton(LAYOUT.runStop.x, LAYOUT.runStop.z, { led: 0x3cff6a, onPress: () => toggleRun() });
+for (let i = 0; i < 8; i++) makeButton(LAYOUT.numRow.x0 + i * LAYOUT.numRow.dx, LAYOUT.numRow.z, { onPress: () => { screenState.page = i; } });
+for (let i = 0; i < 8; i++) makeButton(LAYOUT.botRow.x0 + i * LAYOUT.botRow.dx, LAYOUT.botRow.z);
+LAYOUT.leftBtns.forEach((b, i) => makeButton(b.x, b.z, { led: i ? 0xff6a2a : 0x3cff6a }));
+makeButton(LAYOUT.repeat.x, LAYOUT.repeat.z); makeButton(LAYOUT.roll.x, LAYOUT.roll.z);
+makeButton(LAYOUT.tap.x, LAYOUT.tap.z, { led: 0xff7a2e, onPress: () => tapTempo() });
+LAYOUT.smallBtns.forEach(b => makeButton(b.x, b.z));
+const ledColors = [0xff3b6b, 0xff4fa3, 0x5cff7a, 0xf6ff4a, 0xff7a2e];
+const ledRowBtns = LAYOUT.ledRow.map((b, i) => makeButton(b.x, b.z, { led: ledColors[i] }));
+ledRowBtns.forEach(b => b.userData.led.emissiveIntensity = 2.2);
+
+/* ---- vintage / clean toggle switch ---- */
+let vintage = true;
+const toggle = new THREE.Group();
+{
+  const base = new THREE.Mesh(new RoundedBoxGeometry(0.36, 0.03, 0.14, 2, 0.01), M.black); base.position.y = 0.015; toggle.add(base);
+  const lever = new THREE.Mesh(new RoundedBoxGeometry(0.13, 0.07, 0.1, 2, 0.02), M.satin); lever.position.set(-0.08, 0.05, 0); toggle.add(lever);
+  toggle.userData.lever = lever;
+}
+onDeck(toggle, LAYOUT.toggle.x, LAYOUT.toggle.z, 0, 1.2);
+makeInteractive(toggle, () => { vintage = !vintage; toggle.userData.lever.position.x = vintage ? -0.08 : 0.08; });
+
+/* ---- knobs with knurled grip ---- */
+function knurledCylinder(r, h, ridges = 30) {
+  const g = new THREE.CylinderGeometry(r, r * 1.04, h, ridges * 4, 1);
+  const p = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i); const rr = Math.hypot(v.x, v.z); if (rr < 1e-4) continue;
+    const a = Math.atan2(v.z, v.x); const k = 1 + 0.045 * Math.abs(Math.cos(a * ridges / 2)) ** 0.6;
+    p.setXYZ(i, v.x * k, v.y, v.z * k);
+  }
+  g.computeVertexNormals(); return g;
+}
+const knobs = [];
+LAYOUT.knobs.forEach((k, i) => {
+  const g = new THREE.Group(), spin = new THREE.Group(); g.add(spin);
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.185, 0.19, 0.03, 48), M.knob); skirt.position.y = 0.015; spin.add(skirt);
+  const grip = new THREE.Mesh(knurledCylinder(0.135, 0.2, 34), M.knob); grip.position.y = 0.13; spin.add(grip);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.118, 0.125, 0.02, 48), M.satin); cap.position.y = 0.24; spin.add(cap);
+  const dot = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.012, 0.1), M.white); dot.position.set(0, 0.252, -0.06); spin.add(dot);
+  const tick = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.01, 0.07), M.white); tick.position.set(0, 0.032, -0.15); spin.add(tick);
+  // scale dots around the knob printed as tiny studs
+  for (let j = 0; j <= 10; j++) {
+    const a = THREE.MathUtils.degToRad(-135 + j * 27);
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.004, 8), M.white);
+    s.position.set(Math.sin(a) * 0.235, 0.003, -Math.cos(a) * 0.235); g.add(s);
+  }
+  g.userData.value = 0.3 + 0.12 * i; spin.rotation.y = -THREE.MathUtils.degToRad(-135 + 270 * g.userData.value);
+  g.userData.spin = spin;
+  onDeck(g, k.x, k.z, 0, 2.2);
+  makeInteractive(g, (ev) => startDrag({ type: 'knob', obj: g, y0: ev.clientY, v0: g.userData.value }));
+  knobs.push(g);
+});
+
+/* ---- faders with LED ladders ---- */
+const F = LAYOUT.faders;
+const faders = [];
+const ledPerCol = 16;
+const ledGeo = new THREE.BoxGeometry(0.022, 0.012, 0.022);
+const ledInst = new THREE.InstancedMesh(ledGeo, new THREE.MeshBasicMaterial({ toneMapped: false }), F.n * ledPerCol);
+ledInst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(F.n * ledPerCol * 3), 3);
+for (let i = 0; i < F.n; i++) {
+  const x = F.x0 + i * F.dx;
+  const g = new THREE.Group();
+  const slotFrame = new THREE.Mesh(new RoundedBoxGeometry(0.07, 0.012, F.z1 - F.z0 + 0.12, 2, 0.005), M.chassisDark); g.add(slotFrame);
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.014, F.z1 - F.z0 + 0.06), M.black); slot.position.y = 0.002; g.add(slot);
+  const knob = new THREE.Group();
+  const stem = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, 0.02), M.black); stem.position.y = 0.025; knob.add(stem);
+  const cap = new THREE.Mesh(new RoundedBoxGeometry(0.17, 0.11, 0.12, 3, 0.02), M.chrome); cap.position.y = 0.1; knob.add(cap);
+  const groove = new THREE.Mesh(new THREE.BoxGeometry(0.172, 0.02, 0.014), M.black); groove.position.y = 0.155; knob.add(groove);
+  for (const s of [-1, 1]) { const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.172, 0.012, 0.012), M.satin); ridge.position.set(0, 0.152, s * 0.035); knob.add(ridge); }
+  g.add(knob);
+  g.userData.value = [0.72, 0.6, 0.55, 0.48, 0.42, 0.36, 0.3][i];
+  g.userData.knob = knob; g.userData.level = 0;
+  knob.position.z = THREE.MathUtils.lerp(F.z1, F.z0, g.userData.value) - (F.z1 + F.z0) / 2;
+  onDeck(g, x, (F.z0 + F.z1) / 2, 0.006, 1.5);
+  makeInteractive(knob, () => startDrag({ type: 'fader', obj: g }));
+  faders.push(g);
+  for (let j = 0; j < ledPerCol; j++) {
+    const m = new THREE.Matrix4().makeTranslation(x + 0.1, 0.008, F.z1 - (F.z1 - F.z0) * j / (ledPerCol - 1));
+    ledInst.setMatrixAt(i * ledPerCol + j, m);
+  }
+}
+const ledGroup = new THREE.Group(); ledGroup.add(ledInst); onDeck(ledGroup, 0, 0, 0, 1.3);
+
+/* ---- RGB pads ---- */
+const PADS = LAYOUT.pads;
+const padColors = [0x8a5cff, 0x2ee6c8, 0x4a7dff, 0xff5fa8, 0x3cc8ff, 0xb05cff, 0xff6fd8, 0x5cff8f, 0x9d6bff];
+const pads = [];
+const padGeo = new RoundedBoxGeometry(PADS.size, 0.1, PADS.size, 4, 0.04);
+const glowGeo = new RoundedBoxGeometry(PADS.size + 0.035, 0.06, PADS.size + 0.035, 4, 0.04);
+const wellGeo = new RoundedBoxGeometry(PADS.size + 0.08, 0.02, PADS.size + 0.08, 3, 0.03);
+for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+  const idx = r * 3 + c;
+  const g = new THREE.Group();
+  const well = new THREE.Mesh(wellGeo, M.black); g.add(well);
+  const gm = ledMat(padColors[idx], 1.6);
+  const glow = new THREE.Mesh(glowGeo, gm); glow.position.y = 0.03; g.add(glow);
+  const pad = new THREE.Mesh(padGeo, M.padRubber); pad.position.y = 0.07; g.add(pad);
+  g.userData = { ...g.userData, glow: gm, pad, hit: 0, idx };
+  onDeck(g, PADS.x0 + c * PADS.dx, PADS.z0 + r * PADS.dz, 0, 1.4);
+  makeInteractive(g, () => triggerPad(idx, 1));
+  pads.push(g);
+}
+// pad frame
+onDeck(new THREE.Mesh(new RoundedBoxGeometry(PADS.dx * 3 + 0.08, 0.01, PADS.dz * 3 + 0.08, 2, 0.03), M.chassisDark),
+  PADS.x0 + PADS.dx, PADS.z0 + PADS.dz, 0, 0.5);
+
+/* ============================================================
+   Front panel: floppy drive + modern I/O
+   ============================================================ */
+const front = new THREE.Group(); front.position.set(0, 0, D / 2 + 0.001); device.add(front);
+const frontTex = canvasTex(2048, 280, (g, w, h) => {
+  g.clearRect(0, 0, w, h); g.fillStyle = '#cfc9bf'; g.font = '600 30px Arial'; g.textAlign = 'center';
+  g.fillText('REC LVL', 1462, 236); g.fillText('PHONES', 1580, 236);
+  g.fillStyle = '#7d7a75'; g.font = '500 24px Arial'; g.fillText('3.5" DRIVE · 1.44MB', 440, 250);
+  g.fillText('SD · USB-C · USB-A · AUX', 1040, 250);
+});
+{
+  const lab = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.16, (W - 0.16) * 280 / 2048), new THREE.MeshStandardMaterial({ map: frontTex, transparent: true, roughness: 0.6 }));
+  lab.position.set(0, hF / 2, 0.003); front.add(lab);
+  // floppy
+  const fd = new THREE.Group();
+  fd.add(Object.assign(new THREE.Mesh(new RoundedBoxGeometry(1.3, 0.32, 0.04, 2, 0.015), M.black), {}));
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.035, 0.03), new THREE.MeshStandardMaterial({ color: 0x000000 })); slot.position.set(-0.05, 0.05, 0.012); fd.add(slot);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.03, 0.006), M.chassisDark); door.position.set(-0.05, 0.05, 0.026); fd.add(door);
+  const eject = new THREE.Mesh(new RoundedBoxGeometry(0.16, 0.06, 0.04, 2, 0.01), M.chassisDark); eject.position.set(0.48, -0.07, 0.02); fd.add(eject);
+  const fled = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.01), ledMat(0x3cff6a, 0.6)); fled.position.set(-0.5, -0.08, 0.022); fd.add(fled);
+  fd.position.set(-1.3, hF / 2 + 0.02, 0.02); front.add(fd);
+  // I/O panel
+  const io = new THREE.Group();
+  io.add(new THREE.Mesh(new RoundedBoxGeometry(1.15, 0.36, 0.04, 2, 0.02), M.black));
+  const sd = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 0.02), new THREE.MeshBasicMaterial({ color: 0 })); sd.position.set(-0.4, 0.04, 0.015); io.add(sd);
+  const sd2 = sd.clone(); sd2.scale.x = 0.6; sd2.position.y = -0.04; io.add(sd2);
+  const usbc = new THREE.Mesh(new RoundedBoxGeometry(0.09, 0.035, 0.03, 2, 0.015), M.chrome); usbc.position.set(-0.12, 0, 0.012); io.add(usbc);
+  const usbcHole = new THREE.Mesh(new RoundedBoxGeometry(0.075, 0.02, 0.02, 2, 0.009), new THREE.MeshBasicMaterial({ color: 0 })); usbcHole.position.set(-0.12, 0, 0.022); io.add(usbcHole);
+  const usba = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.06, 0.03), M.chrome); usba.position.set(0.1, 0, 0.012); io.add(usba);
+  const usbaIn = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.022, 0.02), M.usbBlue); usbaIn.position.set(0.1, 0.008, 0.022); io.add(usbaIn);
+  const jack = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.012, 12, 24), M.chrome); jack.position.set(0.34, 0, 0.022); io.add(jack);
+  io.position.set(0.55, hF / 2 + 0.02, 0.02); front.add(io);
+  // rec knob + phones 1/4"
+  const rk = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.06, 24), M.satin); rk.rotation.x = Math.PI / 2; rk.position.set(1.5, hF / 2 + 0.06, 0.03); front.add(rk);
+  const pj = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.018, 12, 28), M.chrome); pj.position.set(1.66, hF / 2 + 0.06, 0.015); front.add(pj);
+  const pjHole = new THREE.Mesh(new THREE.CircleGeometry(0.045, 24), new THREE.MeshBasicMaterial({ color: 0 })); pjHole.position.set(1.66, hF / 2 + 0.06, 0.012); front.add(pjHole);
+  front.traverse(o => { if (o.isMesh) o.castShadow = true; });
+}
+
+/* ============================================================
+   Rear connectors + cables
+   ============================================================ */
+const rear = new THREE.Group(); device.add(rear);
+const rearPlugs = [
+  { x: -1.4, y: 0.82, mat: M.cable, xlr: false }, { x: -1.05, y: 0.82, mat: M.cableRed, xlr: false },
+  { x: -0.7, y: 0.82, mat: M.cable, xlr: false }, { x: 0.3, y: 0.62, mat: M.cable, xlr: true },
+  { x: 0.75, y: 0.62, mat: M.cable, xlr: true }, { x: 1.25, y: 0.75, mat: M.braid, xlr: false }, { x: 1.75, y: 0.75, mat: M.braid, xlr: false },
+];
+for (const p of rearPlugs) {
+  const z0 = -D / 2;
+  const plug = new THREE.Group();
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(p.xlr ? 0.075 : 0.05, p.xlr ? 0.075 : 0.05, 0.28, 24), p.xlr ? M.chrome : M.satin);
+  shell.rotation.x = Math.PI / 2; shell.position.z = -0.14; plug.add(shell);
+  const boot = new THREE.Mesh(new THREE.CylinderGeometry(0.04, p.xlr ? 0.065 : 0.045, 0.2, 18), M.black);
+  boot.rotation.x = Math.PI / 2; boot.position.z = -0.36; plug.add(boot);
+  if (p.xlr) for (const s of [-1, 1]) { const rib = new THREE.Mesh(new THREE.TorusGeometry(0.076, 0.006, 6, 24), M.black); rib.position.z = -0.14 + s * 0.06; plug.add(rib); }
+  plug.position.set(p.x, p.y, z0); rear.add(plug);
+  const pts = [
+    new THREE.Vector3(p.x, p.y, z0 - 0.45), new THREE.Vector3(p.x * 1.03, p.y - 0.12, z0 - 1.0),
+    new THREE.Vector3(p.x * 1.1 + 0.1, 0.18, z0 - 1.7), new THREE.Vector3(p.x * 1.2 + 0.2, 0.04, z0 - 2.4),
+    new THREE.Vector3(p.x * 1.35 + 0.3, 0.04, z0 - 4.6),
+  ];
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 64, p.xlr ? 0.04 : 0.03, 10), p.mat);
+  tube.castShadow = true; tube.position.y = -FEET; rear.add(tube);
+}
+rear.traverse(o => { if (o.isMesh) o.castShadow = true; });
+
+/* ============================================================
+   Studio desk & props
+   ============================================================ */
+const desk = new THREE.Mesh(new THREE.BoxGeometry(16, 0.4, 10), M.wood);
+desk.position.y = -0.2; desk.receiveShadow = true; scene.add(desk);
+const wall = new THREE.Mesh(new THREE.PlaneGeometry(30, 14), new THREE.MeshStandardMaterial({ color: 0x241c17, roughness: 0.95 }));
+wall.position.set(0, 4, -8); scene.add(wall);
+
+// coffee + notebook
+{
+  const nbTex = canvasTex(700, 900, (g, w, h) => {
+    g.fillStyle = '#f3efe6'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#a9c0d8'; g.lineWidth = 2; for (let y = 120; y < h; y += 46) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    g.strokeStyle = '#e39a9a'; g.beginPath(); g.moveTo(90, 0); g.lineTo(90, h); g.stroke();
+    g.fillStyle = '#2b2b33'; g.font = 'italic 34px "Segoe Print", "Bradley Hand", cursive';
+    ['Music Producer notes', '— chop at 26.04 kHz', '— swing 58% on hats', '— filter: HPF  ~ 80Hz', '— resample kick @12-bit', '— bounce stems → SD', 'ready 2 track?'].forEach((s, i) => g.fillText(s, 110, 110 + i * 92));
+  });
+  const nb = new THREE.Group();
+  const pages = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.06, 3.0), [M.white, M.white, new THREE.MeshStandardMaterial({ map: nbTex, color: 0x8f8a82, roughness: 0.95 }), M.white, M.white, M.white]);
+  pages.position.y = 0.03; pages.material.forEach((m, i) => { if (i !== 2) pages.material[i] = new THREE.MeshStandardMaterial({ color: 0x9a968e, roughness: 0.9 }); }); nb.add(pages);
+  for (let i = 0; i < 22; i++) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.008, 6, 16), M.chrome); ring.rotation.y = Math.PI / 2; ring.position.set(-1.18, 0.06, -1.35 + i * 0.13); nb.add(ring); }
+  nb.position.set(4.1, 0, 3.2); nb.rotation.y = 0.45; scene.add(nb);
+  nb.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
+
+  const cup = new THREE.Group();
+  const prof = [[0, 0], [0.34, 0], [0.38, 0.03], [0.42, 0.55], [0.44, 0.62], [0.41, 0.62], [0.39, 0.06], [0, 0.06]].map(([x, y]) => new THREE.Vector2(x, y));
+  const cupMat = new THREE.MeshPhysicalMaterial({ color: 0xdedad2, roughness: 0.2, clearcoat: 1 });
+  cup.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 64), cupMat));
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.035, 12, 32, Math.PI * 1.2), cupMat); handle.rotation.z = -Math.PI * 0.6; handle.position.set(0.47, 0.32, 0); cup.add(handle);
+  const coffeeTex = canvasTex(256, 256, (g) => {
+    const gr = g.createRadialGradient(128, 128, 10, 128, 128, 128); gr.addColorStop(0, '#6b3f1d'); gr.addColorStop(0.75, '#8b5a2e'); gr.addColorStop(1, '#c79868');
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 300; i++) { g.fillStyle = `rgba(230,190,140,${rand() * 0.3})`; g.beginPath(); g.arc(rand() * 256, rand() * 256, rand() * 3, 0, 7); g.fill(); }
+  });
+  const coffee = new THREE.Mesh(new THREE.CircleGeometry(0.4, 48), new THREE.MeshStandardMaterial({ map: coffeeTex, roughness: 0.25 }));
+  coffee.rotation.x = -Math.PI / 2; coffee.position.y = 0.52; cup.add(coffee);
+  cup.position.set(4.3, 0.06, 3.6); scene.add(cup);
+  cup.traverse(o => { if (o.isMesh) o.castShadow = true; });
+}
+// keyboard synth (back-left)
+{
+  const kb = new THREE.Group();
+  kb.add(new THREE.Mesh(new RoundedBoxGeometry(5.2, 0.35, 1.9, 3, 0.05), M.chassisDark)).position.y = 0.175;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x6b3a1e, roughness: 0.5 });
+  for (const s of [-1, 1]) { const ch = new THREE.Mesh(new RoundedBoxGeometry(0.14, 0.45, 1.95, 2, 0.04), wood); ch.position.set(s * 2.67, 0.225, 0); kb.add(ch); }
+  const wk = new THREE.BoxGeometry(0.155, 0.1, 0.95), bk = new THREE.BoxGeometry(0.09, 0.12, 0.58);
+  const wkI = new THREE.InstancedMesh(wk, new THREE.MeshStandardMaterial({ color: 0xb9b5ad, roughness: 0.45 }), 29);
+  const bkI = new THREE.InstancedMesh(bk, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3 }), 20);
+  const m = new THREE.Matrix4(); let b = 0;
+  for (let i = 0; i < 29; i++) {
+    const x = -2.3 + i * 0.163; m.makeTranslation(x, 0.38, 0.42); wkI.setMatrixAt(i, m);
+    if ([0, 1, 3, 4, 5].includes(i % 7) && i < 28 && b < 20) { m.makeTranslation(x + 0.082, 0.42, 0.24); bkI.setMatrixAt(b++, m); }
+  }
+  bkI.count = b; kb.add(wkI, bkI);
+  for (let i = 0; i < 8; i++) { const k = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.1, 20), M.knob); k.position.set(-2.2 + i * 0.3, 0.4, -0.55); kb.add(k); }
+  kb.position.set(-5.4, 0, -3.3); kb.rotation.y = 0.55; scene.add(kb);
+  kb.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
+}
+// studio monitor (back)
+{
+  const mon = new THREE.Group();
+  mon.add(new THREE.Mesh(new RoundedBoxGeometry(1.7, 2.4, 1.6, 3, 0.08), M.chassisDark)).position.y = 1.2;
+  const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.3, 0.12, 48), M.black); cone.rotation.x = Math.PI / 2; cone.position.set(0, 0.8, 0.82); mon.add(cone);
+  const surround = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.05, 12, 48), M.rubber); surround.position.set(0, 0.8, 0.82); mon.add(surround);
+  const tw = new THREE.Mesh(new THREE.SphereGeometry(0.14, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), M.satin); tw.rotation.x = Math.PI / 2; tw.position.set(0, 1.85, 0.8); mon.add(tw);
+  mon.position.set(-0.6, 0, -5.4); scene.add(mon);
+  mon.traverse(o => { if (o.isMesh) o.castShadow = true; });
+}
+// headphones + patch cables (left)
+{
+  const hp = new THREE.Group();
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.06, 12, 48, Math.PI), M.rubber); band.rotation.x = -Math.PI / 2; band.position.y = 0.1; hp.add(band);
+  for (const s of [-1, 1]) {
+    const cupH = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.22, 36), M.knob); cupH.position.set(s * 0.75, 0.2, 0.05); hp.add(cupH);
+    const pad = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.08, 12, 32), M.rubber); pad.rotation.x = Math.PI / 2; pad.position.set(s * 0.75, 0.33, 0.05); hp.add(pad);
+  }
+  hp.position.set(-4.4, 0, 0.6); hp.rotation.y = 1.2; scene.add(hp);
+  hp.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  const patch = (col, pts) => {
+    const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)));
+    const t = new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.022, 8), new THREE.MeshStandardMaterial({ color: col, roughness: 0.45 })); t.castShadow = true; scene.add(t);
+    for (const e of [0, 1]) {
+      const pt = curve.getPoint(e), tan = curve.getTangent(e).multiplyScalar(e ? 1 : -1);
+      const j = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.22, 16), M.chrome);
+      j.position.copy(pt).addScaledVector(tan, 0.1); j.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tan); scene.add(j);
+      const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.16, 12), new THREE.MeshStandardMaterial({ color: 0xd4a640, metalness: 1, roughness: 0.25 }));
+      tip.position.copy(pt).addScaledVector(tan, 0.28); tip.quaternion.copy(j.quaternion); scene.add(tip);
+    }
+  };
+  patch(0xe0b23a, [[-3.6, 0.03, -1.6], [-3.0, 0.03, -0.9], [-3.4, 0.03, -0.2], [-2.9, 0.03, 0.4], [-3.3, 0.03, 1.0]]);
+  patch(0x3456c8, [[-2.8, 0.03, -1.9], [-3.2, 0.03, -1.2], [-2.7, 0.03, -0.4], [-3.0, 0.03, 0.1], [-3.8, 0.03, 0.3]]);
+}
+
+/* ============================================================
+   Screen UI (redrawn live)
+   ============================================================ */
+const screenState = { page: 0, step: -1, bpm: 92 };
+const waveA = Array.from({ length: 420 }, (_, i) => { const t = i / 420; return (Math.sin(i * 0.9) * 0.5 + (rand() - 0.5)) * Math.exp(-t * 3.2) * (0.6 + 0.4 * Math.sin(t * 40)); });
+const waveB = Array.from({ length: 220 }, (_, i) => (rand() - 0.5) * Math.exp(-i / 90) * 1.6);
+function drawScreen(time) {
+  const c = screenTex.userData.canvas, g = c.getContext('2d'), w = c.width, h = c.height;
+  const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#0d1520'); bg.addColorStop(1, '#070b11');
+  g.fillStyle = bg; g.fillRect(0, 0, w, h);
+  const OR = '#ff7a2e', CY = '#6fe6ff', TX = '#c9d6e6', DM = '#5b6b7e';
+  g.font = '600 26px Arial'; g.fillStyle = TX; g.textAlign = 'left';
+  g.fillText(`SEQ · PATTERN 0${screenState.page + 1}`, 28, 42);
+  g.fillStyle = OR; g.fillText(`${screenState.bpm} BPM`, 420, 42);
+  g.fillStyle = vintage ? OR : CY; g.fillText(vintage ? '12-BIT / 26.04kHz' : '24-BIT / 48kHz', 600, 42);
+  g.fillStyle = DM; g.fillText(running ? '● PLAY' : '■ STOP', 1120, 42);
+  // main waveform
+  const wx = 28, wy = 70, ww = 780, wh = 250;
+  g.strokeStyle = '#1d2a3a'; g.lineWidth = 2; g.strokeRect(wx, wy, ww, wh);
+  g.strokeStyle = OR; g.lineWidth = 1; g.beginPath(); g.moveTo(wx, wy + wh / 2); g.lineTo(wx + ww, wy + wh / 2); g.stroke();
+  g.fillStyle = CY;
+  for (let i = 0; i < waveA.length; i++) {
+    const x = wx + i / waveA.length * ww, a = Math.abs(waveA[i]) * wh * 0.48;
+    const q = vintage ? Math.round(a / 6) * 6 : a; g.fillRect(x, wy + wh / 2 - q, 1.6, q * 2);
+  }
+  const ph = running ? ((time * 0.00025) % 1) : 0.48;
+  g.fillStyle = OR; g.fillRect(wx + ph * ww, wy, 3, wh);
+  g.fillStyle = 'rgba(255,122,46,0.12)'; g.fillRect(wx + 0.12 * ww, wy, 0.3 * ww, wh);
+  // side panel
+  const sx = 840; g.fillStyle = '#0f1b28'; g.fillRect(sx, 70, 410, 250);
+  g.fillStyle = TX; g.font = '600 24px Arial'; g.fillText('SAMPLE EDIT', sx + 18, 104);
+  g.font = '500 20px Arial';
+  ['START  0.000', 'END    1.284', 'TUNE   +0.00', `FILTER ${(knobs[0]?.userData.value * 100 | 0)}%`, `DRIVE  ${(knobs[2]?.userData.value * 100 | 0)}%`]
+    .forEach((s, i) => { g.fillStyle = i === 3 ? OR : DM; g.fillText(s, sx + 18, 140 + i * 34); });
+  g.strokeStyle = CY; g.lineWidth = 1.5; g.beginPath();
+  waveB.forEach((v, i) => g.lineTo(sx + 210 + i * 0.85, 210 + v * 60)); g.stroke();
+  // step grid
+  const gx = 28, gy = 345, cw = 1222 / 16, rh = 44;
+  for (let r = 0; r < 6; r++) for (let s = 0; s < 16; s++) {
+    const on = PATTERN[r] && PATTERN[r][s];
+    g.fillStyle = on ? (s === screenState.step ? '#ffd2b0' : OR) : (s % 4 === 0 ? '#1c2836' : '#141f2b');
+    g.fillRect(gx + s * cw + 3, gy + r * rh + 3, cw - 6, rh - 8);
+  }
+  if (screenState.step >= 0) { g.fillStyle = 'rgba(111,230,255,0.25)'; g.fillRect(gx + screenState.step * cw, gy, cw, rh * 6); }
+  // channel meters
+  const my = gy + 6 * rh + 16;
+  faders.forEach((f, i) => {
+    g.fillStyle = '#132131'; g.fillRect(gx + i * 100, my, 90, 30);
+    g.fillStyle = i % 2 ? CY : OR; g.fillRect(gx + i * 100, my, 90 * Math.min(1, f.userData.level), 30);
+    g.fillStyle = TX; g.font = '500 16px Arial'; g.fillText(`CH${i + 1}`, gx + i * 100 + 4, my + 50);
+  });
+  // tabs
+  const tabs = ['MAIN', 'SEQUENCE', 'SAMPLE', 'MIXER', 'FX', 'DISK'];
+  tabs.forEach((t, i) => {
+    const tx = 28 + i * 205; g.fillStyle = i === (screenState.page % 6) ? '#1f6f8f' : '#121c27'; g.fillRect(tx, h - 64, 195, 50);
+    g.fillStyle = TX; g.font = '600 20px Arial'; g.textAlign = 'center'; g.fillText(t, tx + 97, h - 32); g.textAlign = 'left';
+  });
+  screenTex.needsUpdate = true;
+}
+
+/* ============================================================
+   Audio: 12-bit / 26.04 kHz synthesized kit (SP-1200 style)
+   ============================================================ */
+let actx = null, master = null, voiceGain = [];
+const buffers = [];
+const SR = 26040;
+function crush(data) { if (!vintage) return data; return data.map(s => Math.round(Math.max(-1, Math.min(1, s)) * 2047) / 2047); }
+function makeBuf(len, fn) {
+  const n = Math.floor(len * SR), b = actx.createBuffer(1, n, SR), d = b.getChannelData(0);
+  let phase = 0, lp = 0;
+  for (let i = 0; i < n; i++) { const t = i / SR; const r = fn(t, i, (f) => (phase += 2 * Math.PI * f / SR), (x, a) => (lp += a * (x - lp))); d[i] = r; }
+  return b;
+}
+function buildKit() {
+  const N = () => Math.random() * 2 - 1;
+  const kit = [
+    makeBuf(0.55, (t, i, ph) => Math.sin(ph(48 + 110 * Math.exp(-t * 28))) * Math.exp(-t * 6.5) * 1.1),                          // kick
+    makeBuf(0.35, (t, i, ph, lp) => (lp(N(), 0.6) * 0.8 + Math.sin(ph(185)) * 0.5 * Math.exp(-t * 25)) * Math.exp(-t * 11)),     // snare
+    makeBuf(0.4, (t) => N() * (Math.exp(-((t - 0.0) * 120)) + Math.exp(-((t - 0.012) ** 2) * 9e4) + Math.exp(-Math.max(0, t - 0.025) * 18)) * 0.7), // clap
+    (() => { let p = 0; return makeBuf(0.08, (t) => { const n = N(), h = n - p; p = n; return h * Math.exp(-t * 60) * 0.6; }); })(), // closed hat
+    (() => { let p = 0; return makeBuf(0.5, (t) => { const n = N(), h = n - p; p = n; return h * Math.exp(-t * 7) * 0.45; }); })(),  // open hat
+    makeBuf(0.5, (t, i, ph) => Math.sin(ph(95 + 60 * Math.exp(-t * 14))) * Math.exp(-t * 7)),                                    // low tom
+    makeBuf(0.4, (t, i, ph) => Math.sin(ph(160 + 80 * Math.exp(-t * 14))) * Math.exp(-t * 8)),                                   // hi tom
+    makeBuf(0.06, (t, i, ph) => (Math.sin(ph(1700)) * 0.6 + N() * 0.3) * Math.exp(-t * 90)),                                     // rim
+    makeBuf(0.3, (t) => ((Math.sin(2 * Math.PI * 540 * t) > 0 ? 1 : -1) * 0.3 + (Math.sin(2 * Math.PI * 800 * t) > 0 ? 1 : -1) * 0.3) * Math.exp(-t * 14)), // perc
+  ];
+  kit.forEach(b => { const d = b.getChannelData(0); d.set(crush(Array.from(d))); });
+  buffers.length = 0; buffers.push(...kit);
+}
+function ensureAudio() {
+  if (actx) return;
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  master = actx.createGain(); master.gain.value = 0.8;
+  const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 12000;
+  master.connect(lp).connect(actx.destination);
+  voiceGain = Array.from({ length: 9 }, () => { const g = actx.createGain(); g.connect(master); return g; });
+  buildKit(); builtVintage = vintage;
+}
+let builtVintage = true;
+function triggerPad(idx, vel = 1, when = 0) {
+  ensureAudio();
+  if (builtVintage !== vintage) { buildKit(); builtVintage = vintage; }
+  const fv = idx < faders.length ? faders[idx].userData.value : 0.8;
+  voiceGain[idx].gain.value = fv * vel * (0.4 + knobs[3].userData.value * 0.9);
+  const src = actx.createBufferSource(); src.buffer = buffers[idx]; src.connect(voiceGain[idx]); src.start(when || 0);
+  const delay = when ? Math.max(0, (when - actx.currentTime) * 1000) : 0;
+  setTimeout(() => {
+    pads[idx].userData.hit = 1;
+    if (idx < faders.length) faders[idx].userData.level = Math.max(faders[idx].userData.level, fv * vel * 1.1);
+  }, delay);
+}
+
+/* Sequencer */
+const PATTERN = [
+  [1,0,0,0, 0,0,0,1, 0,0,1,0, 0,0,0,0], // kick
+  [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], // snare
+  [0,0,0,0, 0,0,0,0, 0,0,0,0, 1,0,0,1], // clap
+  [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,0,0], // closed hat
+  [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,1,0], // open hat
+  [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+];
+let running = false, nextTime = 0, stepIdx = 0, schedTimer = null;
+function schedule() {
+  const spb = 60 / screenState.bpm / 4;
+  while (nextTime < actx.currentTime + 0.12) {
+    const swing = stepIdx % 2 ? spb * 0.16 : 0;
+    PATTERN.forEach((row, r) => { if (row[stepIdx]) triggerPad(r, stepIdx % 4 === 0 ? 1 : 0.78, nextTime + swing); });
+    const s = stepIdx; setTimeout(() => { screenState.step = s; }, Math.max(0, (nextTime - actx.currentTime) * 1000));
+    nextTime += spb; stepIdx = (stepIdx + 1) % 16;
+  }
+}
+function toggleRun() {
+  ensureAudio(); actx.resume();
+  running = !running;
+  runStopBtn.userData.led.emissiveIntensity = running ? 3 : 0.4;
+  ledRowBtns[0].userData.led.emissiveIntensity = running ? 4 : 2.2;
+  bPlay.setAttribute('aria-pressed', running); bPlay.textContent = running ? '■ Stop pattern' : '▶ Run pattern';
+  if (running) { nextTime = actx.currentTime + 0.05; stepIdx = 0; schedTimer = setInterval(schedule, 25); }
+  else { clearInterval(schedTimer); screenState.step = -1; }
+}
+let taps = [];
+function tapTempo() {
+  const now = performance.now(); taps = taps.filter(t => now - t < 2500); taps.push(now);
+  if (taps.length > 1) { const avg = (taps.at(-1) - taps[0]) / (taps.length - 1); screenState.bpm = Math.round(Math.min(180, Math.max(60, 60000 / avg))); }
+}
+
+/* ============================================================
+   Interaction: raycast click / drag
+   ============================================================ */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let drag = null;
+function startDrag(d) { drag = d; controls.enabled = false; }
+function pick(ev) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  return ray.intersectObjects(interactive, false)[0];
+}
+canvas.addEventListener('pointerdown', (ev) => {
+  const hit = pick(ev);
+  if (hit && hit.object.userData.handler) { hit.object.userData.handler(ev); canvas.setPointerCapture(ev.pointerId); }
+});
+const deckPlane = new THREE.Plane(), tmpV = new THREE.Vector3(), inv = new THREE.Matrix4();
+canvas.addEventListener('pointermove', (ev) => {
+  if (!drag) { canvas.style.cursor = pick(ev) ? 'pointer' : 'grab'; return; }
+  if (drag.type === 'knob') {
+    const v = THREE.MathUtils.clamp(drag.v0 + (drag.y0 - ev.clientY) / 180, 0, 1);
+    drag.obj.userData.value = v; drag.obj.userData.spin.rotation.y = -THREE.MathUtils.degToRad(-135 + 270 * v);
+  } else if (drag.type === 'fader') {
+    const r = canvas.getBoundingClientRect();
+    ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    deck.updateMatrixWorld();
+    const n = new THREE.Vector3(0, 1, 0).applyQuaternion(deck.getWorldQuaternion(new THREE.Quaternion()));
+    deckPlane.setFromNormalAndCoplanarPoint(n, deck.getWorldPosition(new THREE.Vector3()));
+    if (ray.ray.intersectPlane(deckPlane, tmpV)) {
+      inv.copy(deck.matrixWorld).invert(); tmpV.applyMatrix4(inv);
+      const v = THREE.MathUtils.clamp((F.z1 - tmpV.z) / (F.z1 - F.z0), 0, 1);
+      drag.obj.userData.value = v; drag.obj.userData.knob.position.z = THREE.MathUtils.lerp(F.z1, F.z0, v) - (F.z1 + F.z0) / 2;
+    }
+  }
+});
+addEventListener('pointerup', () => { if (drag) { drag = null; controls.enabled = true; } });
+
+const keyMap = { z: 0, x: 1, c: 2, a: 3, s: 4, d: 5, q: 6, w: 7, e: 8 };
+addEventListener('keydown', (ev) => {
+  if (ev.repeat) return;
+  if (ev.code === 'Space') { ev.preventDefault(); toggleRun(); return; }
+  // pads: bottom row of keys = front row of pads (row 2)
+  const k = keyMap[ev.key.toLowerCase()];
+  if (k !== undefined) { const col = k % 3, row = 2 - Math.floor(k / 3); triggerPad(row * 3 + col); }
+});
+
+/* UI buttons */
+const bPlay = document.getElementById('bPlay'), bExplode = document.getElementById('bExplode');
+const bRotate = document.getElementById('bRotate'), bLight = document.getElementById('bLight');
+let explodeTarget = 0, explodeT = 0;
+bPlay.onclick = toggleRun;
+bExplode.onclick = () => { explodeTarget = explodeTarget ? 0 : 1; bExplode.setAttribute('aria-pressed', !!explodeTarget); };
+bRotate.onclick = () => { controls.autoRotate = !controls.autoRotate; bRotate.setAttribute('aria-pressed', controls.autoRotate); };
+let night = false;
+bLight.onclick = () => {
+  night = !night; bLight.setAttribute('aria-pressed', night);
+  key.intensity = night ? 0.35 : 1.9; hemi.intensity = night ? 0.08 : 0.35; lamp.intensity = night ? 22 : 0;
+  renderer.toneMappingExposure = night ? 1.25 : 1.0; bloom.strength = night ? 1.1 : 0.55;
+};
+document.getElementById('bReset').onclick = () => { camera.position.copy(HOME_POS); controls.target.copy(HOME_TGT); };
+
+/* ============================================================
+   Post-processing + loop
+   ============================================================ */
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.5, 0.4, 0.95);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
+});
+
+const tmpC = new THREE.Color(), cOff = new THREE.Color(0x1a1408);
+const ledCols = [new THREE.Color(0xffd23a), new THREE.Color(0xff9a2a), new THREE.Color(0xff3a2a)];
+let last = performance.now(), frame = 0;
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  controls.update();
+  // explode
+  explodeT += (explodeTarget - explodeT) * Math.min(1, dt * 4);
+  for (const o of explodables) o.position.y = o.userData.baseY + explodeT * o.userData.layer * 0.45;
+  for (const c of cheeks) c.position.x = (c.userData.explodeX > 0 ? W / 2 - 0.08 : -W / 2 - 0.02) + explodeT * c.userData.explodeX;
+  deck.position.y = (hF + hB) / 2 + explodeT * 0.5;
+  // button presses
+  for (const cap of pressAnims) { cap.userData.t -= dt * 6; cap.position.y = 0.05 - Math.max(0, cap.userData.t) * 0.03; if (cap.userData.t <= 0) pressAnims.delete(cap); }
+  // pads
+  pads.forEach((p, i) => {
+    const u = p.userData; u.hit = Math.max(0, u.hit - dt * 3.5);
+    u.glow.emissiveIntensity = 1.4 + u.hit * 7 + (running ? 0.3 * Math.sin(now * 0.004 + i) : 0);
+    u.pad.position.y = 0.07 - u.hit * 0.025;
+  });
+  // fader LED ladders
+  faders.forEach((f, i) => {
+    f.userData.level = Math.max(0, f.userData.level - dt * 1.4);
+    const lit = Math.round(f.userData.level * ledPerCol * 0.95) + (running ? 0 : Math.round(f.userData.value * 3));
+    for (let j = 0; j < ledPerCol; j++) {
+      const on = j < lit; const base = j > 12 ? ledCols[2] : j > 9 ? ledCols[1] : ledCols[0];
+      tmpC.copy(on ? base : cOff).multiplyScalar(on ? 2.2 : 1);
+      ledInst.setColorAt(i * ledPerCol + j, tmpC);
+    }
+  });
+  ledInst.instanceColor.needsUpdate = true;
+  if (frame++ % 2 === 0) drawScreen(now);
+  composer.render();
+  requestAnimationFrame(loop);
+}
+drawScreen(0);
+document.getElementById('loading').remove();
+requestAnimationFrame(loop);
+window.__ready = true;
+</script>
+</body>
+</html>
